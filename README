@@ -1,0 +1,40 @@
+OVERVIEW
+
+	This directory contains the AJA NTV2 V4L2/ALSA driver.
+
+VERSION
+
+	1.0.0		initial release
+
+REQUIREMENTS
+
+	Builds in 3.10.0 <= linux (64 bit) <= 4.3.0 (approximately)
+
+	AJA Video IO board support:
+		Kona4
+		Corvid44
+		Corvid88
+		CorvidHDBT
+
+BUILDING THE DRIVER
+
+	A simple 'make' will build the driver.  If there are build errors
+	they may be due to v4l2 interface changes.  To manage this there
+	are several kernel version #ifdef(s) in ntv2_common.h.  The kernel
+	versions are approximate; you may need to adjust them for your kernel.
+
+LOADING THE DRIVER
+
+	To load the driver use:	'sudo ./load'.  The script modprobe(s) several
+	dependencies before loading the ntv2video.ko driver.  There is also an
+	unload script.  Unloading the driver requires exiting any application
+	that has opened the driver including the system audio mixer (pulseaudio).
+
+RUNNING SOME TESTS
+
+	qv4l2		/* simple v4l2 capture */
+	cheese		/* can do frame grabs */
+	audacity	/* capture audio */
+
+	vlc alsa:// --input-slave v4l2://	/* capture video and audio */
+	ffplay -f v4l2 -i /dev/video0		/* capture video */

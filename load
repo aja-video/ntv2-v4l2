@@ -1,0 +1,7 @@
+#!/bin/sh
+
+/sbin/modprobe v4l2-common
+/sbin/modprobe videobuf2-core
+/sbin/modprobe videobuf2-vmalloc
+#/sbin/modprobe videobuf2-dma-sg
+/sbin/insmod ntv2video.ko 

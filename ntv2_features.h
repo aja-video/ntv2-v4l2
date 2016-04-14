@@ -1,0 +1,164 @@
+/*
+ * NTV2 device features
+ *
+ * Copyright 2016 AJA Video Systems Inc. All rights reserved.
+ *
+ * This program is free software; you may redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#ifndef NTV2_FEATURES_H
+#define NTV2_FEATURES_H
+
+#include "ntv2_common.h"
+
+struct ntv2_video_config {
+	bool						capture;
+	bool						playback;
+};
+
+struct ntv2_audio_config {
+	bool						capture;
+	bool						playback;
+	u32							sample_rate;
+	u32							num_channels;
+	u32							sample_size;
+	u32							ring_size;
+	u32							ring_offset_samples;
+	u32							sync_tolerance;
+};
+
+struct ntv2_input_config {
+	const char*					name;
+	enum ntv2_input_type		type;
+	struct v4l2_dv_timings_cap	v4l2_timings_cap;
+	int							input_index;
+	u32							num_inputs;
+};
+
+struct ntv2_features {
+	int							index;
+	char						name[NTV2_STRING_SIZE];
+	struct list_head			list;
+	struct ntv2_device			*ntv2_dev;
+	spinlock_t 					state_lock;
+
+	u32							device_id;
+	const char					*device_name;
+	const char					*pcm_name;
+	unsigned short  			pci_vendor;
+	unsigned short  			pci_device;
+	unsigned short  			pci_subsystem_vendor;
+	unsigned short  			pci_subsystem_device;
+
+	u32							num_video_channels;
+	u32							num_audio_channels;
+	u32							num_sdi_inputs;
+	u32							num_hdmi_inputs;
+	u32							frame_buffer_size;
+
+	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
+	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
+	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
+
+	struct ntv2_video_format	*video_formats[NTV2_MAX_VIDEO_FORMATS];
+	struct ntv2_pixel_format	*pixel_formats[NTV2_MAX_PIXEL_FORMATS];
+	struct v4l2_dv_timings		*v4l2_timings[NTV2_MAX_VIDEO_FORMATS];
+
+	unsigned long				sdi_owner[NTV2_MAX_SDI_COMPONENTS];
+};
+
+struct ntv2_features *ntv2_features_open(struct ntv2_object *ntv2_obj,
+										 const char *name, int index);
+void ntv2_features_close(struct ntv2_features *features);
+
+int ntv2_features_configure(struct ntv2_features *features, u32 id);
+
+struct ntv2_video_config
+*ntv2_features_get_video_config(struct ntv2_features *features,
+								int channel_index);
+
+struct ntv2_audio_config
+*ntv2_features_get_audio_config(struct ntv2_features *features,
+								int channel_index);
+
+struct ntv2_input_config
+*ntv2_features_get_input_config(struct ntv2_features *features,
+								int channel_index,
+								int input_index);
+struct ntv2_input_config
+*ntv2_features_get_default_input_config(struct ntv2_features *features,
+										int channel_index);
+
+struct ntv2_pixel_format
+*ntv2_features_get_pixel_format(struct ntv2_features *features,
+								int channel_index,
+								int format_index);
+struct ntv2_pixel_format
+*ntv2_features_get_default_pixel_format(struct ntv2_features *features,
+										int channel_index);
+
+struct ntv2_video_format
+*ntv2_features_get_video_format(struct ntv2_features *features,
+								int channel_index,
+								int format_index);
+struct ntv2_video_format
+*ntv2_features_get_default_video_format(struct ntv2_features *features,
+										int channel_index);
+
+void ntv2_features_gen_default_input_format(struct ntv2_features *features,
+											int channel_index,
+											struct ntv2_input_format *format);
+
+u32 ntv2_features_line_pitch(struct ntv2_pixel_format *format, u32 pixels);
+
+u32 ntv2_features_ntv2_frame_size(struct ntv2_video_format *vidf,
+								  struct ntv2_pixel_format *pixf);
+
+u32 ntv2_features_v4l2_frame_size(struct ntv2_video_format *vidf,
+								  struct ntv2_pixel_format *pixf);
+
+int ntv2_features_get_frame_range(struct ntv2_features *features,
+								  struct ntv2_video_format *vidf,
+								  struct ntv2_pixel_format *pixf,
+								  u32 index,
+								  u32 *first,
+								  u32 *last,
+								  u32 *size);
+
+u32 ntv2_features_get_audio_capture_address(struct ntv2_features *features, u32 index);
+u32 ntv2_features_get_audio_play_address(struct ntv2_features *features, u32 index);
+
+int ntv2_features_acquire_sdi_component(struct ntv2_features *features,
+										int index, int num, unsigned long owner);
+int ntv2_features_release_sdi_component(struct ntv2_features *features,
+										int index, int num, unsigned long owner);
+void ntv2_features_release_components(struct ntv2_features *features, unsigned long owner);
+
+bool ntv2_features_valid_dv_timings(struct ntv2_features *features,
+									const struct v4l2_dv_timings *t,
+									const struct v4l2_dv_timings_cap *cap);
+
+int ntv2_features_enum_dv_timings_cap(struct ntv2_features *features,
+									  struct v4l2_enum_dv_timings *t,
+									  const struct v4l2_dv_timings_cap *cap);
+
+bool ntv2_features_find_dv_timings_cap(struct ntv2_features *features,
+									   struct v4l2_dv_timings *t,
+									   const struct v4l2_dv_timings_cap *cap,
+									   unsigned pclock_delta);
+
+bool ntv2_features_match_dv_timings(const struct v4l2_dv_timings *measured,
+									const struct v4l2_dv_timings *standard,
+									unsigned pclock_delta);
+#endif
