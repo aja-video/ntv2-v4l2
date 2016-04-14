@@ -1,0 +1,11 @@
+*.ko
+*.o
+.*o.cmd
+*.mod.c
+*~
+errors.txt
+semantic.cache
+.tmp_versions
+*.markers
+*.symvers
+*.order
