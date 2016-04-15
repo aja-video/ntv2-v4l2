@@ -1,11 +1,10 @@
 OVERVIEW
 
-	This repository contains the AJA NTV2 V4L2/ALSA driver.  The current
-	release supports video and audio capture.
+	This repository contains the AJA NTV2 V4L2/ALSA driver.
 
-VERSION
+VERSION (tag)
 
-	branch v1.0.x	tag v1.0.0		initial release
+	v1.0.0		initial release - video/audio capture
 
 REQUIREMENTS
 
