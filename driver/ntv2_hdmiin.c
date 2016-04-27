@@ -975,7 +975,8 @@ static u32 ntv2_hdmiin_read_paired_value(struct ntv2_hdmiin *ntv2_hin, u8 reg, u
 
 static void ntv2_hdmiin_update_timing(struct ntv2_hdmiin *ntv2_hin)
 {
-	u32 frame_rate;
+	u32 total_lines = 0;
+	u32 frame_rate = 0;
 
 	ntv2_hin->h_active_pixels = ntv2_hdmiin_read_paired_value(ntv2_hin, 0x07, 13, 0);
 	ntv2_hin->h_total_pixels = ntv2_hdmiin_read_paired_value(ntv2_hin, 0x1e, 13, 0);
@@ -1004,8 +1005,11 @@ static void ntv2_hdmiin_update_timing(struct ntv2_hdmiin *ntv2_hin)
 	}
 
 	/* compute frame rate (fps * 1000) */
-	frame_rate = ntv2_hin->tmds_frequency * 1000 / (ntv2_hin->v_total_lines0 + ntv2_hin->v_total_lines1);
-	frame_rate = frame_rate * 1000 / ntv2_hin->h_total_pixels;
+	total_lines = ntv2_hin->v_total_lines0 + ntv2_hin->v_total_lines1;
+	if ((total_lines != 0) && (ntv2_hin->h_total_pixels != 0)) {
+		frame_rate = ntv2_hin->tmds_frequency * 1000 / total_lines;
+		frame_rate = frame_rate * 1000 / ntv2_hin->h_total_pixels;
+	}
 
 	if (ntv2_hin->deep_color_10bit)
 		frame_rate = frame_rate * 8 / 10;
