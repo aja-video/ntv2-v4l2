@@ -549,11 +549,13 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		if (ntv2_hin->derep_mode)
 			ntv2_hdmi_set_derep_mode(ntv2_hin, false);
 
+		ntv2_hdmiin_set_no_video(ntv2_hin);
 		return 0;
 	}
 
 	if (!ntv2_hin->clock_present)
 	{
+		ntv2_hdmiin_set_no_video(ntv2_hin);
 		return 0;
 	}
 
