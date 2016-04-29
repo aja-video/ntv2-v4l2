@@ -37,6 +37,10 @@
 #include <linux/vmalloc.h>
 #include <linux/version.h>
 #include <linux/kthread.h>
+#include <linux/serial.h>
+#include <linux/serial_core.h>
+#include <linux/tty.h>
+#include <linux/tty_flip.h>
 
 #define GSPCA_DEBUG
 

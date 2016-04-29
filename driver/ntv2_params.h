@@ -48,6 +48,9 @@
 #define NTV2_MAX_FRAME_GEOMETRIES	24
 #define NTV2_MAX_INPUT_GEOMETRIES	8
 
+#define NTV2_MAX_UARTS				16
+#define NTV2_TTY_NAME				"ttyAJ"
+
 #ifdef NTV2_REG_CONST
 #define NTV2_REG_ARGS(a1, a2, a3, a4, a5, a6, a7, a8, aN, ...) aN
 #define NTV2_REG(reg, ...) \
@@ -96,6 +99,7 @@
 #define NTV2_DEBUG_KONAI2C_READ			0x00010000
 #define NTV2_DEBUG_KONAI2C_WRITE		0x00020000
 #define NTV2_DEBUG_HDMIIN_STATE			0x00040000
+#define NTV2_DEBUG_SERIAL_STATE			0x00080000
 
 #define NTV2_DEBUG_ACTIVE(msg_mask) \
 	((ntv2_module_info()->debug_mask & msg_mask) != 0)
@@ -140,6 +144,9 @@
 #define NTV2_MSG_HDMIIN_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN_STATE, string, __VA_ARGS__)
+#define NTV2_MSG_SERIAL_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
+#define NTV2_MSG_SERIAL_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_SERIAL_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_SERIAL_STATE, string, __VA_ARGS__)
 
 struct ntv2_register;
 struct ntv2_nwldma;

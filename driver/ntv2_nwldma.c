@@ -315,10 +315,10 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
 
 	if (task != NULL) {
-		NTV2_MSG_NWLDMA_STATE("%s: dma task queue %d  addr0 0x%08x  size0 %d  addr1 0x%08x  size1 %d\n",
-							  ntv2_nwl->name, task_index,
-							  address[0], size[0],
-							  address[1], size[1]);
+		NTV2_MSG_NWLDMA_STREAM("%s: dma task queue %d  addr0 0x%08x  size0 %d  addr1 0x%08x  size1 %d\n",
+							   ntv2_nwl->name, task_index,
+							   address[0], size[0],
+							   address[1], size[1]);
 	} else {
 		NTV2_MSG_NWLDMA_ERROR("%s: *error* dma transfer could not be queued\n",
 							  ntv2_nwl->name);
