@@ -604,6 +604,7 @@ static struct ntv2_video_config		nvc_both;
 static struct ntv2_audio_config		nac_capture;
 static struct ntv2_audio_config		nac_playback;
 static struct ntv2_audio_config		nac_both;
+static struct ntv2_serial_config	nsc_uartlite;
 
 static struct ntv2_input_config		nic_sdi_single_1;
 static struct ntv2_input_config		nic_sdi_single_2;
@@ -659,6 +660,7 @@ static void ntv2_features_initialize(void) {
 	struct ntv2_pixel_format *npf;
 	struct ntv2_audio_config *nac;
 	struct ntv2_input_config *nic;
+	struct ntv2_serial_config *nsc;
 
 	/* video configuration */
 	nvc = &nvc_capture;
@@ -709,6 +711,11 @@ static void ntv2_features_initialize(void) {
 	nac->ring_size = 0x3fc000;
 	nac->ring_offset_samples = 64;
 	nac->sync_tolerance = 10000;
+
+	/* serial port configuration */
+	nsc = &nsc_uartlite;
+	nsc->type = PORT_UARTLITE;
+	nsc->fifo_size = 16;
 
 	/* sdi single link inputs */
 	nic = &nic_sdi_single_1;
@@ -1393,6 +1400,7 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->num_sdi_inputs = 0;
 	features->num_hdmi_inputs = 1;
 	features->frame_buffer_size = 0x20000000;
+	features->num_serial_ports = 1;
 
 	features->video_config[0] = &nvc_capture;
 	features->audio_config[0] = &nac_capture;
@@ -1423,5 +1431,7 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 
 	all_pixel_formats(features);
 	build_v4l2_timings(features);
+
+	features->serial_config[0] = &nsc_uartlite;
 }
 

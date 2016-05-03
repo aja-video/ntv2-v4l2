@@ -20,6 +20,7 @@
 #include "ntv2_device.h"
 #include "ntv2_video.h"
 #include "ntv2_audio.h"
+#include "ntv2_serial.h"
 #include "ntv2_channel.h"
 #include "ntv2_register.h"
 #include "ntv2_nwldma.h"
@@ -74,6 +75,11 @@ struct ntv2_device *ntv2_device_open(struct ntv2_module *ntv2_mod,
 	spin_lock_init(&ntv2_dev->audio_lock);
 	atomic_set(&ntv2_dev->audio_index, 0);
 
+	/* serial list */
+	INIT_LIST_HEAD(&ntv2_dev->serial_list);
+	spin_lock_init(&ntv2_dev->serial_lock);
+	atomic_set(&ntv2_dev->serial_index, 0);
+
 	/* channel list */
 	INIT_LIST_HEAD(&ntv2_dev->channel_list);
 	spin_lock_init(&ntv2_dev->channel_lock);
@@ -91,6 +97,7 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 {
 	struct list_head *ptr;
 	struct list_head *next;
+	struct ntv2_serial *ser;
 	struct ntv2_audio *aud;
 	struct ntv2_video *vid;
 	struct ntv2_channel *chn;
@@ -102,6 +109,15 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 	NTV2_MSG_DEVICE_INFO("%s: close ntv2_device\n", ntv2_dev->name);
 
 	ntv2_device_irq_disable(ntv2_dev);
+
+	/* delete all serial objects */
+	list_for_each_safe(ptr, next, &ntv2_dev->serial_list) {
+		ser = list_entry(ptr, struct ntv2_serial, list);
+		spin_lock_irqsave(&ntv2_dev->serial_lock, flags);
+		list_del_init(&ser->list);
+		spin_unlock_irqrestore(&ntv2_dev->serial_lock, flags);
+		ntv2_serial_close(ser);
+	}
 
 	/* delete all audio objects */
 	list_for_each_safe(ptr, next, &ntv2_dev->audio_list) {
@@ -158,11 +174,13 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	struct ntv2_channel *ntv2_chn;
 	struct ntv2_video *ntv2_vid;
 	struct ntv2_audio *ntv2_aud;
+	struct ntv2_serial *ntv2_ser;
 	unsigned long flags;
 	u32 device_id;
 	int num_channels;
 	int num_video;
 	int num_audio;
+	int num_serial;
 	int index;
 	int result;
 	int i;
@@ -299,6 +317,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	num_video = ntv2_dev->features->num_video_channels;
 	num_audio = ntv2_dev->features->num_audio_channels;
 	num_channels = max(num_video, num_audio);
+	num_serial = ntv2_dev->features->num_serial_ports;
 
 	for (i = 0; i < num_channels; i++) {
 		/* allocate and initialize channel instance */
@@ -355,7 +374,32 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 				ntv2_audio_close(ntv2_aud);
 				return result;
 			}
+
+			/* add to the audio list */
+			spin_lock_irqsave(&ntv2_dev->audio_lock, flags);
+			list_add_tail(&ntv2_aud->list, &ntv2_dev->audio_list);
+			spin_unlock_irqrestore(&ntv2_dev->audio_lock, flags);
 		}
+	}
+
+	for (i = 0; i < num_serial; i++) {
+		/* allocate and initialize serial device instance */
+		index = atomic_inc_return(&ntv2_dev->serial_index) - 1;
+		ntv2_ser = ntv2_serial_open((struct ntv2_object*)ntv2_dev, "ser", index);
+
+		/* configure serial device */
+		result = ntv2_serial_configure(ntv2_ser,
+									   ntv2_dev->features,
+									   ntv2_dev->vid_reg);
+		if (result != 0) {
+			ntv2_serial_close(ntv2_ser);
+			return result;
+		}
+
+		/* add to the serial list */
+		spin_lock_irqsave(&ntv2_dev->serial_lock, flags);
+		list_add_tail(&ntv2_ser->list, &ntv2_dev->serial_list);
+		spin_unlock_irqrestore(&ntv2_dev->serial_lock, flags);
 	}
 
 	/* register the pcm devices */

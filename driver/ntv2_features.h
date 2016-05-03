@@ -38,6 +38,11 @@ struct ntv2_audio_config {
 	u32							sync_tolerance;
 };
 
+struct ntv2_serial_config {
+	u32							type;
+	u32							fifo_size;
+};
+
 struct ntv2_input_config {
 	const char*					name;
 	enum ntv2_input_type		type;
@@ -66,6 +71,7 @@ struct ntv2_features {
 	u32							num_sdi_inputs;
 	u32							num_hdmi_inputs;
 	u32							frame_buffer_size;
+	u32							num_serial_ports;
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
@@ -76,6 +82,8 @@ struct ntv2_features {
 	struct v4l2_dv_timings		*v4l2_timings[NTV2_MAX_VIDEO_FORMATS];
 
 	unsigned long				sdi_owner[NTV2_MAX_SDI_COMPONENTS];
+
+	struct ntv2_serial_config	*serial_config[NTV2_MAX_CHANNELS];
 };
 
 struct ntv2_features *ntv2_features_open(struct ntv2_object *ntv2_obj,

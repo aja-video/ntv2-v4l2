@@ -233,12 +233,14 @@ static int __init ntv2_module_init(void)
 					   NTV2_MODULE_NAME, result);
 		return result;
 	}
+	ntv2_module_info()->uart_driver = &ntv2_uart_driver;
 
 	/* probe the devices */
 	result = pci_register_driver(&ntv2_pci_driver);
 	if (result < 0) {
 		NTV2_MSG_ERROR("%s: *error* pci_register_driver failed code %d\n",
 					   NTV2_MODULE_NAME, result);
+		uart_unregister_driver(&ntv2_uart_driver);
 		return result;
 	}
 	if (atomic_read(&ntv2_module_info()->device_index) == 0)

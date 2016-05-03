@@ -37,7 +37,8 @@ struct ntv2_serial {
 	spinlock_t 						state_lock;
 	spinlock_t 						int_lock;
 
-	struct uart_driver 				ntv2_uart;
+	struct uart_port 				uart_port;
+	bool							alloc;
 };
 
 struct ntv2_serial *ntv2_serial_open(struct ntv2_object *ntv2_obj,

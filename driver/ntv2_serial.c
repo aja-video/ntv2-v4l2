@@ -22,138 +22,6 @@
 #include "ntv2_register.h"
 #include "ntv2_konareg.h"
 
-struct ntv2_serial *ntv2_serial_open(struct ntv2_object *ntv2_obj,
-								   const char *name, int index)
-{
-	struct ntv2_serial *ntv2_ser = NULL;
-
-	if (ntv2_obj == NULL)
-		return NULL;
-
-	ntv2_ser = kzalloc(sizeof(struct ntv2_serial), GFP_KERNEL);
-	if (ntv2_ser == NULL) {
-		NTV2_MSG_ERROR("%s: ntv2_serial instance memory allocation failed\n", ntv2_obj->name);
-		return NULL;
-	}
-
-	ntv2_ser->index = index;
-	snprintf(ntv2_ser->name, NTV2_STRING_SIZE, "%s-%s%d", ntv2_obj->name, name, index);
-	INIT_LIST_HEAD(&ntv2_ser->list);
-	ntv2_ser->ntv2_dev = ntv2_obj->ntv2_dev;
-
-	spin_lock_init(&ntv2_ser->state_lock);
-	spin_lock_init(&ntv2_ser->int_lock);
-
-	NTV2_MSG_SERIAL_INFO("%s: open ntv2_serial\n", ntv2_ser->name);
-
-	return ntv2_ser;
-}
-
-void ntv2_serial_close(struct ntv2_serial *ntv2_ser)
-{
-	if (ntv2_ser == NULL)
-		return;
-
-	NTV2_MSG_SERIAL_INFO("%s: close ntv2_serial\n", ntv2_ser->name);
-
-	/* stop the uart */
-	ntv2_serial_disable(ntv2_ser);
-
-	memset(ntv2_ser, 0, sizeof(struct ntv2_serial));
-	kfree(ntv2_ser);
-}
-
-int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
-						  struct ntv2_features *features,
-						  struct ntv2_register *vid_reg)
-{
-	if ((ntv2_ser == NULL) ||
-		(features == NULL) ||
-		(vid_reg == NULL))
-		return -EPERM;
-
-	NTV2_MSG_SERIAL_INFO("%s: configure serial device\n", ntv2_ser->name);
-
-	ntv2_ser->features = features;
-	ntv2_ser->vid_reg = vid_reg;
-
-//	NTV2_MSG_SERIAL_INFO("%s: register serial device: %s\n",
-//						 ntv2_ser->name, serial_dev->name);
-
-	return 0;
-}
-
-int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
-{
-	unsigned long flags;
-
-	if (ntv2_ser == NULL)
-		return -EPERM;
-
-	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
-
-	if (ntv2_ser->uart_enable) {
-		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
-		return 0;
-	}
-
-	NTV2_MSG_SERIAL_STATE("%s: serial state: enable\n", ntv2_ser->name);
-
-	ntv2_ser->uart_enable = true;
-
-	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
-{
-	unsigned long flags;
-
-	if (ntv2_ser == NULL)
-		return -EPERM;
-
-
-	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
-	
-	if (!ntv2_ser->uart_enable) {
-		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
-		return 0;
-	}
-
-	NTV2_MSG_CHANNEL_STATE("%s: serial state: disable\n", ntv2_ser->name);
-
-	ntv2_ser->uart_enable = false;
-
-	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_serial_interrupt(struct ntv2_serial *ntv2_ser,
-						  struct ntv2_interrupt_status* irq_status)
-{
-	int index;
-//	int res = IRQ_NONE;
-	unsigned long flags;
-
-	if ((ntv2_ser == NULL) ||
-		(irq_status == NULL))
-		return IRQ_NONE;
-
-	index = ntv2_ser->index;
-
-	spin_lock_irqsave(&ntv2_ser->int_lock, flags);
-	spin_unlock_irqrestore(&ntv2_ser->int_lock, flags);
-
-	return IRQ_HANDLED;
-}
-
-#define ULITE_NAME		"ttyUL"
-#define ULITE_MAJOR		204
-#define ULITE_MINOR		187
-#define ULITE_NR_UARTS		4
-
 #define ULITE_RX				0x00
 #define ULITE_TX				0x04
 #define ULITE_STATUS			0x08
@@ -468,8 +336,6 @@ static struct uart_ops ulite_ops = {
 	.verify_port	= ulite_verify_port,
 };
 
-static struct uart_driver ulite_uart_driver;
-
 #if 0
 /* ---------------------------------------------------------------------
  * Port assignment functions (mapping devices to uart_port structures)
@@ -554,34 +420,172 @@ static int ulite_release(struct device *dev)
 	return rc;
 }
 
+#endif
 
-static int __init ulite_init(void)
+struct ntv2_serial *ntv2_serial_open(struct ntv2_object *ntv2_obj,
+								   const char *name, int index)
 {
+	struct ntv2_serial *ntv2_ser = NULL;
+
+	if (ntv2_obj == NULL)
+		return NULL;
+
+	ntv2_ser = kzalloc(sizeof(struct ntv2_serial), GFP_KERNEL);
+	if (ntv2_ser == NULL) {
+		NTV2_MSG_ERROR("%s: ntv2_serial instance memory allocation failed\n", ntv2_obj->name);
+		return NULL;
+	}
+
+	ntv2_ser->index = index;
+	snprintf(ntv2_ser->name, NTV2_STRING_SIZE, "%s-%s%d", ntv2_obj->name, name, index);
+	INIT_LIST_HEAD(&ntv2_ser->list);
+	ntv2_ser->ntv2_dev = ntv2_obj->ntv2_dev;
+
+	spin_lock_init(&ntv2_ser->state_lock);
+	spin_lock_init(&ntv2_ser->int_lock);
+
+	NTV2_MSG_SERIAL_INFO("%s: open ntv2_serial\n", ntv2_ser->name);
+
+	return ntv2_ser;
+}
+
+void ntv2_serial_close(struct ntv2_serial *ntv2_ser)
+{
+	struct uart_port *port;
+
+	if (ntv2_ser == NULL)
+		return;
+
+	NTV2_MSG_SERIAL_INFO("%s: close ntv2_serial\n", ntv2_ser->name);
+
+	/* stop the uart */
+	ntv2_serial_disable(ntv2_ser);
+
+	port = &ntv2_ser->uart_port;
+	if (port->iobase != 0) {
+		uart_remove_one_port(ntv2_module_info()->uart_driver, port);
+		port->iobase = 0;
+	}
+
+	memset(ntv2_ser, 0, sizeof(struct ntv2_serial));
+	kfree(ntv2_ser);
+}
+
+int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
+						  struct ntv2_features *features,
+						  struct ntv2_register *vid_reg)
+{
+	struct uart_port *port;
+	int index;
 	int ret;
 
-	pr_debug("uartlite: calling uart_register_driver()\n");
-	ret = uart_register_driver(&ulite_uart_driver);
-	if (ret)
-		goto err_uart;
+	if ((ntv2_ser == NULL) ||
+		(features == NULL) ||
+		(vid_reg == NULL))
+		return -EPERM;
 
-	pr_debug("uartlite: calling platform_driver_register()\n");
-	ret = platform_driver_register(&ulite_platform_driver);
-	if (ret)
-		goto err_plat;
+	NTV2_MSG_SERIAL_INFO("%s: configure serial device\n", ntv2_ser->name);
+
+	index = atomic_inc_return(&ntv2_module_info()->uart_index) - 1;
+	if (index >= NTV2_MAX_UARTS) {
+		NTV2_MSG_SERIAL_ERROR("%s: ntv2_serial too many uarts %d\n", ntv2_ser->name, index + 1);
+		return -ENOMEM;
+	}
+
+	ntv2_ser->features = features;
+	ntv2_ser->vid_reg = vid_reg;
+
+	port = &ntv2_ser->uart_port;
+
+	port->fifosize = features->serial_config[ntv2_ser->index]->fifo_size;
+	port->regshift = 2;
+	port->iotype = UPIO_MEM;
+	port->iobase = 1; /* mark port in use */
+	port->ops = &ulite_ops;
+//	port->irq = ntv2_ser->ntv2_dev->pci_dev->irq;
+	port->flags = UPF_BOOT_AUTOCONF;
+	port->dev = &ntv2_ser->ntv2_dev->pci_dev->dev;
+	port->type = PORT_UNKNOWN;
+	port->line = (unsigned int)index;
+
+	NTV2_MSG_SERIAL_INFO("%s: register serial device: %s  port: %d\n",
+						 ntv2_ser->name, NTV2_TTY_NAME, index);
+
+	/* Register the port */
+	ret = uart_add_one_port(ntv2_module_info()->uart_driver, port);
+	if (ret < 0) {
+		NTV2_MSG_SERIAL_ERROR("%s: uart_add_one_port() failed %d  port: %d\n",
+							  ntv2_ser->name, ret, index);
+		port->iobase = 0;
+		return ret;
+	}
 
 	return 0;
-
-err_plat:
-	uart_unregister_driver(&ulite_uart_driver);
-err_uart:
-	pr_err("registering uartlite driver failed: err=%i", ret);
-	return ret;
 }
 
-static void __exit ulite_exit(void)
+int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
 {
-	platform_driver_unregister(&ulite_platform_driver);
-	uart_unregister_driver(&ulite_uart_driver);
+	unsigned long flags;
+
+	if (ntv2_ser == NULL)
+		return -EPERM;
+
+	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
+
+	if (ntv2_ser->uart_enable) {
+		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
+		return 0;
+	}
+
+	NTV2_MSG_SERIAL_STATE("%s: serial state: enable\n", ntv2_ser->name);
+
+	ntv2_ser->uart_enable = true;
+
+	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
+
+	return 0;
 }
 
-#endif
+int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
+{
+	unsigned long flags;
+
+	if (ntv2_ser == NULL)
+		return -EPERM;
+
+
+	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
+	
+	if (!ntv2_ser->uart_enable) {
+		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
+		return 0;
+	}
+
+	NTV2_MSG_CHANNEL_STATE("%s: serial state: disable\n", ntv2_ser->name);
+
+	ntv2_ser->uart_enable = false;
+
+	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_serial_interrupt(struct ntv2_serial *ntv2_ser,
+						  struct ntv2_interrupt_status* irq_status)
+{
+	int index;
+//	int res = IRQ_NONE;
+	unsigned long flags;
+
+	if ((ntv2_ser == NULL) ||
+		(irq_status == NULL))
+		return IRQ_NONE;
+
+	index = ntv2_ser->index;
+
+	spin_lock_irqsave(&ntv2_ser->int_lock, flags);
+	spin_unlock_irqrestore(&ntv2_ser->int_lock, flags);
+
+	return IRQ_HANDLED;
+}
+
