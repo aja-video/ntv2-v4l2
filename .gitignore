@@ -10,3 +10,5 @@ semantic.cache
 *.symvers
 *.order
 *#
+TAGS
+tags

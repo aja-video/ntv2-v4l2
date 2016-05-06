@@ -695,6 +695,7 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 	struct ntv2_interrupt_status irq_status;
 	struct list_head *ptr;
 	struct ntv2_channel *chn;
+	struct ntv2_serial *ser;
 	int result = IRQ_NONE;
 	int res;
 
@@ -715,6 +716,14 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 	list_for_each(ptr, &ntv2_dev->channel_list) {
 		chn = list_entry(ptr, struct ntv2_channel, list);
 		res = ntv2_channel_interrupt(chn, &irq_status);
+		if (res == IRQ_HANDLED)
+			result = IRQ_HANDLED;
+	}
+
+	/* process uart interrupts */
+	list_for_each(ptr, &ntv2_dev->serial_list) {
+		ser = list_entry(ptr, struct ntv2_serial, list);
+		res = ntv2_serial_interrupt(ser, &irq_status);
 		if (res == IRQ_HANDLED)
 			result = IRQ_HANDLED;
 	}

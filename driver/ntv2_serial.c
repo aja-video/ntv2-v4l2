@@ -22,237 +22,180 @@
 #include "ntv2_register.h"
 #include "ntv2_konareg.h"
 
-#define ULITE_RX				0x00
-#define ULITE_TX				0x04
-#define ULITE_STATUS			0x08
-#define ULITE_CONTROL			0x0c
+#define NTV2_SERIAL_CLOSE_TIMEOUT		10000000
 
-#define ULITE_REGION			16
+static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser);
+static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser);
 
-#define ULITE_STATUS_RXVALID	0x01
-#define ULITE_STATUS_RXFULL		0x02
-#define ULITE_STATUS_TXEMPTY	0x04
-#define ULITE_STATUS_TXFULL		0x08
-#define ULITE_STATUS_IE			0x10
-#define ULITE_STATUS_OVERRUN	0x20
-#define ULITE_STATUS_FRAME		0x40
-#define ULITE_STATUS_PARITY		0x80
-
-#define ULITE_CONTROL_RST_TX	0x01
-#define ULITE_CONTROL_RST_RX	0x02
-#define ULITE_CONTROL_IE		0x10
-
-static inline u32 uart_in32(u32 offset, struct uart_port *port)
+int ntv2_remove_one_port(struct uart_driver *drv, struct uart_port *uport)
 {
-#if 0
-	struct uartlite_reg_ops *reg_ops = port->private_data;
+	struct uart_state *state = drv->state + uport->line;
+	struct tty_port *port = &state->port;
+	struct tty_struct *tty;
+	int ret = 0;
 
-	return reg_ops->in(port->membase + offset);
-#endif
-	return 0;
-}
+	if (state->uart_port != uport)
+		dev_alert(uport->dev, "Removing wrong port: %p != %p\n",
+			state->uart_port, uport);
 
-static inline void uart_out32(u32 val, u32 offset, struct uart_port *port)
-{
-#if 0
-	struct uartlite_reg_ops *reg_ops = port->private_data;
+	/*
+	 * Mark the port "dead" - this prevents any opens from
+	 * succeeding while we shut down the port.
+	 */
+	uport->flags |= UPF_DEAD;
 
-	reg_ops->out(val, port->membase + offset);
-#endif
-}
+	/*
+	 * Remove the devices from the tty layer
+	 */
+	tty_unregister_device(drv->tty_driver, uport->line);
 
-static int ulite_receive(struct uart_port *port, int stat)
-{
-	struct tty_port *tport = &port->state->port;
-	unsigned char ch = 0;
-	char flag = TTY_NORMAL;
-
-	if ((stat & (ULITE_STATUS_RXVALID | ULITE_STATUS_OVERRUN
-		     | ULITE_STATUS_FRAME)) == 0)
-		return 0;
-
-	/* stats */
-	if (stat & ULITE_STATUS_RXVALID) {
-		port->icount.rx++;
-		ch = uart_in32(ULITE_RX, port);
-
-		if (stat & ULITE_STATUS_PARITY)
-			port->icount.parity++;
+	tty = tty_port_tty_get(port);
+	if (tty) {
+		tty_vhangup(port->tty);
+		tty_kref_put(tty);
 	}
 
-	if (stat & ULITE_STATUS_OVERRUN)
-		port->icount.overrun++;
+	/*
+	 * Hack to wait for tty to close to prevent panic
+	 */
+	msleep(250);
 
-	if (stat & ULITE_STATUS_FRAME)
-		port->icount.frame++;
+	/*
+	 * Free the port IO and memory resources, if any.
+	 */
+	if (uport->type != PORT_UNKNOWN)
+		uport->ops->release_port(uport);
+	kfree(uport->tty_groups);
 
+	/*
+	 * Indicate that there isn't a port here anymore.
+	 */
+	uport->type = PORT_UNKNOWN;
 
-	/* drop byte with parity error if IGNPAR specificed */
-	if (stat & port->ignore_status_mask & ULITE_STATUS_PARITY)
-		stat &= ~ULITE_STATUS_RXVALID;
+	state->uart_port = NULL;
 
-	stat &= port->read_status_mask;
-
-	if (stat & ULITE_STATUS_PARITY)
-		flag = TTY_PARITY;
-
-	stat &= ~port->ignore_status_mask;
-
-	if (stat & ULITE_STATUS_RXVALID)
-		tty_insert_flip_char(tport, ch, flag);
-
-	if (stat & ULITE_STATUS_FRAME)
-		tty_insert_flip_char(tport, 0, TTY_FRAME);
-
-	if (stat & ULITE_STATUS_OVERRUN)
-		tty_insert_flip_char(tport, 0, TTY_OVERRUN);
-
-	return 1;
+	return ret;
 }
 
-static int ulite_transmit(struct uart_port *port, int stat)
+static unsigned int ntv2_uartops_tx_empty(struct uart_port *port)
 {
-	struct circ_buf *xmit  = &port->state->xmit;
-
-	if (stat & ULITE_STATUS_TXFULL)
-		return 0;
-
-	if (port->x_char) {
-		uart_out32(port->x_char, ULITE_TX, port);
-		port->x_char = 0;
-		port->icount.tx++;
-		return 1;
-	}
-
-	if (uart_circ_empty(xmit) || uart_tx_stopped(port))
-		return 0;
-
-	uart_out32(xmit->buf[xmit->tail], ULITE_TX, port);
-	xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE-1);
-	port->icount.tx++;
-
-	/* wake up */
-	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
-		uart_write_wakeup(port);
-
-	return 1;
-}
-
-static irqreturn_t ulite_isr(int irq, void *dev_id)
-{
-	struct uart_port *port = dev_id;
-	int busy, n = 0;
-
-	do {
-		int stat = uart_in32(ULITE_STATUS, port);
-		busy  = ulite_receive(port, stat);
-		busy |= ulite_transmit(port, stat);
-		n++;
-	} while (busy);
-
-	/* work done? */
-	if (n > 1) {
-		tty_flip_buffer_push(&port->state->port);
-		return IRQ_HANDLED;
-	} else {
-		return IRQ_NONE;
-	}
-}
-
-static unsigned int ulite_tx_empty(struct uart_port *port)
-{
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+	u32 empty = NTV2_FLD_MASK(ntv2_kona_fld_serial_tx_empty);
 	unsigned long flags;
 	unsigned int ret;
 
+	/* empty if not enabled */
+	if (!ntv2_ser->uart_enable)
+		return TIOCSER_TEMT;
+
 	spin_lock_irqsave(&port->lock, flags);
-	ret = uart_in32(ULITE_STATUS, port);
+	ret = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
 	spin_unlock_irqrestore(&port->lock, flags);
 
-	return ret & ULITE_STATUS_TXEMPTY ? TIOCSER_TEMT : 0;
+	return (ret & empty)? TIOCSER_TEMT : 0;
 }
 
-static unsigned int ulite_get_mctrl(struct uart_port *port)
+static unsigned int ntv2_uartops_get_mctrl(struct uart_port *port)
 {
 	return TIOCM_CTS | TIOCM_DSR | TIOCM_CAR;
 }
 
-static void ulite_set_mctrl(struct uart_port *port, unsigned int mctrl)
+static void ntv2_uartops_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	/* N/A */
 }
 
-static void ulite_stop_tx(struct uart_port *port)
+static void ntv2_uartops_stop_tx(struct uart_port *port)
 {
-	/* N/A */
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart stop transmit\n", ntv2_ser->name);
 }
 
-static void ulite_start_tx(struct uart_port *port)
+static void ntv2_uartops_start_tx(struct uart_port *port)
 {
-	ulite_transmit(port, uart_in32(ULITE_STATUS, port));
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart start transmit\n", ntv2_ser->name);
+
+	ntv2_serial_transmit(ntv2_ser);
 }
 
-static void ulite_stop_rx(struct uart_port *port)
+static void ntv2_uartops_stop_rx(struct uart_port *port)
 {
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart stop receive\n", ntv2_ser->name);
+
 	/* don't forward any more data (like !CREAD) */
-	port->ignore_status_mask = ULITE_STATUS_RXVALID | ULITE_STATUS_PARITY
-		| ULITE_STATUS_FRAME | ULITE_STATUS_OVERRUN;
+	port->ignore_status_mask = 
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid) |
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun) |
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame) |
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
 }
 
-static void ulite_break_ctl(struct uart_port *port, int ctl)
+static void ntv2_uartops_break_ctl(struct uart_port *port, int ctl)
 {
 	/* N/A */
 }
 
-static int ulite_startup(struct uart_port *port)
+static int ntv2_uartops_startup(struct uart_port *port)
 {
-#if 0
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
 	int ret;
 
-	ret = request_irq(port->irq, ulite_isr, IRQF_SHARED, "uartlite", port);
-	if (ret)
-		return ret;
-#endif
-	uart_out32(ULITE_CONTROL_RST_RX | ULITE_CONTROL_RST_TX,
-		ULITE_CONTROL, port);
-	uart_out32(ULITE_CONTROL_IE, ULITE_CONTROL, port);
+	NTV2_MSG_SERIAL_STREAM("%s: uart startup\n", ntv2_ser->name);
 
-	return 0;
+	/* reset fifos */
+	ntv2_reg_write(ntv2_ser->vid_reg,
+				   ntv2_kona_reg_serial_control, ntv2_ser->index,
+				   NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_tx) |
+				   NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_rx));
+
+	ret = ntv2_serial_enable(ntv2_ser);
+
+	return ret;
 }
 
-static void ulite_shutdown(struct uart_port *port)
+static void ntv2_uartops_shutdown(struct uart_port *port)
 {
-	uart_out32(0, ULITE_CONTROL, port);
-	uart_in32(ULITE_CONTROL, port); /* dummy */
-#if 0
-	free_irq(port->irq, port);
-#endif
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart shutdown\n", ntv2_ser->name);
+
+	ntv2_serial_disable(ntv2_ser);
 }
 
-static void ulite_set_termios(struct uart_port *port, struct ktermios *termios,
-			      struct ktermios *old)
+static void ntv2_uartops_set_termios(struct uart_port *port,
+									 struct ktermios *termios,
+									 struct ktermios *old)
 {
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+	u32 valid = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid);
+	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun);
+	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame);
+	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
+	u32 full = NTV2_FLD_MASK(ntv2_kona_fld_serial_tx_full);
 	unsigned long flags;
 	unsigned int baud;
 
+	NTV2_MSG_SERIAL_STREAM("%s: uart set termios\n", ntv2_ser->name);
+
 	spin_lock_irqsave(&port->lock, flags);
 
-	port->read_status_mask = ULITE_STATUS_RXVALID | ULITE_STATUS_OVERRUN
-		| ULITE_STATUS_TXFULL;
+	port->read_status_mask = valid | overrun | full;
 
 	if (termios->c_iflag & INPCK)
-		port->read_status_mask |=
-			ULITE_STATUS_PARITY | ULITE_STATUS_FRAME;
+		port->read_status_mask |= parity | frame;
 
 	port->ignore_status_mask = 0;
 	if (termios->c_iflag & IGNPAR)
-		port->ignore_status_mask |= ULITE_STATUS_PARITY
-			| ULITE_STATUS_FRAME | ULITE_STATUS_OVERRUN;
+		port->ignore_status_mask |= parity | frame | overrun;
 
 	/* ignore all characters if CREAD is not set */
 	if ((termios->c_cflag & CREAD) == 0)
-		port->ignore_status_mask |=
-			ULITE_STATUS_RXVALID | ULITE_STATUS_PARITY
-			| ULITE_STATUS_FRAME | ULITE_STATUS_OVERRUN;
+		port->ignore_status_mask |= valid | parity | frame | overrun;
 
 	/* update timeout */
 	baud = uart_get_baud_rate(port, termios, old, 0, 460800);
@@ -261,166 +204,73 @@ static void ulite_set_termios(struct uart_port *port, struct ktermios *termios,
 	spin_unlock_irqrestore(&port->lock, flags);
 }
 
-static const char *ulite_type(struct uart_port *port)
+static const char *ntv2_uartops_type(struct uart_port *port)
 {
 	return port->type == PORT_UARTLITE ? "uartlite" : NULL;
 }
 
-static void ulite_release_port(struct uart_port *port)
+static void ntv2_uartops_release_port(struct uart_port *port)
 {
-#if 0
-	release_mem_region(port->mapbase, ULITE_REGION);
-	iounmap(port->membase);
-	port->membase = NULL;
-#endif
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart release port\n", ntv2_ser->name);
+
+	ntv2_ser->busy = false;
 }
 
-static int ulite_request_port(struct uart_port *port)
+static int ntv2_uartops_request_port(struct uart_port *port)
 {
-#if 0
-	int ret;
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
 
-	pr_debug("ulite console: port=%p; port->mapbase=%llx\n",
-		 port, (unsigned long long) port->mapbase);
+	NTV2_MSG_SERIAL_STREAM("%s: uart request port\n", ntv2_ser->name);
 
-	if (!request_mem_region(port->mapbase, ULITE_REGION, "uartlite")) {
-		dev_err(port->dev, "Memory region busy\n");
+	/* try to allocate uart */
+	if (ntv2_ser->busy)
 		return -EBUSY;
-	}
+	ntv2_ser->busy = true;
 
-	port->membase = ioremap(port->mapbase, ULITE_REGION);
-	if (!port->membase) {
-		dev_err(port->dev, "Unable to map registers\n");
-		release_mem_region(port->mapbase, ULITE_REGION);
-		return -EBUSY;
-	}
-
-	port->private_data = &uartlite_be;
-	ret = uart_in32(ULITE_CONTROL, port);
-	uart_out32(ULITE_CONTROL_RST_TX, ULITE_CONTROL, port);
-	ret = uart_in32(ULITE_STATUS, port);
-	/* Endianess detection */
-	if ((ret & ULITE_STATUS_TXEMPTY) != ULITE_STATUS_TXEMPTY)
-		port->private_data = &uartlite_le;
-#endif
 	return 0;
 }
 
-static void ulite_config_port(struct uart_port *port, int flags)
+static void ntv2_uartops_config_port(struct uart_port *port, int flags)
 {
-	if (!ulite_request_port(port))
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart config port\n", ntv2_ser->name);
+
+//	if (!ntv2_uartops_request_port(port))
+	if (flags & UART_CONFIG_TYPE) {
 		port->type = PORT_UARTLITE;
+		ntv2_uartops_request_port(port);
+	}
 }
 
-static int ulite_verify_port(struct uart_port *port, struct serial_struct *ser)
+static int ntv2_uartops_verify_port(struct uart_port *port, struct serial_struct *ser)
 {
-	/* we don't want the core code to modify any port params */
+	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
+
+	NTV2_MSG_SERIAL_STREAM("%s: uart verify port\n", ntv2_ser->name);
+
 	return -EINVAL;
 }
 
-static struct uart_ops ulite_ops = {
-	.tx_empty		= ulite_tx_empty,
-	.set_mctrl		= ulite_set_mctrl,
-	.get_mctrl		= ulite_get_mctrl,
-	.stop_tx		= ulite_stop_tx,
-	.start_tx		= ulite_start_tx,
-	.stop_rx		= ulite_stop_rx,
-	.break_ctl		= ulite_break_ctl,
-	.startup		= ulite_startup,
-	.shutdown		= ulite_shutdown,
-	.set_termios	= ulite_set_termios,
-	.type			= ulite_type,
-	.release_port	= ulite_release_port,
-	.request_port	= ulite_request_port,
-	.config_port	= ulite_config_port,
-	.verify_port	= ulite_verify_port,
+static struct uart_ops ntv2_uartops = {
+	.tx_empty		= ntv2_uartops_tx_empty,
+	.set_mctrl		= ntv2_uartops_set_mctrl,
+	.get_mctrl		= ntv2_uartops_get_mctrl,
+	.stop_tx		= ntv2_uartops_stop_tx,
+	.start_tx		= ntv2_uartops_start_tx,
+	.stop_rx		= ntv2_uartops_stop_rx,
+	.break_ctl		= ntv2_uartops_break_ctl,
+	.startup		= ntv2_uartops_startup,
+	.shutdown		= ntv2_uartops_shutdown,
+	.set_termios	= ntv2_uartops_set_termios,
+	.type			= ntv2_uartops_type,
+	.release_port	= ntv2_uartops_release_port,
+	.request_port	= ntv2_uartops_request_port,
+	.config_port	= ntv2_uartops_config_port,
+	.verify_port	= ntv2_uartops_verify_port,
 };
-
-#if 0
-/* ---------------------------------------------------------------------
- * Port assignment functions (mapping devices to uart_port structures)
- */
-
-/** ulite_assign: register a uartlite device with the driver
- *
- * @dev: pointer to device structure
- * @id: requested id number.  Pass -1 for automatic port assignment
- * @base: base address of uartlite registers
- * @irq: irq number for uartlite
- *
- * Returns: 0 on success, <0 otherwise
- */
-static int ulite_assign(struct device *dev, int id, u32 base, int irq)
-{
-	struct uart_port *port;
-	int rc;
-
-	/* if id = -1; then scan for a free id and use that */
-	if (id < 0) {
-		for (id = 0; id < ULITE_NR_UARTS; id++)
-			if (ulite_ports[id].mapbase == 0)
-				break;
-	}
-	if (id < 0 || id >= ULITE_NR_UARTS) {
-		dev_err(dev, "%s%i too large\n", ULITE_NAME, id);
-		return -EINVAL;
-	}
-
-	if ((ulite_ports[id].mapbase) && (ulite_ports[id].mapbase != base)) {
-		dev_err(dev, "cannot assign to %s%i; it is already in use\n",
-			ULITE_NAME, id);
-		return -EBUSY;
-	}
-
-	port = &ulite_ports[id];
-
-	spin_lock_init(&port->lock);
-	port->fifosize = 16;
-	port->regshift = 2;
-	port->iotype = UPIO_MEM;
-	port->iobase = 1; /* mark port in use */
-	port->mapbase = base;
-	port->membase = NULL;
-	port->ops = &ulite_ops;
-	port->irq = irq;
-	port->flags = UPF_BOOT_AUTOCONF;
-	port->dev = dev;
-	port->type = PORT_UNKNOWN;
-	port->line = id;
-
-	dev_set_drvdata(dev, port);
-
-	/* Register the port */
-	rc = uart_add_one_port(&ulite_uart_driver, port);
-	if (rc) {
-		dev_err(dev, "uart_add_one_port() failed; err=%i\n", rc);
-		port->mapbase = 0;
-		dev_set_drvdata(dev, NULL);
-		return rc;
-	}
-
-	return 0;
-}
-
-/** ulite_release: register a uartlite device with the driver
- *
- * @dev: pointer to device structure
- */
-static int ulite_release(struct device *dev)
-{
-	struct uart_port *port = dev_get_drvdata(dev);
-	int rc = 0;
-
-	if (port) {
-		rc = uart_remove_one_port(&ulite_uart_driver, port);
-		dev_set_drvdata(dev, NULL);
-		port->mapbase = 0;
-	}
-
-	return rc;
-}
-
-#endif
 
 struct ntv2_serial *ntv2_serial_open(struct ntv2_object *ntv2_obj,
 								   const char *name, int index)
@@ -442,7 +292,6 @@ struct ntv2_serial *ntv2_serial_open(struct ntv2_object *ntv2_obj,
 	ntv2_ser->ntv2_dev = ntv2_obj->ntv2_dev;
 
 	spin_lock_init(&ntv2_ser->state_lock);
-	spin_lock_init(&ntv2_ser->int_lock);
 
 	NTV2_MSG_SERIAL_INFO("%s: open ntv2_serial\n", ntv2_ser->name);
 
@@ -463,7 +312,7 @@ void ntv2_serial_close(struct ntv2_serial *ntv2_ser)
 
 	port = &ntv2_ser->uart_port;
 	if (port->iobase != 0) {
-		uart_remove_one_port(ntv2_module_info()->uart_driver, port);
+		ntv2_remove_one_port(ntv2_module_info()->uart_driver, port);
 		port->iobase = 0;
 	}
 
@@ -501,8 +350,7 @@ int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
 	port->regshift = 2;
 	port->iotype = UPIO_MEM;
 	port->iobase = 1; /* mark port in use */
-	port->ops = &ulite_ops;
-//	port->irq = ntv2_ser->ntv2_dev->pci_dev->irq;
+	port->ops = &ntv2_uartops;
 	port->flags = UPF_BOOT_AUTOCONF;
 	port->dev = &ntv2_ser->ntv2_dev->pci_dev->dev;
 	port->type = PORT_UNKNOWN;
@@ -541,6 +389,11 @@ int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
 
 	ntv2_ser->uart_enable = true;
 
+	/* enable interrupt */
+	ntv2_reg_write(ntv2_ser->vid_reg,
+				   ntv2_kona_reg_serial_control, ntv2_ser->index,
+				   NTV2_FLD_MASK(ntv2_kona_fld_serial_int_enable));
+
 	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 
 	return 0;
@@ -553,7 +406,6 @@ int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
 	if (ntv2_ser == NULL)
 		return -EPERM;
 
-
 	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
 	
 	if (!ntv2_ser->uart_enable) {
@@ -561,9 +413,17 @@ int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
 		return 0;
 	}
 
-	NTV2_MSG_CHANNEL_STATE("%s: serial state: disable\n", ntv2_ser->name);
+	NTV2_MSG_SERIAL_STATE("%s: serial state: disable\n", ntv2_ser->name);
 
 	ntv2_ser->uart_enable = false;
+
+	/* disable interrupt */
+	ntv2_reg_write(ntv2_ser->vid_reg,
+				   ntv2_kona_reg_serial_control, ntv2_ser->index,
+				   0);
+
+	/* synchronize */
+	ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_control, ntv2_ser->index);
 
 	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 
@@ -573,19 +433,150 @@ int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
 int ntv2_serial_interrupt(struct ntv2_serial *ntv2_ser,
 						  struct ntv2_interrupt_status* irq_status)
 {
-	int index;
-//	int res = IRQ_NONE;
+	struct uart_port *port = &ntv2_ser->uart_port;
+	u32 status;
+	u32 active = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_active);
+	u32 clear = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_clear);
+	bool busy;
+	int count = 0;
 	unsigned long flags;
 
 	if ((ntv2_ser == NULL) ||
 		(irq_status == NULL))
 		return IRQ_NONE;
 
-	index = ntv2_ser->index;
+	/* is interrupt active */
+	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
+	if ((status & active) == 0)
+		return IRQ_NONE;
 
-	spin_lock_irqsave(&ntv2_ser->int_lock, flags);
-	spin_unlock_irqrestore(&ntv2_ser->int_lock, flags);
+	/* clear interrupt */
+	ntv2_reg_rmw(ntv2_ser->vid_reg,
+				 ntv2_kona_reg_serial_control, ntv2_ser->index,
+				 clear, clear);
+
+	/* check enabled */
+	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
+	if (!ntv2_ser->uart_enable) {
+		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
+		return IRQ_HANDLED;
+	}
+
+	/* manage uart */
+	do {
+		busy  = ntv2_serial_receive(ntv2_ser);
+		busy |= ntv2_serial_transmit(ntv2_ser);
+		count++;
+	} while (busy);
+
+	if (count > 1)
+		tty_flip_buffer_push(&port->state->port);
+
+	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 
 	return IRQ_HANDLED;
+}
+
+static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
+{
+	struct uart_port *port = &ntv2_ser->uart_port;
+	struct tty_port *tport = &port->state->port;
+	u32 valid = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid);
+	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun);
+	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame);
+	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
+	u32 enable = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_enable);
+	u32 trigger = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_trigger);
+	u32 status;
+	unsigned char ch = 0;
+	char flag = TTY_NORMAL;
+
+	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
+	if ((status & (valid | overrun | frame)) == 0)
+		return false;
+
+	/* gather statistics */
+	if ((status & valid) != 0) {
+		port->icount.rx++;
+		/* trigger read of uart rx fifo */
+		ntv2_reg_write(ntv2_ser->vid_reg,
+					   ntv2_kona_reg_serial_control, ntv2_ser->index,
+					   enable | trigger);
+		/* read rx data from pci */
+		ch = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_rx_tx, ntv2_ser->index);
+
+		NTV2_MSG_SERIAL_STREAM("%s: uart rx %02x\n", ntv2_ser->name, ch);
+
+		if ((status & parity) != 0)
+			port->icount.parity++;
+	}
+
+	if ((status & overrun) != 0)
+		port->icount.overrun++;
+
+	if ((status & frame) != 0)
+		port->icount.frame++;
+
+	/* drop byte with parity error if IGNPAR specificed */
+	if ((status & port->ignore_status_mask & parity) != 0)
+		status &= ~valid;
+
+	status &= port->read_status_mask;
+
+	if ((status & parity) != 0)
+		flag = TTY_PARITY;
+
+	status &= ~port->ignore_status_mask;
+
+	if ((status & valid) != 0)
+		tty_insert_flip_char(tport, ch, flag);
+
+	if ((status & overrun) != 0)
+		tty_insert_flip_char(tport, 0, TTY_OVERRUN);
+
+	if ((status & frame) != 0)
+		tty_insert_flip_char(tport, 0, TTY_FRAME);
+
+	return true;
+}
+
+static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser)
+{
+	struct uart_port *port = &ntv2_ser->uart_port;
+	struct circ_buf *xmit  = &port->state->xmit;
+	u32 full = NTV2_FLD_MASK(ntv2_kona_fld_serial_tx_full);
+	u32 status;
+
+	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
+	if (status & full)
+		return false;
+
+	/* tx xon/xoff */
+	if ((port->x_char) != 0) {
+		NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, port->x_char);
+		ntv2_reg_write(ntv2_ser->vid_reg,
+					   ntv2_kona_reg_serial_rx_tx, ntv2_ser->index,
+					   (u32)port->x_char);
+		port->x_char = 0;
+		port->icount.tx++;
+		return true;
+	}
+
+	if (uart_circ_empty(xmit) || uart_tx_stopped(port))
+		return false;
+
+	/* tx data */
+	NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, xmit->buf[xmit->tail]);
+	ntv2_reg_write(ntv2_ser->vid_reg,
+				   ntv2_kona_reg_serial_rx_tx, ntv2_ser->index,
+				   (u32)xmit->buf[xmit->tail]);
+	xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE-1);
+	port->icount.tx++;
+
+	/* wake up */
+	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+		uart_write_wakeup(port);
+
+	return true;
 }
 

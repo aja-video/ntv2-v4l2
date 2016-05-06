@@ -927,6 +927,28 @@ NTV2_FLD(ntv2_kona_fld_audio_embedded_input_b1,		1,	23);
 NTV2_REG(ntv2_kona_reg_audio_output_address,		26, 242, 283, 285, 442, 446, 450, 454);
 NTV2_REG(ntv2_kona_reg_audio_input_address,			27, 243, 284, 286, 443, 447, 451, 455);
 
+/* serial control registers */
+NTV2_REG(ntv2_kona_reg_serial_status,				2176);
+NTV2_FLD(ntv2_kona_fld_serial_rx_valid,				1,	0);
+NTV2_FLD(ntv2_kona_fld_serial_rx_full,				1,	1);
+NTV2_FLD(ntv2_kona_fld_serial_tx_empty,				1,	2);
+NTV2_FLD(ntv2_kona_fld_serial_tx_full,				1,	3);
+NTV2_FLD(ntv2_kona_fld_serial_int_state,			1,	4);
+NTV2_FLD(ntv2_kona_fld_serial_err_overrun,			1,	5);
+NTV2_FLD(ntv2_kona_fld_serial_err_frame,			1,	6);
+NTV2_FLD(ntv2_kona_fld_serial_err_parity,			1,	7);
+NTV2_FLD(ntv2_kona_fld_serial_int_active,			1,	8);
+
+NTV2_REG(ntv2_kona_reg_serial_control,				2177);
+NTV2_FLD(ntv2_kona_fld_serial_reset_tx,				1,	0);
+NTV2_FLD(ntv2_kona_fld_serial_reset_rx,				1,	1);
+NTV2_FLD(ntv2_kona_fld_serial_next_rx,				1,	2);
+NTV2_FLD(ntv2_kona_fld_serial_int_enable,			1,	4);
+NTV2_FLD(ntv2_kona_fld_serial_int_clear,			1,	8);
+NTV2_FLD(ntv2_kona_fld_serial_rx_trigger,			1,	31);
+
+NTV2_REG(ntv2_kona_reg_serial_rx_tx,				2178);
+
 /* video crosspoint registers */
 NTV2_REG(ntv2_kona_reg_xpt_select1,					136);
 NTV2_FLD(ntv2_kona_fld_lut1_source,					8,	0);
