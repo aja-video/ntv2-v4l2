@@ -26,6 +26,7 @@
 
 static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser);
 static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser);
+static void ntv2_serial_control(struct ntv2_serial *ntv2_ser, u32 clear_bits, u32 set_bits);
 
 int ntv2_remove_one_port(struct uart_driver *drv, struct uart_port *uport)
 {
@@ -130,9 +131,9 @@ static void ntv2_uartops_stop_rx(struct uart_port *port)
 	/* don't forward any more data (like !CREAD) */
 	port->ignore_status_mask = 
 		NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid) |
-		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun) |
-		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame) |
-		NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_error_overrun) |
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_error_frame) |
+		NTV2_FLD_MASK(ntv2_kona_fld_serial_error_parity);
 }
 
 static void ntv2_uartops_break_ctl(struct uart_port *port, int ctl)
@@ -147,12 +148,7 @@ static int ntv2_uartops_startup(struct uart_port *port)
 
 	NTV2_MSG_SERIAL_STREAM("%s: uart startup\n", ntv2_ser->name);
 
-	/* reset fifos */
-	ntv2_reg_write(ntv2_ser->vid_reg,
-				   ntv2_kona_reg_serial_control, ntv2_ser->index,
-				   NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_tx) |
-				   NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_rx));
-
+	/* enable serial port */
 	ret = ntv2_serial_enable(ntv2_ser);
 
 	return ret;
@@ -173,9 +169,9 @@ static void ntv2_uartops_set_termios(struct uart_port *port,
 {
 	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
 	u32 valid = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid);
-	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun);
-	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame);
-	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
+	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_overrun);
+	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_frame);
+	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_parity);
 	u32 full = NTV2_FLD_MASK(ntv2_kona_fld_serial_tx_full);
 	unsigned long flags;
 	unsigned int baud;
@@ -373,6 +369,9 @@ int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
 
 int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
 {
+	u32 reset_tx = NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_tx);
+	u32 reset_rx = NTV2_FLD_MASK(ntv2_kona_fld_serial_reset_rx);
+	u32 enable = NTV2_FLD_MASK(ntv2_kona_fld_serial_interrupt_enable);
 	unsigned long flags;
 
 	if (ntv2_ser == NULL)
@@ -390,9 +389,7 @@ int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
 	ntv2_ser->uart_enable = true;
 
 	/* enable interrupt */
-	ntv2_reg_write(ntv2_ser->vid_reg,
-				   ntv2_kona_reg_serial_control, ntv2_ser->index,
-				   NTV2_FLD_MASK(ntv2_kona_fld_serial_int_enable));
+	ntv2_serial_control(ntv2_ser, 0, reset_tx | reset_rx | enable);
 
 	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 
@@ -401,6 +398,7 @@ int ntv2_serial_enable(struct ntv2_serial *ntv2_ser)
 
 int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
 {
+	u32 enable = NTV2_FLD_MASK(ntv2_kona_fld_serial_interrupt_enable);
 	unsigned long flags;
 
 	if (ntv2_ser == NULL)
@@ -418,12 +416,7 @@ int ntv2_serial_disable(struct ntv2_serial *ntv2_ser)
 	ntv2_ser->uart_enable = false;
 
 	/* disable interrupt */
-	ntv2_reg_write(ntv2_ser->vid_reg,
-				   ntv2_kona_reg_serial_control, ntv2_ser->index,
-				   0);
-
-	/* synchronize */
-	ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_control, ntv2_ser->index);
+	ntv2_serial_control(ntv2_ser, enable, 0);
 
 	spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 
@@ -434,9 +427,9 @@ int ntv2_serial_interrupt(struct ntv2_serial *ntv2_ser,
 						  struct ntv2_interrupt_status* irq_status)
 {
 	struct uart_port *port = &ntv2_ser->uart_port;
-	u32 status;
 	u32 active = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_active);
-	u32 clear = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_clear);
+	u32 clear = NTV2_FLD_MASK(ntv2_kona_fld_serial_interrupt_clear);
+	u32 status;
 	bool busy;
 	int count = 0;
 	unsigned long flags;
@@ -445,22 +438,25 @@ int ntv2_serial_interrupt(struct ntv2_serial *ntv2_ser,
 		(irq_status == NULL))
 		return IRQ_NONE;
 
+	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
+
 	/* is interrupt active */
 	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
-	if ((status & active) == 0)
+	if ((status & active) == 0) {
+		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 		return IRQ_NONE;
+	}
 
 	/* clear interrupt */
-	ntv2_reg_rmw(ntv2_ser->vid_reg,
-				 ntv2_kona_reg_serial_control, ntv2_ser->index,
-				 clear, clear);
+	ntv2_serial_control(ntv2_ser, 0, clear);
 
 	/* check enabled */
-	spin_lock_irqsave(&ntv2_ser->state_lock, flags);
 	if (!ntv2_ser->uart_enable) {
 		spin_unlock_irqrestore(&ntv2_ser->state_lock, flags);
 		return IRQ_HANDLED;
 	}
+
+//	NTV2_MSG_SERIAL_STREAM("%s: uart interrupt status %02x\n", ntv2_ser->name, status);
 
 	/* manage uart */
 	do {
@@ -482,13 +478,14 @@ static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
 	struct uart_port *port = &ntv2_ser->uart_port;
 	struct tty_port *tport = &port->state->port;
 	u32 valid = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid);
-	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_overrun);
-	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_frame);
-	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_err_parity);
-	u32 enable = NTV2_FLD_MASK(ntv2_kona_fld_serial_int_enable);
+	u32 overrun = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_overrun);
+	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_frame);
+	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_parity);
 	u32 trigger = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_trigger);
 	u32 status;
-	unsigned char ch = 0;
+	u32 rx = 0;
+	int i;
+
 	char flag = TTY_NORMAL;
 
 	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
@@ -498,14 +495,18 @@ static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
 	/* gather statistics */
 	if ((status & valid) != 0) {
 		port->icount.rx++;
-		/* trigger read of uart rx fifo */
-		ntv2_reg_write(ntv2_ser->vid_reg,
-					   ntv2_kona_reg_serial_control, ntv2_ser->index,
-					   enable | trigger);
-		/* read rx data from pci */
-		ch = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_rx_tx, ntv2_ser->index);
 
-		NTV2_MSG_SERIAL_STREAM("%s: uart rx %02x\n", ntv2_ser->name, ch);
+		/* trigger read of uart rx fifo */
+		ntv2_serial_control(ntv2_ser, 0, trigger);
+
+		/* read rx data from pci */
+		for (i = 0; i < 10; i++) {
+			rx = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_rx, ntv2_ser->index);
+			if ((rx & trigger) == 0)
+				break;
+		}
+			
+		NTV2_MSG_SERIAL_STREAM("%s: uart rx %02x  busy %d\n", ntv2_ser->name, (u8)rx, i);
 
 		if ((status & parity) != 0)
 			port->icount.parity++;
@@ -529,7 +530,7 @@ static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
 	status &= ~port->ignore_status_mask;
 
 	if ((status & valid) != 0)
-		tty_insert_flip_char(tport, ch, flag);
+		tty_insert_flip_char(tport, (u8)rx, flag);
 
 	if ((status & overrun) != 0)
 		tty_insert_flip_char(tport, 0, TTY_OVERRUN);
@@ -553,9 +554,9 @@ static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser)
 
 	/* tx xon/xoff */
 	if ((port->x_char) != 0) {
-		NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, port->x_char);
+		NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, (u8)port->x_char);
 		ntv2_reg_write(ntv2_ser->vid_reg,
-					   ntv2_kona_reg_serial_rx_tx, ntv2_ser->index,
+					   ntv2_kona_reg_serial_tx, ntv2_ser->index,
 					   (u32)port->x_char);
 		port->x_char = 0;
 		port->icount.tx++;
@@ -566,9 +567,9 @@ static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser)
 		return false;
 
 	/* tx data */
-	NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, xmit->buf[xmit->tail]);
+	NTV2_MSG_SERIAL_STREAM("%s: uart tx %02x\n", ntv2_ser->name, (u8)xmit->buf[xmit->tail]);
 	ntv2_reg_write(ntv2_ser->vid_reg,
-				   ntv2_kona_reg_serial_rx_tx, ntv2_ser->index,
+				   ntv2_kona_reg_serial_tx, ntv2_ser->index,
 				   (u32)xmit->buf[xmit->tail]);
 	xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE-1);
 	port->icount.tx++;
@@ -580,3 +581,24 @@ static bool ntv2_serial_transmit(struct ntv2_serial *ntv2_ser)
 	return true;
 }
 
+static void ntv2_serial_control(struct ntv2_serial *ntv2_ser, u32 clear_bits, u32 set_bits)
+{
+	u32 enable = NTV2_FLD_MASK(ntv2_kona_fld_serial_interrupt_enable);
+	u32 loop = NTV2_FLD_MASK(ntv2_kona_fld_serial_loopback_enable);
+	u32 status;
+
+	if (ntv2_ser == NULL)
+		return;
+
+	/* read current status */
+	status = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_status, ntv2_ser->index);
+
+	/* filter non state bits */
+	status &= enable | loop;
+
+	/* clear and set bits */
+	status = (status & ~clear_bits) | set_bits;
+
+	/* write control */
+	ntv2_reg_write(ntv2_ser->vid_reg, ntv2_kona_reg_serial_control, ntv2_ser->index, status);
+}
