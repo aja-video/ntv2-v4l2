@@ -9,3 +9,6 @@ semantic.cache
 *.markers
 *.symvers
 *.order
+*#
+TAGS
+tags

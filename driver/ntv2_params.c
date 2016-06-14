@@ -50,6 +50,8 @@ void ntv2_module_initialize(void)
 //		NTV2_DEBUG_CHANNEL_STATE |
 //		NTV2_DEBUG_CHANNEL_STREAM |
 //		NTV2_DEBUG_CHANNEL_STATISTICS |
+//		NTV2_DEBUG_SERIAL_STATE |
+//		NTV2_DEBUG_SERIAL_STREAM |
 //		NTV2_DEBUG_HDMIIN_STATE |
 //		NTV2_DEBUG_KONAI2C_READ |
 //		NTV2_DEBUG_KONAI2C_WRITE |
@@ -59,6 +61,7 @@ void ntv2_module_initialize(void)
 	INIT_LIST_HEAD(&ntv2_mod->device_list);
 	spin_lock_init(&ntv2_mod->device_lock);
 	atomic_set(&ntv2_mod->device_index, 0);
+	atomic_set(&ntv2_mod->uart_index, 0);
 
 	ntv2_mod->init = true;
 }

@@ -163,6 +163,13 @@ static void ntv2_pci_error_resume(struct pci_dev *pdev)
 	NTV2_MSG_INFO("%s: pci resume\n", ntv2_dev->name);
 }
 
+static struct uart_driver ntv2_uart_driver = {
+	.owner			= THIS_MODULE,
+	.driver_name	= NTV2_MODULE_NAME,
+	.dev_name		= NTV2_TTY_NAME,
+	.nr				= NTV2_MAX_UARTS,
+};
+
 static const struct pci_device_id ntv2_pci_tbl[] = {
 	{
 	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_KONA4,
@@ -219,11 +226,21 @@ static int __init ntv2_module_init(void)
 
 	NTV2_MSG_INFO("%s: module init version %s\n", NTV2_MODULE_NAME, NTV2_DRV_VERSION);
 
+	/* register uart driver */
+	result = uart_register_driver(&ntv2_uart_driver);
+	if (result < 0) {
+		NTV2_MSG_ERROR("%s: *error* uart_register_driver failed code %d\n",
+					   NTV2_MODULE_NAME, result);
+		return result;
+	}
+	ntv2_module_info()->uart_driver = &ntv2_uart_driver;
+
 	/* probe the devices */
 	result = pci_register_driver(&ntv2_pci_driver);
 	if (result < 0) {
 		NTV2_MSG_ERROR("%s: *error* pci_register_driver failed code %d\n",
 					   NTV2_MODULE_NAME, result);
+		uart_unregister_driver(&ntv2_uart_driver);
 		return result;
 	}
 	if (atomic_read(&ntv2_module_info()->device_index) == 0)
@@ -238,6 +255,7 @@ static void __exit ntv2_module_exit(void)
 {
 	NTV2_MSG_INFO("%s: module exit start\n", NTV2_MODULE_NAME);
    	pci_unregister_driver(&ntv2_pci_driver);
+	uart_unregister_driver(&ntv2_uart_driver);
 	ntv2_module_release();
 	NTV2_MSG_INFO("%s: module exit complete\n", NTV2_MODULE_NAME);
 }
