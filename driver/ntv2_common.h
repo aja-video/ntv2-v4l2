@@ -53,6 +53,7 @@
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
+#include <sound/control.h>
 
 /* build pararameters (approximate ubuntu kernel versions) */
 /* 3.10.0 does build */

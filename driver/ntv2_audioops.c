@@ -126,32 +126,51 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	int index = ntv2_chn->index;
-	u32 in_type;
+	u32 source = 9999;
 	u32 in_bit0;
 	u32 in_bit1;
 	u32 val;
 	u32 mask;
 
 	/* route audio */
+	if ((stream->source_format.type != ntv2_source_type_unknown) &&
+		(stream->source_format.type != ntv2_source_type_video)) {
+		source = stream->source_format.audio_source;
+	}
+
 	if (stream->input_format.type == ntv2_input_type_sdi) {
-		in_type = ntv2_kona_audio_source_embedded;
+		if (source == 9999) {
+			source = ntv2_kona_audio_source_embedded;
+		}
 		in_bit0 = index & 0x1;
 		in_bit1 = (index & 0x2) >> 1;
-	} else {
-		in_type = ntv2_kona_audio_source_hdmi;
+	} else if (stream->input_format.type == ntv2_input_type_hdmi) {
+		if (source == 9999) {
+			source = ntv2_kona_audio_source_hdmi;
+		}
+		in_bit0 = 0;
+		in_bit1 = 0;
+	}
+	else
+	{
+		if (source == 9999) {
+			source = ntv2_kona_audio_source_aes;
+		}
 		in_bit0 = 0;
 		in_bit1 = 0;
 	}
 
-	val = NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch12, in_type);
+	/* set audio source */
+	val = NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch12, source);
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch12);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch34, in_type);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch34, source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch34);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch56, in_type);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch56, source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch56);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, in_type);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch78);
 
+	/* set sdi embedded channel */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b0, in_bit0);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_input_b0);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b1, in_bit1);
@@ -232,7 +251,7 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 			audio_delta -= stream->audio.ring_size/2;
 		audio_delta = (audio_delta / audio_stride) * 10000 / stream->audio.sample_rate;
 		if (audio_delta > (stream->audio.sync_tolerance/100)) {
-			NTV2_MSG_CHANNEL_ERROR("%s: %s correcting audio sync  exp %08x  act %08x  error %d us\n",
+			NTV2_MSG_CHANNEL_STATE("%s: %s correcting audio sync  exp %08x  act %08x  error %d us\n",
 								   ntv2_chn->name,
 								   ntv2_stream_name(ntv2_stream_type_audin),
 								   stream->audio.ring_offset,

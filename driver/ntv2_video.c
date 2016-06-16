@@ -139,7 +139,10 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 	/* initialize state */
 	ntv2_vid->video_format = *ntv2_features_get_default_video_format(features, ntv2_chn->index);
 	ntv2_vid->pixel_format = *ntv2_features_get_default_pixel_format(features, ntv2_chn->index);
-	ntv2_features_gen_default_input_format(features, ntv2_chn->index, &ntv2_vid->input_format);
+	ntv2_features_gen_input_format(ntv2_features_get_default_input_config(features, ntv2_chn->index),
+								   &ntv2_vid->video_format,
+								   &ntv2_vid->pixel_format,
+								   &ntv2_vid->input_format);
 
 	/* register the v4l2 device */
 	result = v4l2_device_register(&ntv2_vid->ntv2_dev->pci_dev->dev, &ntv2_vid->v4l2_dev);

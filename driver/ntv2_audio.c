@@ -22,6 +22,7 @@
 #include "ntv2_pcmops.h"
 #include "ntv2_channel.h"
 #include "ntv2_nwldma.h"
+#include "ntv2_mixer.h"
 
 
 #define NTV2_AUDIO_TRANSFER_TIMEOUT			(100000)
@@ -87,6 +88,7 @@ void ntv2_audio_close(struct ntv2_audio *ntv2_aud)
 
 int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct ntv2_features *features,
+						 struct snd_card *snd_card,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_nwldma *ntv2_nwl)
 {
@@ -97,6 +99,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 
 	if ((ntv2_aud == NULL) ||
 		(features == NULL) ||
+		(snd_card == NULL) ||
 		(ntv2_chn == NULL) ||
 		(ntv2_nwl == NULL))
 		return -EPERM;
@@ -104,13 +107,14 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 	NTV2_MSG_AUDIO_INFO("%s: configure audio device\n", ntv2_aud->name);
 
 	ntv2_aud->features = features;
+	ntv2_aud->snd_card = snd_card;
 	ntv2_aud->ntv2_chn = ntv2_chn;
 	ntv2_aud->dma_engine = ntv2_nwl;
 
 	capture = ntv2_aud->features->audio_config[ntv2_aud->index]->capture;
 	playback = ntv2_aud->features->audio_config[ntv2_aud->index]->playback;
 
-	result = snd_pcm_new(ntv2_aud->ntv2_dev->snd_card,
+	result = snd_pcm_new(ntv2_aud->snd_card,
 						 features->pcm_name,
 						 ntv2_aud->index,
 						 playback? 1 : 0, 
@@ -164,6 +168,11 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 
 		ntv2_aud->playback = stream;
 	}
+
+
+	result = ntv2_mixer_configure(ntv2_aud);
+	if (result < 0)
+		return result;
 
 	return 0;
 }

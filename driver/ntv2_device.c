@@ -368,6 +368,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 			/* configure audio device */
 			result = ntv2_audio_configure(ntv2_aud,
 										  ntv2_dev->features,
+										  ntv2_dev->snd_card,
 										  ntv2_chn,
 										  ntv2_dev->dma_engine);
 			if (result != 0) {

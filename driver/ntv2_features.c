@@ -119,6 +119,24 @@ struct ntv2_input_config
 	return features->input_config[channel_index][input_index];
 }
 
+u32 ntv2_features_num_input_configs(struct ntv2_features *features,
+									int channel_index)
+{
+	int num;
+
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS))
+		return 0;
+
+	for (num = 0; num < NTV2_MAX_INPUT_CONFIGS; num++)
+	{
+		if (features->input_config[channel_index][num] == NULL)
+			break;
+	}
+
+	return num;
+}
+
 struct ntv2_input_config
 *ntv2_features_get_default_input_config(struct ntv2_features *features,
 										int channel_index)
@@ -130,6 +148,48 @@ struct ntv2_input_config
 	return features->input_config[channel_index][0];
 }
 
+struct ntv2_source_config
+*ntv2_features_get_source_config(struct ntv2_features *features,
+								int channel_index,
+								int source_index)
+{
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS) ||
+		(source_index < 0) || (source_index >= NTV2_MAX_SOURCE_CONFIGS))
+		return NULL;
+
+	return features->source_config[channel_index][source_index];
+}
+
+u32 ntv2_features_num_source_configs(struct ntv2_features *features,
+									int channel_index)
+{
+	int num;
+
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS))
+		return 0;
+
+	for (num = 0; num < NTV2_MAX_SOURCE_CONFIGS; num++)
+	{
+		if (features->source_config[channel_index][num] == NULL)
+			break;
+	}
+
+	return num;
+}
+
+struct ntv2_source_config
+*ntv2_features_get_default_source_config(struct ntv2_features *features,
+										 int channel_index)
+{
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS))
+		return NULL;
+
+	return features->source_config[channel_index][0];
+}
+
 struct ntv2_pixel_format
 *ntv2_features_get_pixel_format(struct ntv2_features *features,
 								int channel_index,
@@ -137,10 +197,28 @@ struct ntv2_pixel_format
 {
 	if ((features == NULL) ||
 		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS) ||
-		(format_index < 0) || (format_index >= NTV2_MAX_VIDEO_FORMATS))
+		(format_index < 0) || (format_index >= NTV2_MAX_PIXEL_FORMATS))
 		return NULL;
 
 	return features->pixel_formats[format_index];
+}
+
+u32 ntv2_features_num_pixel_formats(struct ntv2_features *features,
+									int channel_index)
+{
+	int num;
+
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS))
+		return 0;
+
+	for (num = 0; num < NTV2_MAX_PIXEL_FORMATS; num++)
+	{
+		if (features->pixel_formats[num] == NULL)
+			break;
+	}
+
+	return num;
 }
 
 struct ntv2_pixel_format
@@ -167,6 +245,24 @@ struct ntv2_video_format
 	return features->video_formats[format_index];
 }
 
+u32 ntv2_features_num_video_formats(struct ntv2_features *features,
+									int channel_index)
+{
+	int num;
+
+	if ((features == NULL) ||
+		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS))
+		return 0;
+
+	for (num = 0; num < NTV2_MAX_VIDEO_FORMATS; num++)
+	{
+		if (features->video_formats[num] == NULL)
+			break;
+	}
+
+	return num;
+}
+
 struct ntv2_video_format
 *ntv2_features_get_default_video_format(struct ntv2_features *features,
 										int channel_index)
@@ -179,29 +275,19 @@ struct ntv2_video_format
 }
 
 
-void ntv2_features_gen_default_input_format(struct ntv2_features *features,
-											int channel_index,
-											struct ntv2_input_format *inpf)
+void ntv2_features_gen_input_format(struct ntv2_input_config *config,
+									struct ntv2_video_format *vidf,
+									struct ntv2_pixel_format *pixf,
+									struct ntv2_input_format *inpf)
 {
-	struct ntv2_input_config *config;
-	struct ntv2_video_format *vidf;
-	struct ntv2_pixel_format *pixf;
-
-	if ((features == NULL) ||
-		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS) ||
-		(inpf == NULL))
-		return;
-
-	config = ntv2_features_get_default_input_config(features, channel_index);
-	vidf = ntv2_features_get_default_video_format(features, channel_index);
-	pixf = ntv2_features_get_default_pixel_format(features, channel_index);
 
 	if ((config == NULL) ||
 		(vidf == NULL) ||
-		(pixf == NULL))
+		(pixf == NULL) ||
+		(inpf == NULL))
 		return;
 
-	inpf->type = features->input_config[channel_index][0]->type;
+	inpf->type = config->type;
 	inpf->video_standard = vidf->video_standard;
 	inpf->frame_rate = vidf->frame_rate;
 	inpf->frame_flags = vidf->frame_flags;
@@ -209,6 +295,21 @@ void ntv2_features_gen_default_input_format(struct ntv2_features *features,
 	inpf->input_index = config->input_index;
 	inpf->num_inputs = config->num_inputs;
 	inpf->num_streams = config->num_inputs;
+
+	return;
+}
+
+void ntv2_features_gen_source_format(struct ntv2_source_config *config,
+									 struct ntv2_source_format *souf)
+{
+	if ((config == NULL) ||
+		(souf == NULL))
+		return;
+
+	souf->type = config->type;
+	souf->audio_source = config->audio_source;
+	souf->input_index = config->input_index;
+	souf->num_inputs = config->num_inputs;
 
 	return;
 }
@@ -622,6 +723,13 @@ static struct ntv2_input_config		nic_sdi_quad_1234;
 static struct ntv2_input_config		nic_sdi_quad_5678;
 static struct ntv2_input_config		nic_hdmi;
 
+static struct ntv2_source_config	asc_video;
+static struct ntv2_source_config	asc_sdi;
+static struct ntv2_source_config	asc_aes;
+static struct ntv2_source_config	asc_analog;
+static struct ntv2_source_config	asc_analog_aes;
+static struct ntv2_source_config	asc_hdmi;
+
 static struct ntv2_video_format 	nvf_525i5994;
 static struct ntv2_video_format 	nvf_625i5000;
 static struct ntv2_video_format 	nvf_720p5000;
@@ -660,6 +768,7 @@ static void ntv2_features_initialize(void) {
 	struct ntv2_pixel_format *npf;
 	struct ntv2_audio_config *nac;
 	struct ntv2_input_config *nic;
+	struct ntv2_source_config *nss;
 	struct ntv2_serial_config *nsc;
 
 	/* video configuration */
@@ -720,7 +829,7 @@ static void ntv2_features_initialize(void) {
 	/* sdi single link inputs */
 	nic = &nic_sdi_single_1;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 1";
+	nic->name = "SDI 1";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 0;
@@ -728,7 +837,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_2;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 2";
+	nic->name = "SDI 2";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 1;
@@ -736,7 +845,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_3;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 3";
+	nic->name = "SDI 3";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 2;
@@ -744,7 +853,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_4;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 4";
+	nic->name = "SDI 4";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 3;
@@ -752,7 +861,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_5;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 5";
+	nic->name = "SDI 5";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 4;
@@ -760,7 +869,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_6;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 6";
+	nic->name = "SDI 6";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 5;
@@ -768,7 +877,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_7;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 7";
+	nic->name = "SDI 7";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 6;
@@ -776,7 +885,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_single_8;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 8";
+	nic->name = "SDI 8";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 7;
@@ -785,7 +894,7 @@ static void ntv2_features_initialize(void) {
 	/* sdi dual link inputs */
 	nic = &nic_sdi_dual_12;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 1-2";
+	nic->name = "SDI 1-2";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 0;
@@ -793,7 +902,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_dual_34;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 3-4";
+	nic->name = "SDI 3-4";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 2;
@@ -801,7 +910,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_dual_56;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 5-6";
+	nic->name = "SDI 5-6";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 4;
@@ -809,7 +918,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_dual_78;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 7-8";
+	nic->name = "SDI 7-8";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 6;
@@ -818,7 +927,7 @@ static void ntv2_features_initialize(void) {
 	/* sdi quad link inputs */
 	nic = &nic_sdi_quad_1234;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 1-4";
+	nic->name = "SDI 1-4";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->input_index = 0;
@@ -826,7 +935,7 @@ static void ntv2_features_initialize(void) {
 
 	nic = &nic_sdi_quad_5678;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video SDI 5-8";
+	nic->name = "SDI 5-8";
 	nic->type = ntv2_input_type_sdi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->input_index = 4;
@@ -835,11 +944,71 @@ static void ntv2_features_initialize(void) {
 	/* hdmi inputs */
 	nic = &nic_hdmi;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
-	nic->name = "Video HDMI 1";
+	nic->name = "HDMI 1";
 	nic->type = ntv2_input_type_hdmi;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
+
+	/* audio video source */
+	nss = &asc_video;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "Video4Linux";
+	nss->type = ntv2_source_type_video;
+	nss->audio_source = 0;
+	nss->num_channels = 0;
+	nss->input_index = 0;
+	nss->num_inputs = 0;
+
+	/* audio aes source */
+	nss = &asc_aes;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "AES";
+	nss->type = ntv2_source_type_aes;
+	nss->audio_source = ntv2_kona_audio_source_aes;
+	nss->num_channels = 16;
+	nss->input_index = 0;
+	nss->num_inputs = 1;
+
+	/* audio sdi source */
+	nss = &asc_sdi;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "SDI";
+	nss->type = ntv2_source_type_sdi;
+	nss->audio_source = ntv2_kona_audio_source_embedded;
+	nss->num_channels = 16;
+	nss->input_index = 0;
+	nss->num_inputs = 1;
+
+	/* audio analog source */
+	nss = &asc_analog;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "Analog";
+	nss->type = ntv2_source_type_analog;
+	nss->audio_source = ntv2_kona_audio_source_analog;
+	nss->num_channels = 2;
+	nss->input_index = 0;
+	nss->num_inputs = 1;
+
+	/* audio analog/aes source */
+	nss = &asc_analog_aes;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "Analog/AES";
+	nss->type = ntv2_source_type_aes;
+	nss->audio_source = ntv2_kona_audio_source_aes;
+	nss->num_channels = 2;
+	nss->input_index = 0;
+	nss->num_inputs = 1;
+
+	/* audio hdmi source */
+	nss = &asc_hdmi;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "HDMI";
+	nss->type = ntv2_source_type_hdmi;
+	nss->audio_source = ntv2_kona_audio_source_hdmi;
+	nss->num_channels = 8;
+	nss->input_index = 0;
+	nss->num_inputs = 1;
 
 	/* 525i5994 timing */
 	nvf = &nvf_525i5994;
@@ -1276,8 +1445,8 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Corvid44";
-	features->pcm_name = "Corvid44 PCM";
+	features->device_name = "Corvid 44";
+	features->pcm_name = "Corvid 44 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVID44;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1285,7 +1454,6 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
-	features->num_hdmi_inputs = 0;
 	features->frame_buffer_size = 0x40000000;
 
 	for (i = 0; i < features->num_video_channels; i++) {
@@ -1303,6 +1471,15 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 	features->input_config[2][1] = &nic_sdi_dual_34;
 	features->input_config[3][0] = &nic_sdi_single_4;
 
+	features->source_config[0][0] = &asc_video;
+	features->source_config[0][1] = &asc_sdi;
+	features->source_config[1][0] = &asc_video;
+	features->source_config[1][1] = &asc_sdi;
+	features->source_config[2][0] = &asc_video;
+	features->source_config[2][1] = &asc_sdi;
+	features->source_config[3][0] = &asc_video;
+	features->source_config[3][1] = &asc_sdi;
+
 	all_video_formats(features);
 	all_yuv_pixel_formats(features);
 	build_v4l2_timings(features);
@@ -1312,8 +1489,8 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Corvid88";
-	features->pcm_name = "Corvid88 PCM";
+	features->device_name = "Corvid 88";
+	features->pcm_name = "Corvid 88 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVID88;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1321,7 +1498,6 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 	features->num_video_channels = 8;
 	features->num_audio_channels = 8;
 	features->num_sdi_inputs = 8;
-	features->num_hdmi_inputs = 0;
 	features->frame_buffer_size = 0x40000000;
 
 	for (i = 0; i < features->num_video_channels; i++) {
@@ -1346,6 +1522,23 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 	features->input_config[6][1] = &nic_sdi_dual_78;
 	features->input_config[7][0] = &nic_sdi_single_8;
 
+	features->source_config[0][0] = &asc_video;
+	features->source_config[0][1] = &asc_sdi;
+	features->source_config[1][0] = &asc_video;
+	features->source_config[1][1] = &asc_sdi;
+	features->source_config[2][0] = &asc_video;
+	features->source_config[2][1] = &asc_sdi;
+	features->source_config[3][0] = &asc_video;
+	features->source_config[3][1] = &asc_sdi;
+	features->source_config[4][0] = &asc_video;
+	features->source_config[4][1] = &asc_sdi;
+	features->source_config[5][0] = &asc_video;
+	features->source_config[5][1] = &asc_sdi;
+	features->source_config[6][0] = &asc_video;
+	features->source_config[6][1] = &asc_sdi;
+	features->source_config[7][0] = &asc_video;
+	features->source_config[7][1] = &asc_sdi;
+
 	all_video_formats(features);
 	all_yuv_pixel_formats(features);
 	build_v4l2_timings(features);
@@ -1355,8 +1548,8 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Kona4";
-	features->pcm_name = "Kona4 PCM";
+	features->device_name = "Kona 4";
+	features->pcm_name = "Kona 4 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_KONA4;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1364,7 +1557,6 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
-	features->num_hdmi_inputs = 0;
 	features->frame_buffer_size = 0x37800000;
 
 	for (i = 0; i < features->num_video_channels; i++) {
@@ -1382,6 +1574,15 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->input_config[2][1] = &nic_sdi_dual_34;
 	features->input_config[3][0] = &nic_sdi_single_4;
 
+	features->source_config[0][0] = &asc_video;
+	features->source_config[0][1] = &asc_sdi;
+	features->source_config[1][0] = &asc_video;
+	features->source_config[1][1] = &asc_sdi;
+	features->source_config[2][0] = &asc_video;
+	features->source_config[2][1] = &asc_sdi;
+	features->source_config[3][0] = &asc_video;
+	features->source_config[3][1] = &asc_sdi;
+
 	all_video_formats(features);
 	all_pixel_formats(features);
 	build_v4l2_timings(features);
@@ -1389,16 +1590,16 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 
 static void ntv2_features_corvidhdbt(struct ntv2_features *features) 
 {
-	features->device_name = "CorvidHDBT";
-	features->pcm_name = "CorvidHDBT PCM";
+	features->device_name = "Corvid HB-R";
+	features->pcm_name = "Corvid HB-R PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVIDHDBT;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
 	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 1;
 	features->num_audio_channels = 1;
-	features->num_sdi_inputs = 0;
 	features->num_hdmi_inputs = 1;
+	features->num_aes_inputs = 1;
 	features->frame_buffer_size = 0x20000000;
 	features->num_serial_ports = 1;
 
@@ -1428,6 +1629,10 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->video_formats[18] = &nvf_2160p2500;
 	features->video_formats[19] = &nvf_2160p2997;
 	features->video_formats[20] = &nvf_2160p3000;
+
+	features->source_config[0][0] = &asc_video;
+	features->source_config[0][1] = &asc_hdmi;
+	features->source_config[0][2] = &asc_analog_aes;
 
 	all_pixel_formats(features);
 	build_v4l2_timings(features);

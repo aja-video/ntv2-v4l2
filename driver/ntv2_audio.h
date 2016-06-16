@@ -59,6 +59,7 @@ struct ntv2_audio {
 	struct ntv2_device			*ntv2_dev;
 
 	struct ntv2_features 		*features;
+	struct snd_card 			*snd_card;
 	struct ntv2_channel 		*ntv2_chn;
 	struct ntv2_nwldma			*dma_engine;
 	bool						init;
@@ -74,6 +75,7 @@ void ntv2_audio_close(struct ntv2_audio *ntv2_aud);
 
 int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct ntv2_features *features,
+						 struct snd_card *snd_card,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_nwldma *ntv2_nwl);
 

@@ -43,6 +43,7 @@
 #define NTV2_MAX_VIDEO_FORMATS		32
 #define NTV2_MAX_PIXEL_FORMATS		8
 #define NTV2_MAX_INPUT_CONFIGS		8
+#define NTV2_MAX_SOURCE_CONFIGS		8
 #define NTV2_MAX_FRAME_RATES		16
 #define NTV2_MAX_VIDEO_STANDARDS	16
 #define NTV2_MAX_FRAME_GEOMETRIES	24
@@ -173,6 +174,16 @@ enum ntv2_input_type {
 	ntv2_input_type_size
 };
 
+enum ntv2_source_type {
+	ntv2_source_type_unknown,
+	ntv2_source_type_video,
+	ntv2_source_type_sdi,
+	ntv2_source_type_hdmi,
+	ntv2_source_type_aes,
+	ntv2_source_type_analog,
+	ntv2_source_type_size
+};
+
 enum ntv2_task_state {
 	ntv2_task_state_unknown,
 	ntv2_task_state_enable,
@@ -215,6 +226,13 @@ struct ntv2_input_format {
 	u32							input_index;
 	u32							num_inputs;
 	u32							num_streams;
+};
+
+struct ntv2_source_format {
+	enum ntv2_source_type		type;
+	u32							audio_source;
+	u32							input_index;
+	u32							num_inputs;
 };
 
 struct ntv2_sdi_input_status {

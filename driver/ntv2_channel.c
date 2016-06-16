@@ -110,7 +110,12 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->ops.interrupt = ntv2_videoops_interrupt_capture;
 	stream->video_format = *ntv2_features_get_default_video_format(features, ntv2_chn->index);
 	stream->pixel_format = *ntv2_features_get_default_pixel_format(features, ntv2_chn->index);
-	ntv2_features_gen_default_input_format(features, ntv2_chn->index, &stream->input_format);
+	ntv2_features_gen_input_format(ntv2_features_get_default_input_config(features, ntv2_chn->index),
+								   &stream->video_format,
+								   &stream->pixel_format,
+								   &stream->input_format);
+	ntv2_features_gen_source_format(ntv2_features_get_default_source_config(features, ntv2_chn->index),
+									&stream->source_format);
 	ntv2_chn->streams[ntv2_stream_type_vidin] = stream;
 
 	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.setup(stream);
@@ -132,7 +137,12 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->ops.interrupt = ntv2_audioops_interrupt_capture;
 	stream->video_format = *ntv2_features_get_default_video_format(features, ntv2_chn->index);
 	stream->pixel_format = *ntv2_features_get_default_pixel_format(features, ntv2_chn->index);
-	ntv2_features_gen_default_input_format(features, ntv2_chn->index, &stream->input_format);
+	ntv2_features_gen_input_format(ntv2_features_get_default_input_config(features, ntv2_chn->index),
+								   &stream->video_format,
+								   &stream->pixel_format,
+								   &stream->input_format);
+	ntv2_features_gen_source_format(ntv2_features_get_default_source_config(features, ntv2_chn->index),
+									&stream->source_format);
 	ntv2_chn->streams[ntv2_stream_type_audin] = stream;
 
 	ntv2_chn->streams[ntv2_stream_type_audin]->ops.setup(stream);
@@ -260,6 +270,38 @@ int ntv2_channel_get_input_format(struct ntv2_channel_stream *stream,
 
 	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
 	*inpf = stream->input_format;
+	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_channel_set_source_format(struct ntv2_channel_stream *stream,
+								   struct ntv2_source_format *souf)
+{
+	unsigned long flags;
+
+	if ((stream == NULL) || (souf == NULL))
+		return -EPERM;
+
+	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
+	stream->source_format = *souf;
+	stream->ops.update_mode(stream);
+	stream->ops.update_route(stream);
+	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_channel_get_source_format(struct ntv2_channel_stream *stream,
+								   struct ntv2_source_format *souf)
+{
+	unsigned long flags;
+
+	if ((stream == NULL) || (souf == NULL))
+		return -EPERM;
+
+	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
+	*souf = stream->source_format;
 	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
 
 	return 0;
