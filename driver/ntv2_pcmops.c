@@ -56,7 +56,6 @@ static int ntv2_pcmops_cap_open(struct snd_pcm_substream *substream)
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_pcm_substream_chip(substream);
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	int result;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture open\n", ntv2_aud->name);
 
@@ -64,11 +63,6 @@ static int ntv2_pcmops_cap_open(struct snd_pcm_substream *substream)
 	stream->substream = substream;
 
 	snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
-
-	result = ntv2_audio_enable(stream);
-	if (result != 0) {
-		return result;
-	}
 
 	return 0;
 }
@@ -79,8 +73,6 @@ static int ntv2_pcmops_cap_close(struct snd_pcm_substream *substream)
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture close\n", ntv2_aud->name);
-
-	ntv2_audio_disable(stream);
 
 	stream->substream = NULL;
 
@@ -118,6 +110,11 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 	if (ret != 0)
 		return ret;
 
+	ret = ntv2_audio_enable(stream);
+	if (ret != 0) {
+		return ret;
+	}
+
 	return 0;
 }
 
@@ -128,6 +125,8 @@ static int ntv2_pcmops_cap_hw_free(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture hardware free\n", ntv2_aud->name);
+
+	ntv2_audio_disable(stream);
 
 	ntv2_free_dma_buffer(stream);
 

@@ -200,7 +200,7 @@ int ntv2_hdmiin_disable(struct ntv2_hdmiin *ntv2_hin)
 	return 0;
 }
 
-int ntv2_hdmiin_get_video_format(struct ntv2_hdmiin *ntv2_hin,
+int ntv2_hdmiin_get_input_format(struct ntv2_hdmiin *ntv2_hin,
 								 struct ntv2_hdmiin_format *format)
 {
 	unsigned long flags;
@@ -210,7 +210,7 @@ int ntv2_hdmiin_get_video_format(struct ntv2_hdmiin *ntv2_hin,
 		return -EPERM;
 
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
-	*format = ntv2_hin->video_format;
+	*format = ntv2_hin->input_format;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
 
 	return 0;
@@ -466,7 +466,7 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	struct ntv2_konai2c *i2c_reg;
 	struct ntv2_hdmiin_format dvi_format;
 	struct ntv2_hdmiin_format hdmi_format;
-	struct ntv2_hdmiin_format vid_format;
+	struct ntv2_hdmiin_format input_format;
 	bool tmds_lock_change = false;
 	bool tmds_frequency_change = false;
 	bool derep_on = false;
@@ -586,10 +586,19 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	data = ntv2_konai2c_cache_read(i2c_reg, defilter_lock_detect_reg);
 	ntv2_hin->input_locked = ((data & defilter_locked_mask) != 0) &&
 		((data & vfilter_locked_mask) != 0);
+	ntv2_hin->audio_multichannel = (data & audio_multichannel_mask) != 0;
 
 	/* interlaced mode */
 	data = ntv2_konai2c_cache_read(i2c_reg, interlaced_detect_reg);
 	ntv2_hin->interlaced_mode = (data & interlaced_mask) != 0;
+
+	/* audio detect */
+	data = ntv2_konai2c_cache_read(i2c_reg, audio_detect_reg);
+	ntv2_hin->audio_present = (data & audio_detect_mask) != 0;
+
+	/* audio locked */
+	data = ntv2_konai2c_cache_read(i2c_reg, audio_lock_reg);
+	ntv2_hin->audio_locked = (data & audio_lock_mask) != 0;
 
 	/* can not decrypt hdcp */
 	if (ntv2_hin->hdcp_mode) {
@@ -754,32 +763,41 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 								  hdmi_format.frame_flags,
 								  hdmi_format.pixel_flags);
 
+			NTV2_MSG_HDMIIN_STATE("%s: hdmi audio present %s  locked %s  multichannel %s\n",
+								  ntv2_hin->name,
+								  ntv2_hin->audio_present? "true" : "false",
+								  ntv2_hin->audio_locked? "true" : "false",
+								  ntv2_hin->audio_multichannel? "true" : "false");
+
 			ntv2_hin->relock_reports &= ~NTV2_REPORT_HDMI;
 		}
 	}
 
-	vid_format.video_standard = ntv2_kona_video_standard_none;
-	vid_format.frame_rate = ntv2_kona_frame_rate_none;
-	vid_format.frame_flags = 0;
-	vid_format.pixel_flags = 0;
+	/* initialize formats */
+	input_format.video_standard = ntv2_kona_video_standard_none;
+	input_format.frame_rate = ntv2_kona_frame_rate_none;
+	input_format.frame_flags = 0;
+	input_format.pixel_flags = 0;
+	input_format.audio_detect = 0;
 
 	if (ntv2_hin->relock_reports & NTV2_REPORT_FORMAT)
 	{
 		/* determine source format */
 		if (hdmi_format.video_standard == dvi_format.video_standard) {
-			vid_format.video_standard = hdmi_format.video_standard;
-			vid_format.frame_rate = dvi_format.frame_rate;
-			vid_format.frame_flags = hdmi_format.frame_flags;
-			vid_format.pixel_flags = hdmi_format.pixel_flags;
+			input_format.video_standard = hdmi_format.video_standard;
+			input_format.frame_rate = dvi_format.frame_rate;
+			input_format.frame_flags = hdmi_format.frame_flags;
+			input_format.pixel_flags = hdmi_format.pixel_flags;
+			input_format.audio_detect = ntv2_hin->audio_multichannel? 0xf : 0x1;
 		} else {
-			vid_format.video_standard = dvi_format.video_standard;
-			vid_format.frame_rate = dvi_format.frame_rate;
-			vid_format.frame_flags = dvi_format.frame_flags;
-			vid_format.pixel_flags = dvi_format.pixel_flags;
+			input_format.video_standard = dvi_format.video_standard;
+			input_format.frame_rate = dvi_format.frame_rate;
+			input_format.frame_flags = dvi_format.frame_flags;
+			input_format.pixel_flags = dvi_format.pixel_flags;
 		}
 
 		/* configure output color space */
-		yuv_input = (vid_format.pixel_flags & ntv2_kona_pixel_yuv) != 0;
+		yuv_input = (input_format.pixel_flags & ntv2_kona_pixel_yuv) != 0;
 		yuv_output = yuv_input;
 		if (!ntv2_hin->uhd_mode) {
 			if (ntv2_hin->prefer_yuv)
@@ -791,39 +809,40 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 
 		/* correct output pixel flags */
 		if (yuv_output) {
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_rgb) | ntv2_kona_pixel_yuv;
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_444) | ntv2_kona_pixel_422;
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_full) | ntv2_kona_pixel_smpte;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_rgb) | ntv2_kona_pixel_yuv;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_444) | ntv2_kona_pixel_422;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_full) | ntv2_kona_pixel_smpte;
 			if (!yuv_input) {
-				if ((vid_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
-					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_12bit;
+				if ((input_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
+					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_12bit;
 				}
-				if ((vid_format.pixel_flags & ntv2_kona_pixel_8bit) != 0) {
-					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
+				if ((input_format.pixel_flags & ntv2_kona_pixel_8bit) != 0) {
+					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
 				}
 			}
 		} else {
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_yuv) | ntv2_kona_pixel_rgb;
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_422) | ntv2_kona_pixel_444;
-			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_smpte) | ntv2_kona_pixel_full;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_yuv) | ntv2_kona_pixel_rgb;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_422) | ntv2_kona_pixel_444;
+			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_smpte) | ntv2_kona_pixel_full;
 			if (yuv_input) {
-				if ((vid_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
-					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_8bit;
+				if ((input_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
+					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_8bit;
 				}
-				if ((vid_format.pixel_flags & ntv2_kona_pixel_12bit) != 0) {
-					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
+				if ((input_format.pixel_flags & ntv2_kona_pixel_12bit) != 0) {
+					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
 				}
 			}
 		}
 
-		ntv2_hdmiin_set_video_format(ntv2_hin, &vid_format);
+		ntv2_hdmiin_set_video_format(ntv2_hin, &input_format);
 
-		NTV2_MSG_HDMIIN_STATE("%s: video standard %s  rate %s  frame %08x  pixel %08x\n",
+		NTV2_MSG_HDMIIN_STATE("%s: video standard %s  rate %s  frame %08x  pixel %08x  audio %08x\n",
 							  ntv2_hin->name,
-							  ntv2_video_standard_name(vid_format.video_standard),
-							  ntv2_frame_rate_name(vid_format.frame_rate),
-							  vid_format.frame_flags,
-							  vid_format.pixel_flags);
+							  ntv2_video_standard_name(input_format.video_standard),
+							  ntv2_frame_rate_name(input_format.frame_rate),
+							  input_format.frame_flags,
+							  input_format.pixel_flags,
+							  input_format.audio_detect);
 
 		ntv2_hin->relock_reports &= ~NTV2_REPORT_FORMAT;
 	}
@@ -1424,14 +1443,14 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_sd, video_sd);
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_74_25, 0);
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_rate, 0);
-	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_word_length,	0);
+	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_word_length, 0);
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_format, format->video_standard);
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_dvi, (ntv2_hin->hdmi_mode? 0 : 1));
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_rate, format->frame_rate);
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_input_status, ntv2_hin->index, input_status);
 
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
-	ntv2_hin->video_format = *format;
+	ntv2_hin->input_format = *format;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
 
 	NTV2_MSG_HDMIIN_STATE("%s: video setup            %08x\n", ntv2_hin->name, video_setup);
@@ -1495,10 +1514,11 @@ static void ntv2_hdmiin_set_no_video(struct ntv2_hdmiin *ntv2_hin)
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_input_status, ntv2_hin->index, val);
 
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
-	ntv2_hin->video_format.video_standard = ntv2_kona_video_standard_none;
-	ntv2_hin->video_format.frame_rate = ntv2_kona_frame_rate_none;
-	ntv2_hin->video_format.frame_flags = 0;
-	ntv2_hin->video_format.pixel_flags = 0;
+	ntv2_hin->input_format.video_standard = ntv2_kona_video_standard_none;
+	ntv2_hin->input_format.frame_rate = ntv2_kona_frame_rate_none;
+	ntv2_hin->input_format.frame_flags = 0;
+	ntv2_hin->input_format.pixel_flags = 0;
+	ntv2_hin->input_format.audio_detect = 0;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
 }
 

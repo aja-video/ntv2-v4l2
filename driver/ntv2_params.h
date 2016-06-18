@@ -231,6 +231,7 @@ struct ntv2_input_format {
 struct ntv2_source_format {
 	enum ntv2_source_type		type;
 	u32							audio_source;
+	u32							audio_detect;
 	u32							input_index;
 	u32							num_inputs;
 };
@@ -244,6 +245,7 @@ struct ntv2_sdi_input_status {
 	bool						is3gb;
 	u32							vpid_ds1;
 	u32							vpid_ds2;
+	u32							audio_detect;
 };
 
 struct ntv2_hdmi_input_status {
@@ -251,6 +253,12 @@ struct ntv2_hdmi_input_status {
 	u32							video_standard;
 	u32							frame_rate;
 	u32							pixel_flags;
+	u32							audio_detect;
+};
+
+struct ntv2_aes_input_status {
+	u32							input_index;
+	u32							audio_detect;
 };
 
 struct ntv2_interrupt_status {

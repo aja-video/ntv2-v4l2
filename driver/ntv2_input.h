@@ -25,6 +25,7 @@
 struct ntv2_features;
 struct ntv2_register;
 struct ntv2_input_config;
+struct ntv2_source_config;
 struct ntv2_hdmiin;
 
 struct ntv2_sdi_input_state {
@@ -69,6 +70,9 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 								struct ntv2_input_config *config,
 								struct ntv2_input_format *format);
 
+int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
+								 struct ntv2_source_config *config,
+								 struct ntv2_source_format *format);
 
 #endif	
 

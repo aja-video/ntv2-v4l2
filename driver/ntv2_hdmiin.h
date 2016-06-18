@@ -32,6 +32,7 @@ struct ntv2_hdmiin_format {
 	u32								frame_rate;
 	u32								frame_flags;
 	u32								pixel_flags;
+	u32								audio_detect;
 };
 
 struct ntv2_hdmiin {
@@ -45,7 +46,7 @@ struct ntv2_hdmiin {
 	struct ntv2_konai2c				*i2c_reg;
 	spinlock_t 						state_lock;
 
-	struct ntv2_hdmiin_format	 	video_format;
+	struct ntv2_hdmiin_format	 	input_format;
 
 	u32								relock_reports;
 	bool							hdmi_mode;
@@ -57,12 +58,15 @@ struct ntv2_hdmiin {
 	bool							yuv_mode;
 	bool							deep_color_10bit;
 	bool							deep_color_12bit;
+	bool							audio_multichannel;
 	bool							prefer_yuv;
 	bool							prefer_rgb;
 
 	bool							cable_present;
 	bool							clock_present;
 	bool							input_locked;
+	bool							audio_present;
+	bool							audio_locked;
 	bool							avi_packet_present;
 	bool							vsi_packet_present;
 
@@ -99,7 +103,7 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 int ntv2_hdmiin_enable(struct ntv2_hdmiin *ntv2_hin);
 int ntv2_hdmiin_disable(struct ntv2_hdmiin *ntv2_hin);
 
-int ntv2_hdmiin_get_video_format(struct ntv2_hdmiin *ntv2_hin,
+int ntv2_hdmiin_get_input_format(struct ntv2_hdmiin *ntv2_hin,
 								 struct ntv2_hdmiin_format *format);
 
 int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin);

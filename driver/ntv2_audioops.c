@@ -52,7 +52,7 @@ int ntv2_audioops_setup_capture(struct ntv2_channel_stream *stream)
 	stream->audio.ring_init =
 		audio_config->ring_offset_samples *
 		audio_config->num_channels *
-		audio_config->sample_size;;
+		audio_config->sample_size;
 	stream->audio.sync_cadence = 0;
 	stream->audio.sync_tolerance = audio_config->sync_tolerance;
 	stream->audio.total_sample_count = 0;
@@ -191,9 +191,13 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 	u32 prev_ring_offset;
 	u32 audio_stride;
 	u32 audio_offset;
+	u32 audio_ring;
+	u32 audio_delta_ring;
+	u32 audio_delta_offset;
 	u32 audio_delta = 0;
 	u32 audio_samples;
 	u32 audio_size;
+	u32 ring_size = stream->audio.ring_size;
 	u32 val;
 	u32 mask;
 
@@ -226,29 +230,27 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 		}
 	}
 
+	/* get dynamic stream time and audio position */
 	stream->timestamp = ntv2_chn->dpc_status.interrupt_time;
 	stream->audio.audio_offset = ntv2_chn->dpc_status.audio_input_offset;
 
-	/* align the current audio address */
+	/* align the current hardware audio address */
 	audio_stride = stream->audio.num_channels * stream->audio.sample_size;
 	audio_offset = stream->audio.audio_offset / audio_stride * audio_stride;
 
-	/* compute samples from last interrupt */
+	/* compute expected samples from last interrupt */
 	audio_samples = ntv2_audio_frame_samples(ntv2_chn->dpc_status.interrupt_rate, stream->audio.sync_cadence++);
 	audio_size = audio_samples * audio_stride;
 
 	if (stream->queue_last) {
-		/* update ring offset */
+		/* update computed ring offset */
 		prev_ring_offset = stream->audio.ring_offset;
-		stream->audio.ring_offset = (stream->audio.ring_offset + audio_size)%stream->audio.ring_size;
+		stream->audio.ring_offset = (stream->audio.ring_offset + audio_size)%ring_size;
 		/* check audio sync with hardware */
-		audio_delta = (stream->audio.ring_offset + stream->audio.ring_init)%stream->audio.ring_size;
-		if (audio_delta > audio_offset)
-			audio_delta = audio_delta - audio_offset;
-		else
-			audio_delta = audio_offset - audio_delta;
-		if (audio_delta > stream->audio.ring_size/2)
-			audio_delta -= stream->audio.ring_size/2;
+		audio_ring = (stream->audio.ring_offset + stream->audio.ring_init)%ring_size;
+		audio_delta_ring = (audio_ring + ring_size - audio_offset)%ring_size;
+		audio_delta_offset = (audio_offset + ring_size - audio_ring)%ring_size;
+		audio_delta = min(audio_delta_ring, audio_delta_offset);
 		audio_delta = (audio_delta / audio_stride) * 10000 / stream->audio.sample_rate;
 		if (audio_delta > (stream->audio.sync_tolerance/100)) {
 			NTV2_MSG_CHANNEL_STATE("%s: %s correcting audio sync  exp %08x  act %08x  error %d us\n",
@@ -257,10 +259,8 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 								   stream->audio.ring_offset,
 								   audio_offset,
 								   audio_delta * 100);
-			stream->audio.ring_offset = (audio_offset + stream->audio.ring_size -
-										 stream->audio.ring_init)%stream->audio.ring_size;
-			prev_ring_offset = (stream->audio.ring_offset + stream->audio.ring_size -
-								audio_size)%stream->audio.ring_size;
+			stream->audio.ring_offset = (audio_offset + ring_size - stream->audio.ring_init)%ring_size;
+			prev_ring_offset = (stream->audio.ring_offset + ring_size -	audio_size)%ring_size;
 		}
 		/* save for stats */
 		stream->audio.total_sample_count += audio_samples;
@@ -298,8 +298,8 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 			data_ready->audio.offset = prev_ring_offset;
 			data_ready->audio.address[0] = stream->audio.ring_address + prev_ring_offset;
 			data_ready->audio.address[1] = stream->audio.ring_address;
-			if ((prev_ring_offset + audio_size) > stream->audio.ring_size) {
-				data_ready->audio.data_size[0] = stream->audio.ring_size - prev_ring_offset;
+			if ((prev_ring_offset + audio_size) > ring_size) {
+				data_ready->audio.data_size[0] = ring_size - prev_ring_offset;
 				data_ready->audio.data_size[1] = audio_size - data_ready->audio.data_size[0];
 			} else {
 				data_ready->audio.data_size[0] = audio_size;

@@ -235,7 +235,7 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 			goto done;
 
 		/* get current hdmi input format */
-		ntv2_hdmiin_get_video_format(ntv2_inp->hdmi_inputs[config->input_index], &hdmi_format);
+		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi_inputs[config->input_index], &hdmi_format);
 
 		format->type = config->type;
 		format->video_standard = hdmi_format.video_standard;
@@ -261,10 +261,88 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 done:
 	if (result < 0) {
 		memset(format, 0, sizeof(struct ntv2_input_format));
-		return -EINVAL;
 	}
 
-	return 0;
+	return result;
+}
+
+int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
+								 struct ntv2_source_config *config,
+								 struct ntv2_source_format *format)
+{
+	struct ntv2_sdi_input_status status[4];
+	struct ntv2_hdmiin_format hdmi_format;
+	unsigned long flags;
+	int result = -EINVAL;
+	int i;
+
+	if ((ntv2_inp == NULL) ||
+		(config == NULL) ||
+		(format == NULL))
+		return -EPERM;
+
+	format->type = config->type;
+	format->audio_source = config->audio_source;
+	format->input_index = config->input_index;
+	format->num_inputs = config->num_inputs;
+	format->audio_detect = 0;
+
+	if (config->type == ntv2_source_type_sdi) {
+
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_sdi_inputs) ||
+			(config->num_inputs < 1) ||
+			(config->num_inputs > 4) ||
+			((config->input_index + config->num_inputs) > ntv2_inp->num_sdi_inputs))
+			goto done;
+
+		/* get current sdi input status */
+		spin_lock_irqsave(&ntv2_inp->state_lock, flags);
+		for (i = 0; i < config->num_inputs; i++) {
+			if (!ntv2_inp->sdi_input_state[config->input_index + i].locked) {
+				spin_unlock_irqrestore(&ntv2_inp->state_lock, flags);
+				goto done;
+			}
+			status[i] = ntv2_inp->sdi_input_state[config->input_index + i].lock_status;
+		}
+		spin_unlock_irqrestore(&ntv2_inp->state_lock, flags);
+
+		/* sdi input status must be identical for multiple inputs */
+		for (i = 1; i < config->num_inputs; i++) {
+			if (!ntv2_compare_sdi_input_status(&status[0], &status[i]))
+				goto done;
+		}
+
+		/* set audio detection bits */
+		for (i = 0; i < config->num_inputs; i++) {
+			format->audio_detect |= (status[i].audio_detect & 0xff) << i*8;
+		}
+
+		result = 0;
+	}
+
+	if (config->type == ntv2_source_type_hdmi) {
+
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_hdmi_inputs) ||
+			(config->num_inputs != 1))
+			goto done;
+
+		/* get current hdmi input format */
+		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi_inputs[config->input_index], &hdmi_format);
+
+		/* set audio detection bits */
+		format->audio_detect = hdmi_format.audio_detect;
+
+		result = 0;
+	}
+
+done:
+	if (result < 0) {
+		memset(format, 0, sizeof(struct ntv2_input_format));
+	}
+
+	return result;
 }
 
 static void ntv2_input_monitor(unsigned long data)
