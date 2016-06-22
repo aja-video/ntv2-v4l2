@@ -103,7 +103,7 @@ struct ntv2_audio_stream {
 	u32								sync_cadence;
 	u32								sync_tolerance;
 	bool							hardware_enable;
-	bool							input_clock;
+	bool							embedded_clock;
 
 	s64								total_sample_count;
 	s64								total_drop_count;

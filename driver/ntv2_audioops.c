@@ -88,7 +88,7 @@ int ntv2_audioops_setup_capture(struct ntv2_channel_stream *stream)
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, ntv2_kona_audio_source_embedded);
 	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val);
 
-	stream->audio.input_clock = false;
+	stream->audio.embedded_clock = false;
 
 	stream->ops.update_route(stream);
 
@@ -126,57 +126,57 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	int index = ntv2_chn->index;
-	u32 source = 9999;
-	u32 in_bit0;
-	u32 in_bit1;
+	u32 org_source = ntv2_kona_audio_source_aes;
+	u32 org_bit0 = 0;
+	u32 org_bit1 = 0;
+	u32 new_source = ntv2_kona_audio_source_aes;
+	u32 new_bit0 = 0;
+	u32 new_bit1 = 0;
 	u32 val;
 	u32 mask;
 
-	/* route audio */
-	if ((stream->source_format.type != ntv2_source_type_unknown) &&
-		(stream->source_format.type != ntv2_source_type_video)) {
-		source = stream->source_format.audio_source;
-	}
+	/* get original audio source */
+	val = ntv2_reg_read(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index);
+	org_source = NTV2_FLD_GET(ntv2_kona_fld_audio_input_ch12, val);
+	org_bit0 = NTV2_FLD_GET(ntv2_kona_fld_audio_embedded_input_b0, val);
+	org_bit1 = NTV2_FLD_GET(ntv2_kona_fld_audio_embedded_input_b1, val);
 
-	if (stream->input_format.type == ntv2_input_type_sdi) {
-		if (source == 9999) {
-			source = ntv2_kona_audio_source_embedded;
-		}
-		in_bit0 = index & 0x1;
-		in_bit1 = (index & 0x2) >> 1;
-	} else if (stream->input_format.type == ntv2_input_type_hdmi) {
-		if (source == 9999) {
-			source = ntv2_kona_audio_source_hdmi;
-		}
-		in_bit0 = 0;
-		in_bit1 = 0;
-	}
-	else
-	{
-		if (source == 9999) {
-			source = ntv2_kona_audio_source_aes;
-		}
-		in_bit0 = 0;
-		in_bit1 = 0;
+	/* route audio */
+	if (stream->source_format.type == ntv2_input_type_sdi) {
+		new_source = ntv2_kona_audio_source_embedded;
+		new_bit0 = stream->source_format.input_index & 0x1;
+		new_bit1 = (stream->source_format.input_index & 0x2) >> 1;
+	} else if (stream->source_format.type == ntv2_input_type_hdmi) {
+		new_source = ntv2_kona_audio_source_hdmi;
+		new_bit0 = 0;
+		new_bit1 = 0;
 	}
 
 	/* set audio source */
-	val = NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch12, source);
+	val = NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch12, new_source);
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch12);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch34, source);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch34, new_source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch34);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch56, source);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch56, new_source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch56);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, source);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, new_source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch78);
 
 	/* set sdi embedded channel */
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b0, in_bit0);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b0, new_bit0);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_input_b0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b1, in_bit1);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b1, new_bit1);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_input_b1);
 
+	/* update source */
 	ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val, mask);
+
+	/* if audio source changes then resync with video */
+	if ((new_source != org_source) ||
+		(new_bit0 != org_bit0) ||
+		(new_bit1 != org_bit1)) {
+		stream->audio.ring_offset = 0x40000000;
+	}
 
 	return 0;
 }
@@ -184,6 +184,7 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_channel_stream *video_stream = ntv2_chn->streams[ntv2_stream_type_vidin];
 	struct ntv2_stream_data *data_ready;
 	int index = ntv2_chn->index;
 	s64 stat_time = ntv2_chn->dpc_status.stat_time;
@@ -200,34 +201,46 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 	u32 ring_size = stream->audio.ring_size;
 	u32 val;
 	u32 mask;
+	bool input_clock = false;
+	bool embedded_clock = false;
 
 	/* idle if not enabled */
 	if (!stream->queue_enable)
 		return 0;
 
-	/*
-	  if video input is enabled, run on the video input interrupt
-	  if video input is disabled, run on the video output interrupt
-	*/
-	if ((ntv2_chn->streams[ntv2_stream_type_vidin] != NULL) &&
-		ntv2_chn->streams[ntv2_stream_type_vidin]->queue_enable) {
+	/* if video input is enabled, run on the video input interrupt */
+	if ((video_stream != NULL) &&
+		video_stream->queue_enable) {
+		input_clock = true;
+		/* for sdi inputs use the generated embedded audio clock */
+		if (video_stream->input_format.type == ntv2_input_type_sdi)
+			embedded_clock = true;
+	}
+
+	/* if there are no reference inputs use the input interrupt */
+	if (stream->ntv2_chn->features->num_reference_inputs == 0)
+		input_clock = true;
+			
+	/* only run on the correct interrupt */
+	if (input_clock) {
 		if(!ntv2_chn->dpc_status.interrupt_input)
 			return 0;
-		if (!stream->audio.input_clock) {
-			val = NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_clock, 1);
-			mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_clock);
-			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val, mask);
-			stream->audio.input_clock = true;
-		}
 	} else {
 		if(!ntv2_chn->dpc_status.interrupt_output)
 			return 0;
-		if (stream->audio.input_clock) {
-			val = NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_clock, 0);
-			mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_clock);
-			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val, mask);
-			stream->audio.input_clock = false;
-		}
+	}
+
+	/* set the embedded audio clock source for sdi sources */
+	if (embedded_clock && !stream->audio.embedded_clock) {
+		val = NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_clock, 1);
+		mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_clock);
+		ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val, mask);
+		stream->audio.embedded_clock = true;
+	} else {
+		val = NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_clock, 0);
+		mask = NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_clock);
+		ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_audio_source, index, val, mask);
+		stream->audio.embedded_clock = false;
 	}
 
 	/* get dynamic stream time and audio position */

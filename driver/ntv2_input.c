@@ -99,6 +99,7 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 	ntv2_inp->vid_reg = vid_reg;
 	ntv2_inp->num_sdi_inputs = features->num_sdi_inputs;
 	ntv2_inp->num_hdmi_inputs = features->num_hdmi_inputs;
+	ntv2_inp->num_aes_inputs = features->num_aes_inputs;
 
 	for (i = 0; i < ntv2_inp->num_hdmi_inputs; i++) {
 		ntv2_inp->hdmi_inputs[i] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, "hin", i); 
@@ -272,6 +273,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 {
 	struct ntv2_sdi_input_status status[4];
 	struct ntv2_hdmiin_format hdmi_format;
+	struct ntv2_aes_input_status aes_status;
 	unsigned long flags;
 	int result = -EINVAL;
 	int i;
@@ -287,7 +289,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 	format->num_inputs = config->num_inputs;
 	format->audio_detect = 0;
 
-	if (config->type == ntv2_source_type_sdi) {
+	if (config->type == ntv2_input_type_sdi) {
 
 		/* validate config parameters */
 		if ((config->input_index >= ntv2_inp->num_sdi_inputs) ||
@@ -321,7 +323,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 		result = 0;
 	}
 
-	if (config->type == ntv2_source_type_hdmi) {
+	if (config->type == ntv2_input_type_hdmi) {
 
 		/* validate config parameters */
 		if ((config->input_index >= ntv2_inp->num_hdmi_inputs) ||
@@ -333,6 +335,22 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 
 		/* set audio detection bits */
 		format->audio_detect = hdmi_format.audio_detect;
+
+		result = 0;
+	}
+
+	if (config->type == ntv2_input_type_aes) {
+
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_aes_inputs) ||
+			(config->num_inputs != 1))
+			goto done;
+
+		/* get current aes input status */
+		ntv2_read_aes_input_status(ntv2_inp->vid_reg, config->input_index, &aes_status);
+
+		/* set audio detection bits */
+		format->audio_detect = aes_status.audio_detect | 0x1;
 
 		result = 0;
 	}

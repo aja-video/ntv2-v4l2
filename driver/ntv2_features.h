@@ -53,7 +53,7 @@ struct ntv2_input_config {
 
 struct ntv2_source_config {
 	const char*					name;
-	enum ntv2_source_type		type;
+	enum ntv2_input_type		type;
 	u32							audio_source;
 	u32							num_channels;
 	int							input_index;
@@ -81,6 +81,7 @@ struct ntv2_features {
 	u32							num_hdmi_inputs;
 	u32							num_aes_inputs;
 	u32							num_analog_inputs;
+	u32							num_reference_inputs;
 	u32							frame_buffer_size;
 	u32							num_serial_ports;
 
@@ -152,6 +153,12 @@ u32 ntv2_features_num_video_formats(struct ntv2_features *features,
 struct ntv2_video_format
 *ntv2_features_get_default_video_format(struct ntv2_features *features,
 										int channel_index);
+
+struct ntv2_source_config
+*ntv2_features_find_source_config(struct ntv2_features *features,
+								  int channel_index,
+								  enum ntv2_input_type input_type,
+								  int input_index);
 
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,

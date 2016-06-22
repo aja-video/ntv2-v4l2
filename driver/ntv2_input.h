@@ -50,6 +50,7 @@ struct ntv2_input {
 	enum ntv2_task_state			monitor_state;
 	u32								num_sdi_inputs;
 	u32								num_hdmi_inputs;
+	u32								num_aes_inputs;
 
 	struct ntv2_sdi_input_state		sdi_input_state[NTV2_MAX_SDI_COMPONENTS];
 	struct ntv2_hdmiin				*hdmi_inputs[NTV2_MAX_HDMI_INPUTS];

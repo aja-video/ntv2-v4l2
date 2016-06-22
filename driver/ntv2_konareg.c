@@ -1041,7 +1041,7 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 		return;
 
 	val = ntv2_register_read(ntv2_reg, sdi_input_status[index].video_reg);
-//	printk("input status %d %08x\n", sdi_input_status[index].video_reg, val);
+//	printk("sdi input status %d %08x\n", sdi_input_status[index].video_reg, val);
 
 	rate = NTV2_FLD_GET(sdi_input_status[index].video_rate_b012_fld, val);
 	rate |= NTV2_FLD_GET(sdi_input_status[index].video_rate_b3_fld, val) << 3;
@@ -1072,6 +1072,27 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 	input_status->is3gb = tgb;
 	input_status->vpid_ds1 = vds1;
 	input_status->vpid_ds2 = vds2;
+	input_status->audio_detect = detect;
+}
+
+void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
+								struct ntv2_aes_input_status *input_status)
+{
+	u32 val = 0;
+	u32 detect = 0;
+
+	if ((ntv2_reg == NULL) ||
+		(input_status == NULL) ||
+		(index != 0))
+		return;
+
+	val = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_input_status, 0);
+	detect = NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 0;
+	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 1;
+	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 2;
+	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 3;
+
+	input_status->input_index = index;
 	input_status->audio_detect = detect;
 }
 

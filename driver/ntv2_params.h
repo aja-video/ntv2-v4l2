@@ -169,19 +169,12 @@ enum ntv2_stream_type {
 
 enum ntv2_input_type {
 	ntv2_input_type_unknown,
+	ntv2_input_type_auto,
 	ntv2_input_type_sdi,
 	ntv2_input_type_hdmi,
+	ntv2_input_type_aes,
+	ntv2_input_type_analog,
 	ntv2_input_type_size
-};
-
-enum ntv2_source_type {
-	ntv2_source_type_unknown,
-	ntv2_source_type_video,
-	ntv2_source_type_sdi,
-	ntv2_source_type_hdmi,
-	ntv2_source_type_aes,
-	ntv2_source_type_analog,
-	ntv2_source_type_size
 };
 
 enum ntv2_task_state {
@@ -229,7 +222,7 @@ struct ntv2_input_format {
 };
 
 struct ntv2_source_format {
-	enum ntv2_source_type		type;
+	enum ntv2_input_type		type;
 	u32							audio_source;
 	u32							audio_detect;
 	u32							input_index;

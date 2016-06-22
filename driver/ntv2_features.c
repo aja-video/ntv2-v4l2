@@ -275,6 +275,30 @@ struct ntv2_video_format
 }
 
 
+struct ntv2_source_config
+*ntv2_features_find_source_config(struct ntv2_features *features,
+								  int channel_index,
+								  enum ntv2_input_type input_type,
+								  int input_index)
+{
+	int i;
+
+	if ((features == NULL) ||
+		(channel_index >= NTV2_MAX_CHANNELS))
+		return false;
+
+	for (i = 0; i < NTV2_MAX_SOURCE_CONFIGS; i++) {
+		if ((features->source_config[channel_index][i]->type == input_type) &&
+			(features->source_config[channel_index][i]->input_index == input_index))
+			break;
+	}
+
+	if (i >= NTV2_MAX_SOURCE_CONFIGS) 
+		return NULL;
+
+	return features->source_config[channel_index][i];
+}
+
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,
 									struct ntv2_pixel_format *pixf,
@@ -961,7 +985,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_auto;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "Auto";
-	nss->type = ntv2_source_type_video;
+	nss->type = ntv2_input_type_auto;
 	nss->audio_source = 0;
 	nss->num_channels = 0;
 	nss->input_index = 0;
@@ -971,7 +995,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_aes;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "AES";
-	nss->type = ntv2_source_type_aes;
+	nss->type = ntv2_input_type_aes;
 	nss->audio_source = ntv2_kona_audio_source_aes;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -981,7 +1005,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_1;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 1";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -990,7 +1014,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_2;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 2";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -999,7 +1023,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_3;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 3";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -1008,7 +1032,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_4;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 4";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 3;
@@ -1017,7 +1041,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_5;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 5";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 4;
@@ -1026,7 +1050,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_6;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 6";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 5;
@@ -1035,7 +1059,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_7;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 7";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 6;
@@ -1044,7 +1068,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_sdi_8;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 8";
-	nss->type = ntv2_source_type_sdi;
+	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 7;
@@ -1054,7 +1078,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_analog;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "Analog";
-	nss->type = ntv2_source_type_analog;
+	nss->type = ntv2_input_type_analog;
 	nss->audio_source = ntv2_kona_audio_source_analog;
 	nss->num_channels = 2;
 	nss->input_index = 0;
@@ -1064,7 +1088,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_analog_aes;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "Analog/AES";
-	nss->type = ntv2_source_type_aes;
+	nss->type = ntv2_input_type_aes;
 	nss->audio_source = ntv2_kona_audio_source_aes;
 	nss->num_channels = 2;
 	nss->input_index = 0;
@@ -1074,7 +1098,7 @@ static void ntv2_features_initialize(void) {
 	nss = &asc_hdmi;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "HDMI";
-	nss->type = ntv2_source_type_hdmi;
+	nss->type = ntv2_input_type_hdmi;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
 	nss->input_index = 0;
@@ -1524,6 +1548,7 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
+	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x40000000;
 
 	for (i = 0; i < features->num_video_channels; i++) {
@@ -1580,6 +1605,7 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 	features->num_video_channels = 8;
 	features->num_audio_channels = 8;
 	features->num_sdi_inputs = 8;
+	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x40000000;
 
 	for (i = 0; i < features->num_video_channels; i++) {
@@ -1664,6 +1690,7 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
+	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x37800000;
 
 	for (i = 0; i < features->num_video_channels; i++) {

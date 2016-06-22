@@ -19,6 +19,7 @@
 
 #include "ntv2_audio.h"
 #include "ntv2_pcmops.h"
+#include "ntv2_features.h"
 #include "ntv2_channel.h"
 
 
@@ -85,6 +86,7 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_pcm_substream_chip(substream);
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	struct ntv2_source_config *config;
 	int size;
 	int ret;
 
@@ -110,6 +112,13 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 	if (ret != 0)
 		return ret;
 
+	/* configure the audio source */
+	config = ntv2_features_get_source_config(ntv2_aud->features,
+											 ntv2_aud->ntv2_chn->index, 
+											 ntv2_aud->source_index);
+	ntv2_audio_set_source(ntv2_aud, config);
+
+	/* enable streaming */
 	ret = ntv2_audio_enable(stream);
 	if (ret != 0) {
 		return ret;

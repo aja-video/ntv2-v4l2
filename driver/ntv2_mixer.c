@@ -22,6 +22,7 @@
 #include "ntv2_mixer.h"
 #include "ntv2_channel.h"
 
+
 static int ntv2_mixer_info_source_control(struct snd_kcontrol *kcontrol,
 										  struct snd_ctl_elem_info *info)
 {
@@ -59,30 +60,19 @@ static int ntv2_mixer_get_source_control(struct snd_kcontrol *kcontrol,
 										 struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_kcontrol_chip(kcontrol);
-	struct ntv2_features *features = ntv2_aud->features;
-	struct ntv2_source_format format;
 	struct ntv2_source_config *config;
-	u32 num_sources = ntv2_features_num_source_configs(ntv2_aud->features, ntv2_aud->ntv2_chn->index);
-	u32 i;
 
-	ntv2_channel_get_source_format(ntv2_aud->capture->chn_str, &format);
-
-	for (i = 0; i < num_sources; i++) {
-		config = ntv2_features_get_source_config(features, ntv2_aud->ntv2_chn->index, i);
-		if ((config != NULL) && (config->type == format.type))
-			break;
+	config = ntv2_features_get_source_config(ntv2_aud->features,
+											 ntv2_aud->ntv2_chn->index,
+											 ntv2_aud->source_index);
+	if (config == NULL) {
+		ntv2_aud->source_index = 0;
+		config = ntv2_features_get_source_config(ntv2_aud->features,
+												 ntv2_aud->ntv2_chn->index,
+												 ntv2_aud->source_index);
 	}
 
-	if (i >= num_sources) {
-		NTV2_MSG_AUDIO_ERROR("%s: *error* bad audio source format type %d\n",
-							 ntv2_aud->name, format.type);
-		i = 0;
-		config = ntv2_features_get_source_config(features, ntv2_aud->ntv2_chn->index, i);
-		ntv2_features_gen_source_format(config, &format);
-		ntv2_channel_set_source_format(ntv2_aud->capture->chn_str, &format);
-	}
-
-	elem->value.enumerated.item[0] = i;
+	elem->value.enumerated.item[0] = ntv2_aud->source_index;
 
 	NTV2_MSG_AUDIO_STATE("%s: get audio source: %s\n",
 						 ntv2_aud->name, config->name);
@@ -94,32 +84,24 @@ static int ntv2_mixer_put_source_control(struct snd_kcontrol *kcontrol,
 										 struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_kcontrol_chip(kcontrol);
-	struct ntv2_features *features = ntv2_aud->features;
-	struct ntv2_source_format format;
 	struct ntv2_source_config *config;
 
-	ntv2_channel_get_source_format(ntv2_aud->capture->chn_str, &format);
+	ntv2_aud->source_index = elem->value.enumerated.item[0];
 
-	config = ntv2_features_get_source_config(features,
+	config = ntv2_features_get_source_config(ntv2_aud->features,
 											 ntv2_aud->ntv2_chn->index, 
-											 elem->value.enumerated.item[0]);
-
+											 ntv2_aud->source_index);
 	if (config == NULL) {
-		NTV2_MSG_AUDIO_ERROR("%s: *error* bad audio source item %d\n",
-							 ntv2_aud->name, (int)elem->value.enumerated.item[0]);
-		config = ntv2_features_get_source_config(features, ntv2_aud->ntv2_chn->index, 0);
-	}
-
-	if (config->type != format.type) {
-		ntv2_features_gen_source_format(config, &format);
-		ntv2_channel_set_source_format(ntv2_aud->capture->chn_str, &format);
-		return 1;
+		ntv2_aud->source_index = 0;
+		config = ntv2_features_get_source_config(ntv2_aud->features,
+												 ntv2_aud->ntv2_chn->index,
+												 ntv2_aud->source_index);
 	}
 
 	NTV2_MSG_AUDIO_STATE("%s: put audio source: %s\n",
 						 ntv2_aud->name, config->name);
 
-	return 0;
+	return ntv2_audio_set_source(ntv2_aud, config);
 }
 
 static struct snd_kcontrol_new ntv2_snd_controls[] = {

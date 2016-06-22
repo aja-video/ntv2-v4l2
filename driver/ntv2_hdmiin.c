@@ -788,7 +788,8 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 			input_format.frame_rate = dvi_format.frame_rate;
 			input_format.frame_flags = hdmi_format.frame_flags;
 			input_format.pixel_flags = hdmi_format.pixel_flags;
-			input_format.audio_detect = ntv2_hin->audio_multichannel? 0xf : 0x1;
+			input_format.audio_detect = ntv2_hin->audio_present?
+				(ntv2_hin->audio_multichannel? 0xf : 0x1) : 0x0;
 		} else {
 			input_format.video_standard = dvi_format.video_standard;
 			input_format.frame_rate = dvi_format.frame_rate;

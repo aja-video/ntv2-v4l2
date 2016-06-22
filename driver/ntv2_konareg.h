@@ -704,6 +704,16 @@ NTV2_FLD(ntv2_kona_fld_vpid_progressive_transport,	1,	23);
 NTV2_FLD(ntv2_kona_fld_vpid_standard,				7,	24);
 NTV2_FLD(ntv2_kona_fld_vpid_version_id,				1,	31);
 
+/* audio detection bits */
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch12,		1,	0);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch34,		1,	1);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr2ch12,		1,	2);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr2ch34,		1,	3);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr3ch12,		1,	4);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr3ch34,		1,	5);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr4ch12,		1,	6);
+NTV2_FLD(ntv2_kona_fld_audio_detect_gr4ch34,		1,	7);
+
 /* sdi input embedded audio detect registers */
 NTV2_REG(ntv2_kona_reg_sdiin_audio_detect,			23);
 NTV2_FLD(ntv2_kona_fld_sdiin1_audio_detect,			8,	0);
@@ -886,16 +896,6 @@ NTV2_FLD(ntv2_kona_fld_hdmiin_v_active_lines,		16,	16);	/* V active lines field 
 
 NTV2_REG(ntv2_kona_reg_hdmiin_color_depth,			375);		/* hdmi input color depth */
 NTV2_FLD(ntv2_kona_fld_hdmiin_deep_color_detect,	1,	6);		/* detected deep color */
-
-/* audio detection bits */
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch12,		1,	0);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch34,		1,	1);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr2ch12,		1,	2);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr2ch34,		1,	3);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr3ch12,		1,	4);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr3ch34,		1,	5);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr4ch12,		1,	6);
-NTV2_FLD(ntv2_kona_fld_audio_detect_gr4ch34,		1,	7);
 
 /* free running audio sample counter register */
 NTV2_REG(ntv2_kona_reg_audio_counter,				28);
@@ -1193,6 +1193,8 @@ void ntv2_sdi_input_convert_3g_enable(struct ntv2_register *ntv2_reg, int index,
 
 void ntv2_read_sdi_input_status(struct ntv2_register *ntv2_reg, int index,
 								struct ntv2_sdi_input_status *input_status);
+void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
+								struct ntv2_aes_input_status *input_status);
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,
 						  int sdi_index, int sdi_stream, bool sdi_rgb,
