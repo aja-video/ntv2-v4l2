@@ -19,14 +19,14 @@
 
 #include "ntv2_audio.h"
 #include "ntv2_features.h"
-#include "ntv2_mixer.h"
+#include "ntv2_mixops.h"
 #include "ntv2_channel.h"
 
-static int ntv2_mixer_num_audio(struct ntv2_device *ntv2_dev);
-static struct ntv2_audio *ntv2_mixer_get_audio(struct ntv2_device *ntv2_dev, int index);
+static int ntv2_mixops_num_audio(struct ntv2_device *ntv2_dev);
+static struct ntv2_audio *ntv2_mixops_get_audio(struct ntv2_device *ntv2_dev, int index);
 
 
-static int ntv2_mixer_info_source_control(struct snd_kcontrol *kcontrol,
+static int ntv2_mixops_info_source_control(struct snd_kcontrol *kcontrol,
 										  struct snd_ctl_elem_info *info)
 {
 	struct ntv2_device *ntv2_dev = (struct ntv2_device *)snd_kcontrol_chip(kcontrol);
@@ -35,7 +35,7 @@ static int ntv2_mixer_info_source_control(struct snd_kcontrol *kcontrol,
 	struct ntv2_source_config *config;
 	u32 num_sources;
 
-	ntv2_aud = ntv2_mixer_get_audio(ntv2_dev, info->id.index);
+	ntv2_aud = ntv2_mixops_get_audio(ntv2_dev, info->id.index);
 	if (ntv2_aud == NULL)
 		return -EINVAL;
 
@@ -67,14 +67,14 @@ static int ntv2_mixer_info_source_control(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int ntv2_mixer_get_source_control(struct snd_kcontrol *kcontrol,
+static int ntv2_mixops_get_source_control(struct snd_kcontrol *kcontrol,
 										 struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_device *ntv2_dev = (struct ntv2_device *)snd_kcontrol_chip(kcontrol);
 	struct ntv2_audio *ntv2_aud;
 	struct ntv2_source_config *config;
 
-	ntv2_aud = ntv2_mixer_get_audio(ntv2_dev, elem->id.index);
+	ntv2_aud = ntv2_mixops_get_audio(ntv2_dev, elem->id.index);
 	if (ntv2_aud == NULL)
 		return -EINVAL;
 
@@ -96,14 +96,14 @@ static int ntv2_mixer_get_source_control(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int ntv2_mixer_put_source_control(struct snd_kcontrol *kcontrol,
+static int ntv2_mixops_put_source_control(struct snd_kcontrol *kcontrol,
 										 struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_device *ntv2_dev = (struct ntv2_device *)snd_kcontrol_chip(kcontrol);
 	struct ntv2_audio *ntv2_aud;
 	struct ntv2_source_config *config;
 
-	ntv2_aud = ntv2_mixer_get_audio(ntv2_dev, elem->id.index);
+	ntv2_aud = ntv2_mixops_get_audio(ntv2_dev, elem->id.index);
 	if (ntv2_aud == NULL)
 		return -EINVAL;
 
@@ -130,13 +130,13 @@ static struct snd_kcontrol_new ntv2_snd_controls[] = {
 		.iface = SNDRV_CTL_ELEM_IFACE_MIXER,
 		.name =	"Source Capture Route",
 		.count = 1,
-		.info =	ntv2_mixer_info_source_control,
-		.get =	ntv2_mixer_get_source_control,
-		.put =	ntv2_mixer_put_source_control
+		.info =	ntv2_mixops_info_source_control,
+		.get =	ntv2_mixops_get_source_control,
+		.put =	ntv2_mixops_put_source_control
 	}
 };
 
-int ntv2_mixer_configure(struct ntv2_device *ntv2_dev)
+int ntv2_mixops_configure(struct ntv2_device *ntv2_dev)
 {
 	int i;
 	int ret;
@@ -145,9 +145,7 @@ int ntv2_mixer_configure(struct ntv2_device *ntv2_dev)
 	if (ntv2_dev == NULL)
 		return -EPERM;
 
-	NTV2_MSG_AUDIO_INFO("%s: configure audio mixer\n", ntv2_dev->name);
-
-	count = ntv2_mixer_num_audio(ntv2_dev);
+	count = ntv2_mixops_num_audio(ntv2_dev);
 	if (count == 0)
 		return 0;
 
@@ -163,7 +161,7 @@ int ntv2_mixer_configure(struct ntv2_device *ntv2_dev)
 	return 0;
 }
 
-static int ntv2_mixer_num_audio(struct ntv2_device *ntv2_dev)
+static int ntv2_mixops_num_audio(struct ntv2_device *ntv2_dev)
 {
 	struct list_head *ptr;
 	struct list_head *next;
@@ -177,7 +175,7 @@ static int ntv2_mixer_num_audio(struct ntv2_device *ntv2_dev)
 }
 
 static struct ntv2_audio
-*ntv2_mixer_get_audio(struct ntv2_device *ntv2_dev, int index)
+*ntv2_mixops_get_audio(struct ntv2_device *ntv2_dev, int index)
 {
 	struct list_head *ptr;
 	struct list_head *next;

@@ -39,7 +39,7 @@ DRIVERSRCS 		=	ntv2_driver.c \
 					ntv2_konai2c.c \
 					ntv2_hdmiin.c \
 					ntv2_serial.c \
-					ntv2_mixer.c
+					ntv2_mixops.c
 
 DRIVEROBJS		=	$(patsubst %.c,%.o,$(DRIVERSRCS))
 
@@ -64,7 +64,7 @@ DRIVERINCS		=	ntv2_common.h \
 					ntv2_hdmiin.h \
 					ntv2_hinreg.h \
 					ntv2_serial.h \
-					ntv2_mixer.h
+					ntv2_mixops.h
 
 obj-m			:= $(DRIVERTARGET)
 $(DRIVERNAME)-y	:= $(DRIVEROBJS)

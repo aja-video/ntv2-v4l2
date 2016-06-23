@@ -17,11 +17,11 @@
  * SOFTWARE.
  */
 
-#ifndef NTV2_MIXER_H
-#define NTV2_MIXER_H
+#ifndef NTV2_MIXOPS_H
+#define NTV2_MIXOPS_H
 
 #include "ntv2_common.h"
 
-int ntv2_mixer_configure(struct ntv2_device *ntv2_dev);
+int ntv2_mixops_configure(struct ntv2_device *ntv2_dev);
 
 #endif

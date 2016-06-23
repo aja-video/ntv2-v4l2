@@ -1453,7 +1453,7 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
 	ntv2_hin->input_format = *format;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
-
+#if 0
 	NTV2_MSG_HDMIIN_STATE("%s: video setup            %08x\n", ntv2_hin->name, video_setup);
 	NTV2_MSG_HDMIIN_STATE("%s: h sync                 %08x\n", ntv2_hin->name, h_sync_bp);
 	NTV2_MSG_HDMIIN_STATE("%s: h active               %08x\n", ntv2_hin->name, h_active);
@@ -1468,7 +1468,7 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	NTV2_MSG_HDMIIN_STATE("%s: v active:total fld 1   %08x\n", ntv2_hin->name, vertical_data_fld1);
 	NTV2_MSG_HDMIIN_STATE("%s: v active:total fld 2   %08x\n", ntv2_hin->name, vertical_data_fld2);
 	NTV2_MSG_HDMIIN_STATE("%s: input status           %08x\n", ntv2_hin->name, input_status);
-
+#endif
 	return 0;
 }
 

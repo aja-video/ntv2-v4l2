@@ -20,7 +20,7 @@
 #include "ntv2_device.h"
 #include "ntv2_video.h"
 #include "ntv2_audio.h"
-#include "ntv2_mixer.h"
+#include "ntv2_mixops.h"
 #include "ntv2_serial.h"
 #include "ntv2_channel.h"
 #include "ntv2_register.h"
@@ -83,6 +83,7 @@ struct ntv2_device *ntv2_device_open(struct ntv2_module *ntv2_mod,
 
 	/* channel list */
 	INIT_LIST_HEAD(&ntv2_dev->channel_list);
+
 	spin_lock_init(&ntv2_dev->channel_lock);
 	atomic_set(&ntv2_dev->channel_index, 0);
 
@@ -386,7 +387,16 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	}
 
 	/* configure the audio mixer */
-	ntv2_mixer_configure(ntv2_dev);
+	ntv2_mixops_configure(ntv2_dev);
+
+	/* register the pcm devices */
+	if (num_audio > 0) {
+		result = snd_card_register(ntv2_dev->snd_card);
+		if (result < 0) {
+			NTV2_MSG_DEVICE_ERROR("%s: *error* snd_card_register failed code %d\n",
+								  ntv2_dev->name, result);
+		}
+	}
 
 	for (i = 0; i < num_serial; i++) {
 		/* allocate and initialize serial device instance */
@@ -406,15 +416,6 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 		spin_lock_irqsave(&ntv2_dev->serial_lock, flags);
 		list_add_tail(&ntv2_ser->list, &ntv2_dev->serial_list);
 		spin_unlock_irqrestore(&ntv2_dev->serial_lock, flags);
-	}
-
-	/* register the pcm devices */
-	if (num_audio > 0) {
-		result = snd_card_register(ntv2_dev->snd_card);
-		if (result < 0) {
-			NTV2_MSG_DEVICE_ERROR("%s: *error* snd_card_register failed code %d\n",
-								  ntv2_dev->name, result);
-		}
 	}
 
 	/* enable interrupts */
