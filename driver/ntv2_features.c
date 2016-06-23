@@ -285,18 +285,17 @@ struct ntv2_source_config
 
 	if ((features == NULL) ||
 		(channel_index >= NTV2_MAX_CHANNELS))
-		return false;
-
-	for (i = 0; i < NTV2_MAX_SOURCE_CONFIGS; i++) {
-		if ((features->source_config[channel_index][i]->type == input_type) &&
-			(features->source_config[channel_index][i]->input_index == input_index))
-			break;
-	}
-
-	if (i >= NTV2_MAX_SOURCE_CONFIGS) 
 		return NULL;
 
-	return features->source_config[channel_index][i];
+	for (i = 0; i < NTV2_MAX_SOURCE_CONFIGS; i++) {
+		if (features->source_config[channel_index][i] == NULL)
+			break;
+		if ((features->source_config[channel_index][i]->type == input_type) &&
+			(features->source_config[channel_index][i]->input_index == input_index))
+			return features->source_config[channel_index][i];
+	}
+
+	return NULL;
 }
 
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
@@ -758,7 +757,6 @@ static struct ntv2_source_config	asc_sdi_7;
 static struct ntv2_source_config	asc_sdi_8;
 static struct ntv2_source_config	asc_aes;
 static struct ntv2_source_config	asc_analog;
-static struct ntv2_source_config	asc_analog_aes;
 static struct ntv2_source_config	asc_hdmi;
 
 static struct ntv2_video_format 	nvf_525i5994;
@@ -1017,7 +1015,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
-	nss->input_index = 0;
+	nss->input_index = 1;
 	nss->num_inputs = 1;
 
 	nss = &asc_sdi_3;
@@ -1026,7 +1024,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
-	nss->input_index = 0;
+	nss->input_index = 2;
 	nss->num_inputs = 2;
 
 	nss = &asc_sdi_4;
@@ -1080,16 +1078,6 @@ static void ntv2_features_initialize(void) {
 	nss->name = "Analog";
 	nss->type = ntv2_input_type_analog;
 	nss->audio_source = ntv2_kona_audio_source_analog;
-	nss->num_channels = 2;
-	nss->input_index = 0;
-	nss->num_inputs = 1;
-
-	/* audio analog/aes source */
-	nss = &asc_analog_aes;
-	memset(nss, 0, sizeof(struct ntv2_source_config));
-	nss->name = "Analog/AES";
-	nss->type = ntv2_input_type_aes;
-	nss->audio_source = ntv2_kona_audio_source_aes;
 	nss->num_channels = 2;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
@@ -1709,25 +1697,29 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->input_config[3][0] = &nic_sdi_single_4;
 
 	features->source_config[0][0] = &asc_auto;
-	features->source_config[0][1] = &asc_sdi_1;
-	features->source_config[0][2] = &asc_sdi_2;
-	features->source_config[0][3] = &asc_sdi_3;
-	features->source_config[0][4] = &asc_sdi_4;
+	features->source_config[0][1] = &asc_aes;
+	features->source_config[0][2] = &asc_sdi_1;
+	features->source_config[0][3] = &asc_sdi_2;
+	features->source_config[0][4] = &asc_sdi_3;
+	features->source_config[0][5] = &asc_sdi_4;
 	features->source_config[1][0] = &asc_auto;
-	features->source_config[1][1] = &asc_sdi_1;
-	features->source_config[1][2] = &asc_sdi_2;
-	features->source_config[1][3] = &asc_sdi_3;
-	features->source_config[1][4] = &asc_sdi_4;
+	features->source_config[1][1] = &asc_aes;
+	features->source_config[1][2] = &asc_sdi_1;
+	features->source_config[1][3] = &asc_sdi_2;
+	features->source_config[1][4] = &asc_sdi_3;
+	features->source_config[1][5] = &asc_sdi_4;
 	features->source_config[2][0] = &asc_auto;
-	features->source_config[2][1] = &asc_sdi_1;
-	features->source_config[2][2] = &asc_sdi_2;
-	features->source_config[2][3] = &asc_sdi_3;
-	features->source_config[2][4] = &asc_sdi_4;
+	features->source_config[2][1] = &asc_aes;
+	features->source_config[2][3] = &asc_sdi_1;
+	features->source_config[2][4] = &asc_sdi_2;
+	features->source_config[2][5] = &asc_sdi_3;
+	features->source_config[2][6] = &asc_sdi_4;
 	features->source_config[3][0] = &asc_auto;
-	features->source_config[3][1] = &asc_sdi_1;
-	features->source_config[3][2] = &asc_sdi_2;
-	features->source_config[3][3] = &asc_sdi_3;
-	features->source_config[3][4] = &asc_sdi_4;
+	features->source_config[3][1] = &asc_aes;
+	features->source_config[3][2] = &asc_sdi_1;
+	features->source_config[3][3] = &asc_sdi_2;
+	features->source_config[3][4] = &asc_sdi_3;
+	features->source_config[3][5] = &asc_sdi_4;
 
 	all_video_formats(features);
 	all_pixel_formats(features);
@@ -1777,8 +1769,8 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->video_formats[20] = &nvf_2160p3000;
 
 	features->source_config[0][0] = &asc_auto;
-	features->source_config[0][1] = &asc_hdmi;
-	features->source_config[0][2] = &asc_analog_aes;
+	features->source_config[0][1] = &asc_aes;
+	features->source_config[0][2] = &asc_hdmi;
 
 	all_pixel_formats(features);
 	build_v4l2_timings(features);

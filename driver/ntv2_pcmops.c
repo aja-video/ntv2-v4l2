@@ -23,9 +23,6 @@
 #include "ntv2_channel.h"
 
 
-#define NTV2_PCM_DMA_BUFFER_SIZE		4800*16*4
-
-
 static int ntv2_allocate_dma_buffer(struct ntv2_pcm_stream *stream);
 static void ntv2_free_dma_buffer(struct ntv2_pcm_stream *stream);
 static void ntv2_copy_audio(void *dst_buffer, void *src_buffer,

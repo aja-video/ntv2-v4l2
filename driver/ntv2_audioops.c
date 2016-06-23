@@ -189,10 +189,10 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 	int index = ntv2_chn->index;
 	s64 stat_time = ntv2_chn->dpc_status.stat_time;
 	s64 time_us;
-	u32 prev_ring_offset;
+	u32 prev_audio_offset;
 	u32 audio_stride;
 	u32 audio_offset;
-	u32 audio_ring;
+	u32 ring_offset;
 	u32 audio_delta_ring;
 	u32 audio_delta_offset;
 	u32 audio_delta = 0;
@@ -245,74 +245,90 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 
 	/* get dynamic stream time and audio position */
 	stream->timestamp = ntv2_chn->dpc_status.interrupt_time;
-	stream->audio.audio_offset = ntv2_chn->dpc_status.audio_input_offset;
+	audio_offset = ntv2_chn->dpc_status.audio_input_offset;
 
-	/* align the current hardware audio address */
+	/* align the current hardware audio offset */
 	audio_stride = stream->audio.num_channels * stream->audio.sample_size;
-	audio_offset = stream->audio.audio_offset / audio_stride * audio_stride;
+	audio_offset = audio_offset / audio_stride * audio_stride;
 
-	/* compute expected samples from last interrupt */
+	/* offset the current hardware audio offset for frame buffer latency */
+	audio_offset = (audio_offset + ring_size - stream->audio.ring_init)%ring_size;
+
+	/* compute expected sample bytes from last interrupt */
 	audio_samples = ntv2_audio_frame_samples(ntv2_chn->dpc_status.interrupt_rate, stream->audio.sync_cadence++);
 	audio_size = audio_samples * audio_stride;
 
 	if (stream->queue_last) {
+		prev_audio_offset = stream->audio.audio_offset;
 		/* update computed ring offset */
-		prev_ring_offset = stream->audio.ring_offset;
-		stream->audio.ring_offset = (stream->audio.ring_offset + audio_size)%ring_size;
+		ring_offset = (stream->audio.ring_offset + audio_size)%ring_size;
 		/* check audio sync with hardware */
-		audio_ring = (stream->audio.ring_offset + stream->audio.ring_init)%ring_size;
-		audio_delta_ring = (audio_ring + ring_size - audio_offset)%ring_size;
-		audio_delta_offset = (audio_offset + ring_size - audio_ring)%ring_size;
+		audio_delta_ring = (ring_offset + ring_size - audio_offset)%ring_size;
+		audio_delta_offset = (audio_offset + ring_size - ring_offset)%ring_size;
 		audio_delta = min(audio_delta_ring, audio_delta_offset);
 		audio_delta = (audio_delta / audio_stride) * 10000 / stream->audio.sample_rate;
 		if (audio_delta > (stream->audio.sync_tolerance/100)) {
 			NTV2_MSG_CHANNEL_STATE("%s: %s correcting audio sync  exp %08x  act %08x  error %d us\n",
 								   ntv2_chn->name,
 								   ntv2_stream_name(ntv2_stream_type_audin),
-								   stream->audio.ring_offset,
+								   ring_offset,
 								   audio_offset,
 								   audio_delta * 100);
-			stream->audio.ring_offset = (audio_offset + ring_size - stream->audio.ring_init)%ring_size;
-			prev_ring_offset = (stream->audio.ring_offset + ring_size -	audio_size)%ring_size;
+			/* correct number of samples transfered */
+			audio_size += (s32)(stream->audio.total_sample_count - stream->audio.total_transfer_count) * (s32)audio_stride;
+			/* limit in case of unexpected results */
+			if (audio_size > ring_size/4)
+				audio_size = audio_samples * audio_stride;
+			/* move the ring position to the hardware audio offset */
+			prev_audio_offset = (audio_offset + ring_size - audio_size)%ring_size;
+			ring_offset = audio_offset;
 		}
 		/* save for stats */
 		stream->audio.total_sample_count += audio_samples;
 		stream->audio.stat_sample_count += audio_samples;
 	} else {
 		/* set offset on start */
-		stream->audio.ring_offset = (audio_offset + stream->audio.ring_size -
-									 stream->audio.ring_init)%stream->audio.ring_size;
-		prev_ring_offset = stream->audio.ring_offset;
+		prev_audio_offset = audio_offset;
+		ring_offset = audio_offset;
 		/* initialize stats */
 		stream->audio.total_sample_count = 0;
+		stream->audio.total_transfer_count = 0;
 		stream->audio.total_drop_count = 0;
 		stream->audio.stat_sample_count = 0;
 		stream->audio.stat_drop_count = 0;
 		stream->audio.last_display_time = stat_time;
 	}
+
+	/* save current audio offset */
+	stream->audio.audio_offset = audio_offset;
+	stream->audio.ring_offset = ring_offset;
+
 #if 0
-	NTV2_MSG_CHANNEL_STREAM("%s: %s  offset %d  ring %d  samples %d  delta %d\n",
-							ntv2_chn->name,
-							ntv2_stream_name(ntv2_stream_id_audin),
-							audio_offset,
-							stream->audio.ring_offset,
-							audio_samples,
-							audio_delta);
+	NTV2_MSG_CHANNEL_STATE("%s: %s  offset %d  ring %d  samples %d  delta %d\n",
+						   ntv2_chn->name,
+						   ntv2_stream_name(stream->type),
+						   audio_offset,
+						   ring_offset,
+						   audio_samples,
+						   audio_delta);
 #endif								   
 								   
 	/* add frame to queue */
 	if (stream->queue_run && (stream->audio.total_sample_count != 0)) {
+		audio_size = (audio_offset + ring_size - prev_audio_offset)%ring_size;
+		audio_samples = audio_size / audio_stride;
+
 		if (!list_empty(&stream->data_done_list)) {
 			/* get next data object */
 			data_ready = list_first_entry(&stream->data_done_list,
 										  struct ntv2_stream_data, list);
 			list_del_init(&data_ready->list);
 			/* add audio data to queue */
-			data_ready->audio.offset = prev_ring_offset;
-			data_ready->audio.address[0] = stream->audio.ring_address + prev_ring_offset;
+			data_ready->audio.offset = prev_audio_offset;
+			data_ready->audio.address[0] = stream->audio.ring_address + prev_audio_offset;
 			data_ready->audio.address[1] = stream->audio.ring_address;
-			if ((prev_ring_offset + audio_size) > ring_size) {
-				data_ready->audio.data_size[0] = ring_size - prev_ring_offset;
+			if ((prev_audio_offset + audio_size) > ring_size) {
+				data_ready->audio.data_size[0] = ring_size - prev_audio_offset;
 				data_ready->audio.data_size[1] = audio_size - data_ready->audio.data_size[0];
 			} else {
 				data_ready->audio.data_size[0] = audio_size;
@@ -326,6 +342,8 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 									ntv2_chn->name,
 									data_ready->index,
 									audio_size);
+
+			stream->audio.total_transfer_count += audio_samples;
 		} else {
 			stream->video.total_drop_count += audio_samples;
 			stream->video.stat_drop_count += audio_samples;
@@ -340,12 +358,13 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 		time_us = stat_time - stream->audio.last_display_time;
 		if (time_us > NTV2_CHANNEL_STATISTIC_INTERVAL)
 		{
-			NTV2_MSG_CHANNEL_STATISTICS("%s: audio_samples %4d  drops %4d  time %6d (us)   total samples %lld  drops %lld\n",
+			NTV2_MSG_CHANNEL_STATISTICS("%s: audio samples %4d  drops %4d  time %6d (us)   total samples %lld  transfers %lld  drops %lld\n",
 										ntv2_chn->name,
 										(u32)(stream->audio.stat_sample_count),
 										(u32)(stream->audio.stat_drop_count),
 										(u32)(time_us / stream->audio.stat_sample_count),
 										stream->audio.total_sample_count,
+										stream->audio.total_transfer_count,
 										stream->audio.total_drop_count);
 				
 			stream->audio.stat_sample_count = 0;

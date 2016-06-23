@@ -22,6 +22,8 @@
 
 #include "ntv2_common.h"
 
+#define NTV2_PCM_DMA_BUFFER_SIZE		4800*16*4
+
 struct ntv2_audio;
 struct ntv2_features;
 struct ntv2_source_config;

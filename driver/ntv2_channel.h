@@ -106,6 +106,7 @@ struct ntv2_audio_stream {
 	bool							embedded_clock;
 
 	s64								total_sample_count;
+	s64								total_transfer_count;
 	s64								total_drop_count;
 	s64								stat_sample_count;
 	s64								stat_drop_count;

@@ -22,6 +22,6 @@
 
 #include "ntv2_common.h"
 
-int ntv2_mixer_configure(struct ntv2_audio *ntv2_aud);
+int ntv2_mixer_configure(struct ntv2_device *ntv2_dev);
 
 #endif
