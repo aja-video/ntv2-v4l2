@@ -183,6 +183,13 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 	video_dev->v4l2_dev = &ntv2_vid->v4l2_dev;
 	video_dev->lock = &ntv2_vid->video_mutex;
 
+	/* fixes gstreamer */
+	if (video_dev->tvnorms == 0) {
+		v4l2_disable_ioctl(video_dev, VIDIOC_G_STD);
+		v4l2_disable_ioctl(video_dev, VIDIOC_S_STD);
+		v4l2_disable_ioctl(video_dev, VIDIOC_ENUMSTD);
+	}
+
 	NTV2_MSG_VIDEO_INFO("%s: register video device: %s\n",
 						ntv2_vid->name, video_dev->name);
 
