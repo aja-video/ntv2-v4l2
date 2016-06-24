@@ -1079,7 +1079,7 @@ void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
 								struct ntv2_aes_input_status *input_status)
 {
 	u32 val = 0;
-	u32 detect = 0;
+	u32 invalid = 0;
 
 	if ((ntv2_reg == NULL) ||
 		(input_status == NULL) ||
@@ -1087,13 +1087,13 @@ void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
 		return;
 
 	val = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_input_status, 0);
-	detect = NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 0;
-	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 1;
-	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 2;
-	detect |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_detect, val) << 3;
+	invalid = NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 0;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 1;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 2;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 3;
 
 	input_status->input_index = index;
-	input_status->audio_detect = detect;
+	input_status->audio_detect = (~invalid) & 0xf;
 }
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,

@@ -350,7 +350,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 		ntv2_read_aes_input_status(ntv2_inp->vid_reg, config->input_index, &aes_status);
 
 		/* set audio detection bits */
-		format->audio_detect = aes_status.audio_detect | 0x1;
+		format->audio_detect = aes_status.audio_detect;
 
 		result = 0;
 	}
