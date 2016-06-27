@@ -66,7 +66,10 @@ int ntv2_remove_one_port(struct uart_driver *drv, struct uart_port *uport)
 	 */
 	if (uport->type != PORT_UNKNOWN)
 		uport->ops->release_port(uport);
+
+#ifdef NTV2_USE_TTY_GROUP
 	kfree(uport->tty_groups);
+#endif
 
 	/*
 	 * Indicate that there isn't a port here anymore.
