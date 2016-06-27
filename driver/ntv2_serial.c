@@ -482,6 +482,7 @@ static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
 	u32 frame = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_frame);
 	u32 parity = NTV2_FLD_MASK(ntv2_kona_fld_serial_error_parity);
 	u32 trigger = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_trigger);
+	u32 active = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_active);
 	u32 status;
 	u32 rx = 0;
 	int i;
@@ -502,7 +503,7 @@ static bool ntv2_serial_receive(struct ntv2_serial *ntv2_ser)
 		/* read rx data from pci */
 		for (i = 0; i < 10; i++) {
 			rx = ntv2_reg_read(ntv2_ser->vid_reg, ntv2_kona_reg_serial_rx, ntv2_ser->index);
-			if ((rx & trigger) == 0)
+			if ((rx & active) == 0)
 				break;
 		}
 			

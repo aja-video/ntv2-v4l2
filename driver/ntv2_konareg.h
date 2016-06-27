@@ -940,7 +940,6 @@ NTV2_FLD(ntv2_kona_fld_serial_error_frame,			1,	6);
 NTV2_FLD(ntv2_kona_fld_serial_error_parity,			1,	7);
 NTV2_FLD(ntv2_kona_fld_serial_int_active,			1,	8);
 NTV2_FLD(ntv2_kona_fld_serial_loopback_state,		1,	30);
-NTV2_FLD(ntv2_kona_fld_serial_rx_active,			1,	31);
 
 /* serial control register */
 NTV2_REG(ntv2_kona_reg_serial_control,				0x2204);
@@ -953,7 +952,11 @@ NTV2_FLD(ntv2_kona_fld_serial_rx_trigger,			1,	31);
 
 /* serial register */
 NTV2_REG(ntv2_kona_reg_serial_rx,					0x2208);
+NTV2_FLD(ntv2_kona_fld_serial_rx_data,				8,	0);
+NTV2_FLD(ntv2_kona_fld_serial_rx_active,			1,	31);
+
 NTV2_REG(ntv2_kona_reg_serial_tx,					0x220c);
+NTV2_FLD(ntv2_kona_fld_serial_tx_data,				8,	0);
 
 /* video crosspoint registers */
 NTV2_REG(ntv2_kona_reg_xpt_select1,					136);
