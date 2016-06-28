@@ -78,6 +78,8 @@ struct ntv2_audio *ntv2_audio_open(struct ntv2_object *ntv2_obj,
 								   const char *name, int index);
 void ntv2_audio_close(struct ntv2_audio *ntv2_aud);
 
+void ntv2_audio_disable_all(struct ntv2_audio *ntv2_aud);
+
 int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct ntv2_features *features,
 						 struct snd_card *snd_card,

@@ -115,12 +115,6 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 											 ntv2_aud->source_index);
 	ntv2_audio_set_source(ntv2_aud, config);
 
-	/* enable streaming */
-	ret = ntv2_audio_enable(stream);
-	if (ret != 0) {
-		return ret;
-	}
-
 	return 0;
 }
 
@@ -151,6 +145,7 @@ static int ntv2_pcmops_cap_prepare(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	u32 sample_size;
 	u32 num_channels;
+	int ret;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture prepare\n", ntv2_aud->name);
 
@@ -172,6 +167,12 @@ static int ntv2_pcmops_cap_prepare(struct snd_pcm_substream *substream)
 		NTV2_MSG_AUDIO_ERROR("%s: *error* capture bad runtime number of channels %d\n",
 							 ntv2_aud->name, num_channels);
 		return -EINVAL;
+	}
+
+	/* enable streaming */
+	ret = ntv2_audio_enable(stream);
+	if (ret != 0) {
+		return ret;
 	}
 
 	NTV2_MSG_AUDIO_STATE("%s: capture buffer  sample size %d  channels %d  rate %d\n",

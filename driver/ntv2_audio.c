@@ -175,6 +175,15 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 	return 0;
 }
 
+void ntv2_audio_disable_all(struct ntv2_audio *ntv2_aud)
+{
+	if (ntv2_aud == NULL)
+		return;
+
+	ntv2_audio_disable(ntv2_aud->capture);
+	ntv2_audio_disable(ntv2_aud->playback);
+}
+
 int ntv2_audio_set_source(struct ntv2_audio *ntv2_aud,
 						  struct ntv2_source_config *config)
 {

@@ -97,6 +97,8 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream = kzalloc(sizeof(struct ntv2_channel_stream), GFP_KERNEL);
 	if (stream == NULL)
 		return -ENOMEM;
+
+	/* configure the video input stream */
 	stream->type = ntv2_stream_type_vidin;
 	stream->ntv2_chn = ntv2_chn;
 	stream->capture = true;
@@ -118,15 +120,18 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 									&stream->source_format);
 	ntv2_chn->streams[ntv2_stream_type_vidin] = stream;
 
-	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.setup(stream);
-	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.update_mode(stream);
-	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.update_format(stream);
-	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.update_timing(stream);
-	ntv2_chn->streams[ntv2_stream_type_vidin]->ops.update_route(stream);
+	/* program the video input stream */
+	stream->ops.setup(stream);
+	stream->ops.update_mode(stream);
+	stream->ops.update_format(stream);
+	stream->ops.update_timing(stream);
+	stream->ops.update_route(stream);
 
 	stream = kzalloc(sizeof(struct ntv2_channel_stream), GFP_KERNEL);
 	if (stream == NULL)
 		return -ENOMEM;
+
+	/* configure the audio input stream */
 	stream->type = ntv2_stream_type_audin;
 	stream->ntv2_chn = ntv2_chn;
 	stream->capture = true;
@@ -145,11 +150,12 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 									&stream->source_format);
 	ntv2_chn->streams[ntv2_stream_type_audin] = stream;
 
-	ntv2_chn->streams[ntv2_stream_type_audin]->ops.setup(stream);
-	ntv2_chn->streams[ntv2_stream_type_audin]->ops.update_mode(stream);
-	ntv2_chn->streams[ntv2_stream_type_audin]->ops.update_format(stream);
-	ntv2_chn->streams[ntv2_stream_type_audin]->ops.update_timing(stream);
-	ntv2_chn->streams[ntv2_stream_type_audin]->ops.update_route(stream);
+	/* program the audio input stream */
+	stream->ops.setup(stream);
+	stream->ops.update_mode(stream);
+	stream->ops.update_format(stream);
+	stream->ops.update_timing(stream);
+	stream->ops.update_route(stream);
 
 	NTV2_MSG_CHANNEL_STATE("%s: channel state: idle\n", ntv2_chn->name);
 	ntv2_chn->state = ntv2_channel_state_idle;
@@ -347,11 +353,13 @@ int ntv2_channel_enable(struct ntv2_channel_stream *stream)
 	/* enable stream */
 	stream->queue_enable = true;
 	stream->ops.setup(stream);
+	stream->ops.update_format(stream);
+	stream->ops.update_timing(stream);
+	stream->ops.update_route(stream);
 	stream->ops.update_mode(stream);
 
-	/* enable vertical interrupt */
-	if (stream->type == ntv2_stream_type_vidin)
-		ntv2_video_input_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, true);
+	/* enable vertical interrupts */
+	ntv2_video_input_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, true);
 	ntv2_video_output_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, true);
 	if (ntv2_chn->state == ntv2_channel_state_idle) {
 		NTV2_MSG_CHANNEL_STATE("%s: engine state: run\n", ntv2_chn->name);
@@ -389,16 +397,14 @@ int ntv2_channel_disable(struct ntv2_channel_stream *stream)
 	stream->queue_enable = false;
 	stream->ops.update_mode(stream);
 
-	/* disable vertical interrupt */
-	if (stream->type == ntv2_stream_type_vidin)
-		ntv2_video_input_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, false);
+	/* disable vertical interrupts if no streams enabled*/
 	for (i = 0; i < ntv2_stream_type_size; i++) {
-		if (ntv2_chn->streams[i] != NULL) {
-			if (ntv2_chn->streams[i]->queue_enable)
-				break;
-		}
+		if ((ntv2_chn->streams[i] != NULL) &&
+			(ntv2_chn->streams[i]->queue_enable))
+			break;
 	}
 	if (i == ntv2_stream_type_size) {
+		ntv2_video_input_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, false);
 		ntv2_video_output_interrupt_enable(ntv2_chn->vid_reg, ntv2_chn->index, false);
 		NTV2_MSG_CHANNEL_STATE("%s: engine state: idle\n", ntv2_chn->name);
 		ntv2_chn->state = ntv2_channel_state_idle;
