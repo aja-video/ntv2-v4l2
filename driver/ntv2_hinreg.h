@@ -62,6 +62,9 @@ static const u8 tmds_frequency_detect_mask		= 0x02;
 static const u8 tmds_frequency_clear_reg		= 0x85;
 static const u8 tmds_frequency_clear_mask		= 0x02;
 
+static const u8 audio_lock_reg					= 0x04;
+static const u8 audio_lock_mask					= 0x01;
+
 static const u8 hdmi_mode_reg					= 0x05;
 static const u8 hdmi_mode_mask					= 0x80;
 static const u8 hdmi_encrypted_mask				= 0x40;
@@ -75,7 +78,11 @@ static const u8 derep_mode_mask					= 0x1f;
 
 static const u8 defilter_lock_detect_reg		= 0x07;
 static const u8 defilter_locked_mask			= 0x20;         
+static const u8 audio_multichannel_mask			= 0x40;
 static const u8 vfilter_locked_mask				= 0x80;         
+
+static const u8 audio_detect_reg				= 0x18;
+static const u8 audio_detect_mask				= 0x01;
 
 static const u8 interlaced_detect_reg			= 0x0b;
 static const u8 interlaced_mask					= 0x20;

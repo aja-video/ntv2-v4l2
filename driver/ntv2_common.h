@@ -53,6 +53,7 @@
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
+#include <sound/control.h>
 
 /* build pararameters (approximate ubuntu kernel versions) */
 /* 3.10.0 does build */
@@ -68,6 +69,7 @@
 #endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0))
 #define NTV2_USE_V4L2_FH					/* 3.17.0 required */
+#define NTV2_USE_TTY_GROUP					/* 3.17.0 required */
 #endif
 /* 4.4.0 does not build */
 

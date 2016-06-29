@@ -51,6 +51,15 @@ struct ntv2_input_config {
 	u32							num_inputs;
 };
 
+struct ntv2_source_config {
+	const char*					name;
+	enum ntv2_input_type		type;
+	u32							audio_source;
+	u32							num_channels;
+	int							input_index;
+	u32							num_inputs;
+};
+
 struct ntv2_features {
 	int							index;
 	char						name[NTV2_STRING_SIZE];
@@ -70,12 +79,17 @@ struct ntv2_features {
 	u32							num_audio_channels;
 	u32							num_sdi_inputs;
 	u32							num_hdmi_inputs;
+	u32							num_aes_inputs;
+	u32							num_analog_inputs;
+	u32							num_reference_inputs;
 	u32							frame_buffer_size;
 	u32							num_serial_ports;
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
-	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
+
+	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
+	struct ntv2_source_config	*source_config[NTV2_MAX_CHANNELS][NTV2_MAX_SOURCE_CONFIGS];
 
 	struct ntv2_video_format	*video_formats[NTV2_MAX_VIDEO_FORMATS];
 	struct ntv2_pixel_format	*pixel_formats[NTV2_MAX_PIXEL_FORMATS];
@@ -104,14 +118,28 @@ struct ntv2_input_config
 *ntv2_features_get_input_config(struct ntv2_features *features,
 								int channel_index,
 								int input_index);
+u32 ntv2_features_num_input_configs(struct ntv2_features *features,
+									int channel_index);
 struct ntv2_input_config
 *ntv2_features_get_default_input_config(struct ntv2_features *features,
 										int channel_index);
+
+struct ntv2_source_config
+*ntv2_features_get_source_config(struct ntv2_features *features,
+								 int channel_index,
+								 int source_index);
+u32 ntv2_features_num_source_configs(struct ntv2_features *features,
+									 int channel_index);
+struct ntv2_source_config
+*ntv2_features_get_default_source_config(struct ntv2_features *features,
+										 int channel_index);
 
 struct ntv2_pixel_format
 *ntv2_features_get_pixel_format(struct ntv2_features *features,
 								int channel_index,
 								int format_index);
+u32 ntv2_features_num_pixel_formats(struct ntv2_features *features,
+									int channel_index);
 struct ntv2_pixel_format
 *ntv2_features_get_default_pixel_format(struct ntv2_features *features,
 										int channel_index);
@@ -120,13 +148,25 @@ struct ntv2_video_format
 *ntv2_features_get_video_format(struct ntv2_features *features,
 								int channel_index,
 								int format_index);
+u32 ntv2_features_num_video_formats(struct ntv2_features *features,
+									int channel_index);
 struct ntv2_video_format
 *ntv2_features_get_default_video_format(struct ntv2_features *features,
 										int channel_index);
 
-void ntv2_features_gen_default_input_format(struct ntv2_features *features,
-											int channel_index,
-											struct ntv2_input_format *format);
+struct ntv2_source_config
+*ntv2_features_find_source_config(struct ntv2_features *features,
+								  int channel_index,
+								  enum ntv2_input_type input_type,
+								  int input_index);
+
+void ntv2_features_gen_input_format(struct ntv2_input_config *config,
+									struct ntv2_video_format *vidf,
+									struct ntv2_pixel_format *pixf,
+									struct ntv2_input_format *inpf);
+
+void ntv2_features_gen_source_format(struct ntv2_source_config *config,
+									 struct ntv2_source_format *format);
 
 u32 ntv2_features_line_pitch(struct ntv2_pixel_format *format, u32 pixels);
 

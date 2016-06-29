@@ -103,9 +103,10 @@ struct ntv2_audio_stream {
 	u32								sync_cadence;
 	u32								sync_tolerance;
 	bool							hardware_enable;
-	bool							input_clock;
+	bool							embedded_clock;
 
 	s64								total_sample_count;
+	s64								total_transfer_count;
 	s64								total_drop_count;
 	s64								stat_sample_count;
 	s64								stat_drop_count;
@@ -137,6 +138,7 @@ struct ntv2_channel_stream {
 	struct ntv2_video_format		video_format;
 	struct ntv2_pixel_format		pixel_format;
 	struct ntv2_input_format		input_format;
+	struct ntv2_source_format		source_format;
 
 	struct ntv2_stream_data			data_array[NTV2_MAX_CHANNEL_BUFFERS];
 	struct list_head 				data_ready_list;
@@ -200,6 +202,12 @@ int ntv2_channel_set_input_format(struct ntv2_channel_stream *stream,
 
 int ntv2_channel_get_input_format(struct ntv2_channel_stream *stream,
 								  struct ntv2_input_format *inpf);
+
+int ntv2_channel_set_source_format(struct ntv2_channel_stream *stream,
+								   struct ntv2_source_format *souf);
+
+int ntv2_channel_get_source_format(struct ntv2_channel_stream *stream,
+								   struct ntv2_source_format *souf);
 
 int ntv2_channel_set_frame_callback(struct ntv2_channel_stream *stream,
 									ntv2_channel_callback func,

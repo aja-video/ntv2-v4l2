@@ -196,6 +196,8 @@ struct sdi_input_status {
 	u32 flag_3g_b2a_convert_fld;
 	u32 flag_vpid_ds1_fld;
 	u32 flag_vpid_ds2_fld;
+	u32 audio_reg;
+	u32 audio_detect_fld;
 };
 
 struct video_field {
@@ -423,6 +425,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[0].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin1_3g_b2a_convert;
 	sdi_input_status[0].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin1_vpid_linka_valid;
 	sdi_input_status[0].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin1_vpid_linkb_valid;
+	sdi_input_status[0].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect, 0);
+	sdi_input_status[0].audio_detect_fld = ntv2_kona_fld_sdiin1_audio_detect;
 
 	sdi_input_status[1].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status, 0);
 	sdi_input_status[1].video_geometry_b012_fld = ntv2_kona_fld_sdiin2_geometry_b012;
@@ -436,6 +440,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[1].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin2_3g_b2a_convert;
 	sdi_input_status[1].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin2_vpid_linka_valid;
 	sdi_input_status[1].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin2_vpid_linkb_valid;
+	sdi_input_status[1].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect, 0);
+	sdi_input_status[1].audio_detect_fld = ntv2_kona_fld_sdiin2_audio_detect;
 
 	sdi_input_status[2].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status2, 0);
 	sdi_input_status[2].video_geometry_b012_fld = ntv2_kona_fld_sdiin3_geometry_b012;
@@ -449,6 +455,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[2].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin3_3g_b2a_convert;
 	sdi_input_status[2].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin3_vpid_linka_valid;
 	sdi_input_status[2].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin3_vpid_linkb_valid;
+	sdi_input_status[2].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect2, 0);
+	sdi_input_status[2].audio_detect_fld = ntv2_kona_fld_sdiin3_audio_detect;
 
 	sdi_input_status[3].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status2, 0);
 	sdi_input_status[3].video_geometry_b012_fld = ntv2_kona_fld_sdiin4_geometry_b012;
@@ -462,6 +470,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[3].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin4_3g_b2a_convert;
 	sdi_input_status[3].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin4_vpid_linka_valid;
 	sdi_input_status[3].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin4_vpid_linkb_valid;
+	sdi_input_status[3].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect2, 0);
+	sdi_input_status[3].audio_detect_fld = ntv2_kona_fld_sdiin4_audio_detect;
 
 	sdi_input_status[4].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status3, 0);
 	sdi_input_status[4].video_geometry_b012_fld = ntv2_kona_fld_sdiin5_geometry_b012;
@@ -475,6 +485,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[4].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin5_3g_b2a_convert;
 	sdi_input_status[4].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin5_vpid_linka_valid;
 	sdi_input_status[4].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin5_vpid_linkb_valid;
+	sdi_input_status[4].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect3, 0);
+	sdi_input_status[4].audio_detect_fld = ntv2_kona_fld_sdiin5_audio_detect;
 
 	sdi_input_status[5].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status3, 0);
 	sdi_input_status[5].video_geometry_b012_fld = ntv2_kona_fld_sdiin6_geometry_b012;
@@ -488,6 +500,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[5].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin6_3g_b2a_convert;
 	sdi_input_status[5].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin6_vpid_linka_valid;
 	sdi_input_status[5].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin6_vpid_linkb_valid;
+	sdi_input_status[5].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect3, 0);
+	sdi_input_status[5].audio_detect_fld = ntv2_kona_fld_sdiin6_audio_detect;
 
 	sdi_input_status[6].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status4, 0);
 	sdi_input_status[6].video_geometry_b012_fld = ntv2_kona_fld_sdiin7_geometry_b012;
@@ -501,6 +515,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[6].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin7_3g_b2a_convert;
 	sdi_input_status[6].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin7_vpid_linka_valid;
 	sdi_input_status[6].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin7_vpid_linkb_valid;
+	sdi_input_status[6].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect3, 0);
+	sdi_input_status[6].audio_detect_fld = ntv2_kona_fld_sdiin7_audio_detect;
 
 	sdi_input_status[7].video_reg = NTV2_REG_NUM(ntv2_kona_reg_input_status4, 0);
 	sdi_input_status[7].video_geometry_b012_fld = ntv2_kona_fld_sdiin8_geometry_b012;
@@ -514,6 +530,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[7].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin1_3g_b2a_convert;
 	sdi_input_status[7].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin8_vpid_linka_valid;
 	sdi_input_status[7].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin8_vpid_linkb_valid;
+	sdi_input_status[7].audio_reg = NTV2_REG_NUM(ntv2_kona_reg_sdiin_audio_detect3, 0);
+	sdi_input_status[7].audio_detect_fld = ntv2_kona_fld_sdiin8_audio_detect;
 
 	/* organize video routing fields by channel index */
 	memset(video_fs_route, 0, sizeof(video_fs_route));
@@ -1015,6 +1033,7 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 	bool tgb = false;
 	u32 vds1 = 0;
 	u32 vds2 = 0;
+	u32 detect = 0;
 
 	if ((ntv2_reg == NULL) ||
 		(input_status == NULL) ||
@@ -1022,7 +1041,7 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 		return;
 
 	val = ntv2_register_read(ntv2_reg, sdi_input_status[index].video_reg);
-//	printk("input status %d %08x\n", sdi_input_status[index].video_reg, val);
+//	printk("sdi input status %d %08x\n", sdi_input_status[index].video_reg, val);
 
 	rate = NTV2_FLD_GET(sdi_input_status[index].video_rate_b012_fld, val);
 	rate |= NTV2_FLD_GET(sdi_input_status[index].video_rate_b3_fld, val) << 3;
@@ -1040,6 +1059,9 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 			vds1 = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_sdiin_vpid_linka, index);
 		if (NTV2_FLD_GET(sdi_input_status[index].flag_vpid_ds2_fld, val) != 0)
 			vds2 = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_sdiin_vpid_linka, index);
+
+		val = ntv2_register_read(ntv2_reg, sdi_input_status[index].audio_reg);
+		detect = NTV2_FLD_GET(sdi_input_status[index].audio_detect_fld, val);
 	}
 
 	input_status->input_index = index;
@@ -1050,6 +1072,28 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 	input_status->is3gb = tgb;
 	input_status->vpid_ds1 = vds1;
 	input_status->vpid_ds2 = vds2;
+	input_status->audio_detect = detect;
+}
+
+void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
+								struct ntv2_aes_input_status *input_status)
+{
+	u32 val = 0;
+	u32 invalid = 0;
+
+	if ((ntv2_reg == NULL) ||
+		(input_status == NULL) ||
+		(index != 0))
+		return;
+
+	val = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_input_status, 0);
+	invalid = NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 0;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 1;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 2;
+	invalid |= NTV2_FLD_GET(ntv2_kona_fld_aesin12_invalid, val) << 3;
+
+	input_status->input_index = index;
+	input_status->audio_detect = (~invalid) & 0xf;
 }
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,

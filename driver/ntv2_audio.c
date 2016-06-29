@@ -22,6 +22,7 @@
 #include "ntv2_pcmops.h"
 #include "ntv2_channel.h"
 #include "ntv2_nwldma.h"
+#include "ntv2_input.h"
 
 
 #define NTV2_AUDIO_TRANSFER_TIMEOUT			(100000)
@@ -87,7 +88,9 @@ void ntv2_audio_close(struct ntv2_audio *ntv2_aud)
 
 int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct ntv2_features *features,
+						 struct snd_card *snd_card,
 						 struct ntv2_channel *ntv2_chn,
+						 struct ntv2_input *ntv2_inp,
 						 struct ntv2_nwldma *ntv2_nwl)
 {
 	struct ntv2_pcm_stream *stream;
@@ -97,20 +100,24 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 
 	if ((ntv2_aud == NULL) ||
 		(features == NULL) ||
+		(snd_card == NULL) ||
 		(ntv2_chn == NULL) ||
+		(ntv2_inp == NULL) ||
 		(ntv2_nwl == NULL))
 		return -EPERM;
 
 	NTV2_MSG_AUDIO_INFO("%s: configure audio device\n", ntv2_aud->name);
 
 	ntv2_aud->features = features;
+	ntv2_aud->snd_card = snd_card;
 	ntv2_aud->ntv2_chn = ntv2_chn;
+	ntv2_aud->ntv2_inp = ntv2_inp;
 	ntv2_aud->dma_engine = ntv2_nwl;
 
 	capture = ntv2_aud->features->audio_config[ntv2_aud->index]->capture;
 	playback = ntv2_aud->features->audio_config[ntv2_aud->index]->playback;
 
-	result = snd_pcm_new(ntv2_aud->ntv2_dev->snd_card,
+	result = snd_pcm_new(ntv2_aud->snd_card,
 						 features->pcm_name,
 						 ntv2_aud->index,
 						 playback? 1 : 0, 
@@ -166,6 +173,115 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 	}
 
 	return 0;
+}
+
+void ntv2_audio_disable_all(struct ntv2_audio *ntv2_aud)
+{
+	if (ntv2_aud == NULL)
+		return;
+
+	ntv2_audio_disable(ntv2_aud->capture);
+	ntv2_audio_disable(ntv2_aud->playback);
+}
+
+int ntv2_audio_set_source(struct ntv2_audio *ntv2_aud,
+						  struct ntv2_source_config *config)
+{
+	struct ntv2_source_format org_format;
+	struct ntv2_source_format source_format;
+	struct ntv2_channel_stream* video_stream = NULL;
+	struct ntv2_input_format input_format;
+	struct ntv2_source_config *video_config = NULL;
+	struct ntv2_source_config *aes_config = NULL;
+	bool good_source = false;
+	int ret;
+
+	if (ntv2_aud == NULL)
+		return -EPERM;
+
+	ntv2_channel_get_source_format(ntv2_aud->capture->chn_str, &org_format);
+
+	if (config == NULL) {
+		config = ntv2_features_get_source_config(ntv2_aud->features, ntv2_aud->ntv2_chn->index, 0);
+	}
+
+	/* check for auto source detection */
+	if ((config->type == ntv2_input_type_unknown) ||
+		(config->type == ntv2_input_type_auto)) {
+
+		/* get the current video input format */
+		video_stream = ntv2_channel_stream(ntv2_aud->ntv2_chn, ntv2_stream_type_vidin);
+		if (video_stream != NULL) {
+			ntv2_channel_get_input_format(video_stream, &input_format);
+		
+			/* use the audio from the video source? */
+			video_config = ntv2_features_find_source_config(ntv2_aud->features,
+															ntv2_aud->ntv2_chn->index,
+															input_format.type,
+															input_format.input_index);
+			ret = ntv2_input_get_source_format(ntv2_aud->ntv2_inp,
+											   video_config,
+											   &source_format);
+			if ((ret == 0) && (source_format.audio_detect != 0)) {
+				config = video_config;
+				good_source = true;
+			}
+		}
+
+		/* use the aduio from the aes source? */
+		if (!good_source) {
+			aes_config = ntv2_features_find_source_config(ntv2_aud->features,
+														  ntv2_aud->ntv2_chn->index,
+														  ntv2_input_type_aes,
+														  0);
+			ret = ntv2_input_get_source_format(ntv2_aud->ntv2_inp,
+											   aes_config,
+											   &source_format);
+			if ((ret == 0) && (source_format.audio_detect != 0)) {
+				config = aes_config;
+				good_source = true;
+			}
+		}
+
+		/* just use the video source anyway */
+		if (!good_source && (video_config != NULL)) {
+			ntv2_input_get_source_format(ntv2_aud->ntv2_inp,
+										 video_config,
+										 &source_format);
+			config = video_config;
+			good_source = true;
+		}
+
+		/* just use the aes source anyway */
+		if (!good_source && (aes_config != NULL)) {
+			ntv2_input_get_source_format(ntv2_aud->ntv2_inp,
+										 aes_config,
+										 &source_format);
+			config = aes_config;
+			good_source = true;
+		}
+	} else {
+		ntv2_input_get_source_format(ntv2_aud->ntv2_inp,
+									 config,
+									 &source_format);
+		good_source = true;
+	}
+
+	if (!good_source)
+		return -EINVAL;
+
+	NTV2_MSG_AUDIO_STATE("%s: set audio source: %s\n",
+						 ntv2_aud->name, config->name);
+
+	/* ignore if nothing changes */
+	if ((org_format.type == source_format.type) &&
+		(org_format.input_index == source_format.input_index))
+		return 0;
+
+	/* set the audio source */
+	ntv2_channel_set_source_format(ntv2_aud->capture->chn_str, &source_format);
+
+	return 1;
 }
 
 struct ntv2_pcm_stream *ntv2_audio_capture_stream(struct ntv2_audio *ntv2_aud)
@@ -362,18 +478,26 @@ static void ntv2_audio_capture_task(unsigned long data)
 		stream->dma_size =
 			stream->dma_audbuf->audio.data_size[0] +
 			stream->dma_audbuf->audio.data_size[1];
-		result = ntv2_nwldma_transfer(ntv2_aud->dma_engine,
-									  ntv2_nwldma_mode_c2s,
-									  stream->dma_sgtable.sgl,
-									  stream->dma_buffer_pages,
-									  0,
-									  stream->dma_audbuf->audio.address,
-									  stream->dma_audbuf->audio.data_size,
-									  ntv2_audio_dma_callback,
-									  (unsigned long)stream);
-		if (result != 0) {
-			stream->dma_done = true;
-			stream->dma_result = result;
+		if (stream->dma_size <= NTV2_PCM_DMA_BUFFER_SIZE) {
+			result = ntv2_nwldma_transfer(ntv2_aud->dma_engine,
+										  ntv2_nwldma_mode_c2s,
+										  stream->dma_sgtable.sgl,
+										  stream->dma_buffer_pages,
+										  0,
+										  stream->dma_audbuf->audio.address,
+										  stream->dma_audbuf->audio.data_size,
+										  ntv2_audio_dma_callback,
+										  (unsigned long)stream);
+			if (result != 0) {
+				stream->dma_done = true;
+				stream->dma_result = result;
+			}
+		} else {
+			NTV2_MSG_AUDIO_ERROR("%s: *error* %s dma transfer too large %d > %d\n",
+								 ntv2_aud->name,
+								 ntv2_stream_name(stream->type),
+								 stream->dma_size,
+								 NTV2_PCM_DMA_BUFFER_SIZE);
 		}
 	}
 }

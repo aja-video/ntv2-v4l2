@@ -20,6 +20,7 @@
 #include "ntv2_device.h"
 #include "ntv2_video.h"
 #include "ntv2_audio.h"
+#include "ntv2_mixops.h"
 #include "ntv2_serial.h"
 #include "ntv2_channel.h"
 #include "ntv2_register.h"
@@ -82,6 +83,7 @@ struct ntv2_device *ntv2_device_open(struct ntv2_module *ntv2_mod,
 
 	/* channel list */
 	INIT_LIST_HEAD(&ntv2_dev->channel_list);
+
 	spin_lock_init(&ntv2_dev->channel_lock);
 	atomic_set(&ntv2_dev->channel_index, 0);
 
@@ -368,7 +370,9 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 			/* configure audio device */
 			result = ntv2_audio_configure(ntv2_aud,
 										  ntv2_dev->features,
+										  ntv2_dev->snd_card,
 										  ntv2_chn,
+										  ntv2_dev->inp_mon,
 										  ntv2_dev->dma_engine);
 			if (result != 0) {
 				ntv2_audio_close(ntv2_aud);
@@ -379,6 +383,18 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 			spin_lock_irqsave(&ntv2_dev->audio_lock, flags);
 			list_add_tail(&ntv2_aud->list, &ntv2_dev->audio_list);
 			spin_unlock_irqrestore(&ntv2_dev->audio_lock, flags);
+		}
+	}
+
+	/* configure the audio mixer */
+	ntv2_mixops_configure(ntv2_dev);
+
+	/* register the pcm devices */
+	if (num_audio > 0) {
+		result = snd_card_register(ntv2_dev->snd_card);
+		if (result < 0) {
+			NTV2_MSG_DEVICE_ERROR("%s: *error* snd_card_register failed code %d\n",
+								  ntv2_dev->name, result);
 		}
 	}
 
@@ -402,15 +418,6 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 		spin_unlock_irqrestore(&ntv2_dev->serial_lock, flags);
 	}
 
-	/* register the pcm devices */
-	if (num_audio > 0) {
-		result = snd_card_register(ntv2_dev->snd_card);
-		if (result < 0) {
-			NTV2_MSG_DEVICE_ERROR("%s: *error* snd_card_register failed code %d\n",
-								  ntv2_dev->name, result);
-		}
-	}
-
 	/* enable interrupts */
 	ntv2_device_irq_enable(ntv2_dev);
 
@@ -421,15 +428,37 @@ void ntv2_device_suspend(struct ntv2_device *ntv2_dev)
 {
 	struct list_head *ptr;
 	struct list_head *next;
+	struct ntv2_audio *aud;
+	struct ntv2_video *vid;
 	struct ntv2_channel *chn;
 
 	if (ntv2_dev == NULL)
 		return;
 
+	/* suspend audio */
+	if (ntv2_dev->snd_card != NULL)
+		snd_power_change_state(ntv2_dev->snd_card, SNDRV_CTL_POWER_D3hot);
+
+	/* disable all streaming */
+	list_for_each_safe(ptr, next, &ntv2_dev->audio_list) {
+		aud = list_entry(ptr, struct ntv2_audio, list);
+		if ((aud != NULL) && (aud->pcm != NULL)) {
+			snd_pcm_suspend_all(aud->pcm);
+		}
+		ntv2_audio_disable_all(aud);
+	}
+
+	list_for_each_safe(ptr, next, &ntv2_dev->video_list) {
+		vid = list_entry(ptr, struct ntv2_video, list);
+		ntv2_video_disable(vid);
+	}
+
 	list_for_each_safe(ptr, next, &ntv2_dev->channel_list) {
 		chn = list_entry(ptr, struct ntv2_channel, list);
 		ntv2_channel_disable_all(chn);
 	}
+
+	/* disable hardware stuff */
 	ntv2_input_disable(ntv2_dev->inp_mon);
 	ntv2_nwldma_disable(ntv2_dev->dma_engine);
 	ntv2_device_irq_disable(ntv2_dev);
@@ -442,11 +471,16 @@ void ntv2_device_resume(struct ntv2_device *ntv2_dev)
 	if (ntv2_dev == NULL)
 		return;
 
+	/* enable hardware */
 	ntv2_register_enable(ntv2_dev->nwl_reg);
 	ntv2_register_enable(ntv2_dev->vid_reg);
 	ntv2_device_irq_enable(ntv2_dev);
 	ntv2_nwldma_enable(ntv2_dev->dma_engine);
 	ntv2_input_enable(ntv2_dev->inp_mon);
+
+	/* resume audio */
+	if (ntv2_dev->snd_card != NULL)
+		snd_power_change_state(ntv2_dev->snd_card, SNDRV_CTL_POWER_D0);
 }
 
 /*

@@ -19,10 +19,8 @@
 
 #include "ntv2_audio.h"
 #include "ntv2_pcmops.h"
+#include "ntv2_features.h"
 #include "ntv2_channel.h"
-
-
-#define NTV2_PCM_DMA_BUFFER_SIZE		4800*16*4
 
 
 static int ntv2_allocate_dma_buffer(struct ntv2_pcm_stream *stream);
@@ -56,7 +54,6 @@ static int ntv2_pcmops_cap_open(struct snd_pcm_substream *substream)
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_pcm_substream_chip(substream);
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	int result;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture open\n", ntv2_aud->name);
 
@@ -64,11 +61,6 @@ static int ntv2_pcmops_cap_open(struct snd_pcm_substream *substream)
 	stream->substream = substream;
 
 	snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS);
-
-	result = ntv2_audio_enable(stream);
-	if (result != 0) {
-		return result;
-	}
 
 	return 0;
 }
@@ -79,8 +71,6 @@ static int ntv2_pcmops_cap_close(struct snd_pcm_substream *substream)
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture close\n", ntv2_aud->name);
-
-	ntv2_audio_disable(stream);
 
 	stream->substream = NULL;
 
@@ -93,6 +83,7 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_pcm_substream_chip(substream);
 	struct ntv2_pcm_stream *stream = ntv2_aud->capture;
 	struct snd_pcm_runtime *runtime = substream->runtime;
+	struct ntv2_source_config *config;
 	int size;
 	int ret;
 
@@ -118,6 +109,12 @@ static int ntv2_pcmops_cap_hw_params(struct snd_pcm_substream *substream,
 	if (ret != 0)
 		return ret;
 
+	/* configure the audio source */
+	config = ntv2_features_get_source_config(ntv2_aud->features,
+											 ntv2_aud->ntv2_chn->index, 
+											 ntv2_aud->source_index);
+	ntv2_audio_set_source(ntv2_aud, config);
+
 	return 0;
 }
 
@@ -128,6 +125,8 @@ static int ntv2_pcmops_cap_hw_free(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture hardware free\n", ntv2_aud->name);
+
+	ntv2_audio_disable(stream);
 
 	ntv2_free_dma_buffer(stream);
 
@@ -146,6 +145,7 @@ static int ntv2_pcmops_cap_prepare(struct snd_pcm_substream *substream)
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	u32 sample_size;
 	u32 num_channels;
+	int ret;
 
 	NTV2_MSG_AUDIO_STATE("%s: pcm capture prepare\n", ntv2_aud->name);
 
@@ -167,6 +167,12 @@ static int ntv2_pcmops_cap_prepare(struct snd_pcm_substream *substream)
 		NTV2_MSG_AUDIO_ERROR("%s: *error* capture bad runtime number of channels %d\n",
 							 ntv2_aud->name, num_channels);
 		return -EINVAL;
+	}
+
+	/* enable streaming */
+	ret = ntv2_audio_enable(stream);
+	if (ret != 0) {
+		return ret;
 	}
 
 	NTV2_MSG_AUDIO_STATE("%s: capture buffer  sample size %d  channels %d  rate %d\n",
