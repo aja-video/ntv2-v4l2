@@ -8,6 +8,7 @@ This repository contains the AJA NTV2 V4L2/ALSA driver.
 
 	v1.0.0		initial release - video/audio capture
 	v1.1.0		add serial port for rovocam
+	v1.2.0		add audio mixer
 
 ## Requirements
 
