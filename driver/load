@@ -3,5 +3,6 @@
 /sbin/modprobe v4l2-common
 /sbin/modprobe videobuf2-core
 /sbin/modprobe videobuf2-vmalloc
+find /lib/modules/$(uname -r) -name videobuf2-v4l2.ko -exec /sbin/modprobe videobuf2-v4l2 \;
 #/sbin/modprobe videobuf2-dma-sg
 /sbin/insmod ntv2video.ko 
