@@ -397,10 +397,20 @@ static void ntv2_video_transfer_task(unsigned long data)
 	if ((ntv2_vid->dma_done) &&
 		(ntv2_vid->dma_vidbuf != NULL) &&
 		(ntv2_vid->dma_vb2buf != NULL)) {
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+#ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
+		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf.timestamp = ntv2_vid->dma_vidbuf->timestamp;
+#else
+		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.timestamp = ntv2_vid->dma_vidbuf->timestamp;
+#endif
+		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.sequence = ntv2_vid->vb2buf_sequence++;
+		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.field = ntv2_vid->v4l2_format.field;
+#else
 		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.timestamp = ntv2_vid->dma_vidbuf->timestamp;
 		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.bytesused = ntv2_vid->v4l2_format.sizeimage;
 		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.sequence = ntv2_vid->vb2buf_sequence++;
 		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.field = ntv2_vid->v4l2_format.field;
+#endif
 		ntv2_channel_data_done(ntv2_vid->dma_vidbuf);
 		ntv2_vb2ops_vb2buf_done(ntv2_vid->dma_vb2buf);
 		ntv2_vid->dma_vb2buf = NULL;
@@ -435,7 +445,11 @@ static void ntv2_video_transfer_task(unsigned long data)
 		sgtable = ntv2_vid->dma_vb2buf->sgtable;
 		pages = ntv2_vid->dma_vb2buf->num_pages;
 		address[0] = ntv2_vid->dma_vidbuf->video.address + offset;
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+		size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf, 0);
+#else
 		size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_buffer, 0);
+#endif
 		address[1] = 0;
 		size[1] = 0;
 		result = ntv2_nwldma_transfer(ntv2_vid->dma_engine,

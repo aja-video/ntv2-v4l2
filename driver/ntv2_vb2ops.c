@@ -27,14 +27,39 @@
 #include <media/videobuf2-vmalloc.h>
 #endif
 
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+#define to_ntv2_vb2buf(vb) \
+	container_of((to_vb2_v4l2_buffer(vb)), struct ntv2_vb2buf, vb2_v4l2_buffer)
+#else
+#define to_ntv2_vb2buf(vb) \
+	container_of(vb, struct ntv2_vb2buf, vb2_buffer)
+#endif
+
 /*
  * Setup the constraints of the queue
  */
+#ifdef NTV2_USE_QUEUE_SETUP_NO_FORMAT
+static int ntv2_queue_setup(struct vb2_queue *vq,
+							unsigned int *nbuffers, unsigned int *nplanes,
+							unsigned int sizes[], void *alloc_ctxs[])
+#else
+#ifdef NTV2_USE_QUEUE_SETUP_PARG
+static int ntv2_queue_setup(struct vb2_queue *vq, const void *parg,
+							unsigned int *nbuffers, unsigned int *nplanes,
+							unsigned int sizes[], void *alloc_ctxs[])
+#else
 static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 							unsigned int *nbuffers, unsigned int *nplanes,
 							unsigned int sizes[], void *alloc_ctxs[])
+#endif
+#endif
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vq);
+#ifndef NTV2_USE_QUEUE_SETUP_NO_FORMAT
+#ifdef NTV2_USE_QUEUE_SETUP_PARG
+	const struct v4l2_format *fmt = parg;
+#endif
+#endif
 	unsigned long flags;
 	int result;
 
@@ -47,6 +72,15 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 	if (vq->num_buffers + *nbuffers < 3)
 		*nbuffers = 3 - vq->num_buffers;
 
+#ifdef NTV2_USE_QUEUE_SETUP_NO_FORMAT
+	/* check image size */
+	if (*nplanes)
+		return sizes[0] < ntv2_vid->v4l2_format.sizeimage ? -EINVAL : 0;
+
+	/* configure returned parameters */
+	*nplanes = 1;
+	sizes[0] = ntv2_vid->v4l2_format.sizeimage;
+#else
 	/* check image size */
 	if (fmt && fmt->fmt.pix.sizeimage < ntv2_vid->v4l2_format.sizeimage) {
 		NTV2_MSG_VIDEO_ERROR("%s: *error* vb2 queue setup format image size too small (%d < %d)\n",
@@ -59,6 +93,7 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 	/* configure returned parameters */
 	*nplanes = 1;
 	sizes[0] = fmt ? fmt->fmt.pix.sizeimage : ntv2_vid->v4l2_format.sizeimage;
+#endif
 
 	/* reset the queue */
 	spin_lock_irqsave(&ntv2_vid->vb2_lock, flags);
@@ -81,7 +116,7 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 static int ntv2_vb2buf_init(struct vb2_buffer *vb)
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vb->vb2_queue);
-	struct ntv2_vb2buf *ntv2_buf = container_of(vb, struct ntv2_vb2buf, vb2_buffer);
+	struct ntv2_vb2buf *ntv2_buf = to_ntv2_vb2buf(vb);
 	unsigned long flags;
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer init %d\n",
@@ -104,9 +139,10 @@ static int ntv2_vb2buf_init(struct vb2_buffer *vb)
 static int ntv2_vb2buf_prepare(struct vb2_buffer *vb)
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vb->vb2_queue);
-	struct ntv2_vb2buf *ntv2_buf = container_of(vb, struct ntv2_vb2buf, vb2_buffer);
+	struct ntv2_vb2buf *ntv2_buf = to_ntv2_vb2buf(vb);
 	struct sg_table *sgtable;
 	unsigned long size = ntv2_vid->v4l2_format.sizeimage;
+	int ret;
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer prepare %d\n",
 						  ntv2_vid->name, ntv2_buf->index);
@@ -123,10 +159,16 @@ static int ntv2_vb2buf_prepare(struct vb2_buffer *vb)
 #ifdef NTV2_USE_VB2_DMA_SG
 	sgtable = vb2_dma_sg_plane_desc(&ntv2_buf->vb2_buffer, 0);
 #else
-	if (ntv2_alloc_scatterlist(&ntv2_buf->vmalloc_table, vb2_plane_vaddr(&ntv2_buf->vb2_buffer, 0), size) < 0)
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+	ret = ntv2_alloc_scatterlist(&ntv2_buf->vmalloc_table, vb2_plane_vaddr(&ntv2_buf->vb2_v4l2_buffer.vb2_buf, 0), size);
+#else
+	ret = ntv2_alloc_scatterlist(&ntv2_buf->vmalloc_table, vb2_plane_vaddr(&ntv2_buf->vb2_buffer, 0), size);
+#endif
+	if (ret < 0)
 		return -EINVAL;
 	sgtable = &ntv2_buf->vmalloc_table;
 #endif
+
 	/* check scatter data */
 	if ((sgtable->sgl == NULL) ||
 		(sgtable->nents == 0)) {
@@ -157,7 +199,7 @@ static int ntv2_vb2buf_prepare(struct vb2_buffer *vb)
 static void ntv2_vb2buf_queue(struct vb2_buffer *vb)
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vb->vb2_queue);
-	struct ntv2_vb2buf *ntv2_buf = container_of(vb, struct ntv2_vb2buf, vb2_buffer);
+	struct ntv2_vb2buf *ntv2_buf = to_ntv2_vb2buf(vb);
 	unsigned long flags;
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer queue %d\n",
@@ -181,7 +223,7 @@ static int ntv2_vb2buf_finish(struct vb2_buffer *vb)
 #endif
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vb->vb2_queue);
-	struct ntv2_vb2buf *ntv2_buf = container_of(vb, struct ntv2_vb2buf, vb2_buffer);
+	struct ntv2_vb2buf *ntv2_buf = to_ntv2_vb2buf(vb);
 	struct sg_table *sgtable = ntv2_buf->sgtable;
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer finish %d\n",
@@ -221,7 +263,7 @@ done:
 static void ntv2_vb2buf_cleanup(struct vb2_buffer *vb)
 {
 	struct ntv2_video *ntv2_vid = vb2_get_drv_priv(vb->vb2_queue);
-	struct ntv2_vb2buf *ntv2_buf = container_of(vb, struct ntv2_vb2buf, vb2_buffer);
+	struct ntv2_vb2buf *ntv2_buf = to_ntv2_vb2buf(vb);
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer cleanup %d\n",
 						  ntv2_vid->name, ntv2_buf->index);
@@ -248,7 +290,11 @@ static void ntv2_return_all_buffers(struct ntv2_video *ntv2_vid,
 	spin_lock_irqsave(&ntv2_vid->vb2_lock, flags);
 	list_for_each_entry_safe(buf, node, &ntv2_vid->vb2buf_list, list) {
 		list_del_init(&buf->list);
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+		vb2_buffer_done(&buf->vb2_v4l2_buffer.vb2_buf, state);
+#else
 		vb2_buffer_done(&buf->vb2_buffer, state);
+#endif
 	}
 	spin_unlock_irqrestore(&ntv2_vid->vb2_lock, flags);
 }
@@ -412,8 +458,13 @@ void ntv2_vb2ops_vb2buf_done(struct ntv2_vb2buf *ntv2_buf)
 		list_del_init(&ntv2_buf->list);
 
 		/* mark as done */
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+		vb2_set_plane_payload(&ntv2_buf->vb2_v4l2_buffer.vb2_buf, 0, ntv2_vid->v4l2_format.sizeimage);
+		vb2_buffer_done(&ntv2_buf->vb2_v4l2_buffer.vb2_buf, VB2_BUF_STATE_DONE);
+#else
 		vb2_set_plane_payload(&ntv2_buf->vb2_buffer, 0, ntv2_vid->v4l2_format.sizeimage);
 		vb2_buffer_done(&ntv2_buf->vb2_buffer, VB2_BUF_STATE_DONE);
+#endif
 	}
 	spin_unlock_irqrestore(&ntv2_vid->vb2_lock, flags);
 }

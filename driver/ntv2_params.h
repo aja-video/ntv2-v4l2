@@ -184,6 +184,12 @@ enum ntv2_task_state {
 	ntv2_task_state_size
 };
 
+#ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
+typedef u64					v4l2_time_t;
+#else
+typedef struct timeval		v4l2_time_t;
+#endif
+
 struct ntv2_object {
 	int						index;
 	char					name[NTV2_STRING_SIZE];
@@ -256,7 +262,7 @@ struct ntv2_aes_input_status {
 
 struct ntv2_interrupt_status {
 	u32							interrupt_status[2];
-	struct timeval				v4l2_time;
+	v4l2_time_t					v4l2_time;
 };
 
 struct ntv2_device {

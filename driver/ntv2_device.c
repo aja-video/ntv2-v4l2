@@ -737,7 +737,11 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 		return IRQ_NONE;
 
 	/* timestamp the interrupt */
+#ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
+	irq_status.v4l2_time = ktime_get_ns();
+#else
 	v4l2_get_timestamp(&irq_status.v4l2_time);
+#endif
 	/* read the video interrupt status registers */
 	ntv2_video_read_interrupt_status(ntv2_dev->vid_reg, &irq_status);
 

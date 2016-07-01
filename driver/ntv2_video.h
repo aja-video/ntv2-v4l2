@@ -25,8 +25,11 @@
 struct ntv2_features;
 
 struct ntv2_vb2buf {
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+	struct vb2_v4l2_buffer		vb2_v4l2_buffer;
+#else
 	struct vb2_buffer			vb2_buffer;	/* must be first */
-
+#endif
 	int							index;
 	struct list_head			list;
 	struct ntv2_video			*ntv2_vid;

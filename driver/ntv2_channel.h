@@ -40,7 +40,7 @@ typedef void (*ntv2_channel_callback)(unsigned long);
 struct ntv2_channel_status {
 	bool							interrupt_input;
 	bool							interrupt_output;
-	struct timeval					interrupt_time;
+	v4l2_time_t						interrupt_time;
 	u32								interrupt_rate;
 	u32								audio_input_offset;
 	u32								audio_output_offset;
@@ -67,7 +67,7 @@ struct ntv2_stream_data {
 	struct ntv2_channel_stream		*ntv2_str;
 
 	enum ntv2_stream_type			type;
-	struct timeval					timestamp;
+	v4l2_time_t						timestamp;
 
 	union {
 		struct ntv2_video_data		video;
@@ -133,7 +133,7 @@ struct ntv2_channel_stream {
 	bool							queue_last;
 	ntv2_channel_callback			frame_callback_func;
 	unsigned long					frame_callback_data;
-	struct timeval					timestamp;
+	v4l2_time_t						timestamp;
 
 	struct ntv2_video_format		video_format;
 	struct ntv2_pixel_format		pixel_format;

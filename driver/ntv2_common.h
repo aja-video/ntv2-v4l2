@@ -71,7 +71,19 @@
 #define NTV2_USE_V4L2_FH					/* 3.17.0 required */
 #define NTV2_USE_TTY_GROUP					/* 3.17.0 required */
 #endif
-/* 4.4.0 does not build */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
+#define NTV2_USE_VB2_V4L2_BUFFER			/* 4.4.0 required */
+#define NTV2_USE_QUEUE_SETUP_PARG			/* 4.4.0 required */
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,5,0))
+#define NTV2_USE_VB2_BUFFER_TIMESTAMP		/* 4.5.0 required */
+#define NTV2_USE_QUEUE_SETUP_NO_FORMAT		/* 4.5.0 required */
+#endif
+/* 4.6.0 does build */
+
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+#include <media/videobuf2-v4l2.h>
+#endif
 
 /* 
    use dma sg for slight improvement in dma performance
