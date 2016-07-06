@@ -219,45 +219,60 @@ static struct pci_driver ntv2_pci_driver = {
 
 static int __init ntv2_module_init(void)
 {
+	struct ntv2_module *ntv2_mod = NULL;
 	int result;
 
 	/* initialize device module info */
 	ntv2_module_initialize();
+	ntv2_mod = ntv2_module_info();
 
-	NTV2_MSG_INFO("%s: module init version %s\n", NTV2_MODULE_NAME, NTV2_DRV_VERSION);
+	NTV2_MSG_INFO("%s: module init version %s\n", ntv2_mod->name, ntv2_mod->version);
 
 	/* register uart driver */
 	result = uart_register_driver(&ntv2_uart_driver);
 	if (result < 0) {
 		NTV2_MSG_ERROR("%s: *error* uart_register_driver failed code %d\n",
-					   NTV2_MODULE_NAME, result);
+					   ntv2_mod->name, result);
 		return result;
 	}
-	ntv2_module_info()->uart_driver = &ntv2_uart_driver;
+	ntv2_mod->uart_driver = &ntv2_uart_driver;
+
+	/* register character driver */
+	result = alloc_chrdev_region(&ntv2_mod->cdev_number, 0, ntv2_mod->cdev_max, ntv2_mod->cdev_name);
+	if (result < 0) {
+		NTV2_MSG_ERROR("%s: *error*  alloc_chrdev_region failed code %d\n",
+					   ntv2_mod->name, result);
+		return result;
+	}
 
 	/* probe the devices */
 	result = pci_register_driver(&ntv2_pci_driver);
 	if (result < 0) {
 		NTV2_MSG_ERROR("%s: *error* pci_register_driver failed code %d\n",
-					   NTV2_MODULE_NAME, result);
+					   ntv2_mod->name, result);
 		uart_unregister_driver(&ntv2_uart_driver);
 		return result;
 	}
-	if (atomic_read(&ntv2_module_info()->device_index) == 0)
-		NTV2_MSG_INFO("%s: no ntv2 boards found\n", NTV2_MODULE_NAME);
+	if (atomic_read(&ntv2_mod->device_index) == 0)
+		NTV2_MSG_INFO("%s: no ntv2 boards found\n", ntv2_mod->name);
 
-	NTV2_MSG_INFO("%s: module init complete\n", NTV2_MODULE_NAME);
+	NTV2_MSG_INFO("%s: module init complete\n", ntv2_mod->name);
 	
 	return 0;
 }
 
 static void __exit ntv2_module_exit(void)
 {
-	NTV2_MSG_INFO("%s: module exit start\n", NTV2_MODULE_NAME);
+	struct ntv2_module *ntv2_mod = ntv2_module_info();
+
+	NTV2_MSG_INFO("%s: module exit start\n", ntv2_mod->name);
+
    	pci_unregister_driver(&ntv2_pci_driver);
+	unregister_chrdev_region(ntv2_mod->cdev_number, ntv2_mod->cdev_max);
 	uart_unregister_driver(&ntv2_uart_driver);
 	ntv2_module_release();
-	NTV2_MSG_INFO("%s: module exit complete\n", NTV2_MODULE_NAME);
+
+	NTV2_MSG_INFO("%s: module exit complete\n", ntv2_mod->name);
 }
 
 module_init(ntv2_module_init);

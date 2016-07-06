@@ -52,6 +52,9 @@
 #define NTV2_MAX_UARTS				16
 #define NTV2_TTY_NAME				"ttyNTV"
 
+#define NTV2_MAX_CDEVS				16
+#define NTV2_CDEV_NAME				"ntv2dev"
+
 #ifdef NTV2_REG_CONST
 #define NTV2_REG_ARGS(a1, a2, a3, a4, a5, a6, a7, a8, aN, ...) aN
 #define NTV2_REG(reg, ...) \
@@ -102,6 +105,7 @@
 #define NTV2_DEBUG_HDMIIN_STATE			0x00040000
 #define NTV2_DEBUG_SERIAL_STATE			0x00100000
 #define NTV2_DEBUG_SERIAL_STREAM		0x00200000
+#define NTV2_DEBUG_CDEV_STATE			0x00400000
 
 #define NTV2_DEBUG_ACTIVE(msg_mask) \
 	((ntv2_module_info()->debug_mask & msg_mask) != 0)
@@ -150,6 +154,9 @@
 #define NTV2_MSG_SERIAL_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_SERIAL_STATE, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_STREAM(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_SERIAL_STREAM, string, __VA_ARGS__)
+#define NTV2_MSG_CDEV_INFO(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
+#define NTV2_MSG_CDEV_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_CDEV_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_CDEV_STATE, string, __VA_ARGS__)
 
 struct ntv2_register;
 struct ntv2_nwldma;
@@ -157,6 +164,7 @@ struct ntv2_channel;
 struct ntv2_video;
 struct ntv2_audio;
 struct ntv2_input;
+struct ntv2_chrdev;
 
 enum ntv2_stream_type {
 	ntv2_stream_type_unknown,
@@ -288,6 +296,7 @@ struct ntv2_device {
 	struct ntv2_nwldma			*dma_engine;
 	struct ntv2_features		*features;
 	struct ntv2_input			*inp_mon;
+	struct ntv2_chrdev			*chr_dev;
 	struct snd_card 			*snd_card;
 
 	struct list_head 			video_list;
@@ -310,6 +319,7 @@ struct ntv2_device {
 struct ntv2_module {
 	const char					*name;
 	u32							debug_mask;
+	const char					*version;
 	bool						init;
 
 	struct list_head			device_list;
@@ -317,7 +327,13 @@ struct ntv2_module {
 	atomic_t					device_index;
 
 	struct uart_driver 			*uart_driver;
+	u32							uart_max;
 	atomic_t					uart_index;
+
+	dev_t 						cdev_number;
+	u32							cdev_max;
+	const char					*cdev_name;
+	atomic_t					cdev_index;
 };
 
 void ntv2_module_initialize(void);

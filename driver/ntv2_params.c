@@ -36,6 +36,11 @@ void ntv2_module_initialize(void)
 	memset(ntv2_mod, 0, sizeof(struct ntv2_module));
 
 	ntv2_mod->name = NTV2_MODULE_NAME;
+	ntv2_mod->version = NTV2_DRV_VERSION;
+	ntv2_mod->uart_max = NTV2_MAX_UARTS;
+	ntv2_mod->cdev_max = NTV2_MAX_CDEVS;
+	ntv2_mod->cdev_name = NTV2_CDEV_NAME;
+
 	ntv2_mod->debug_mask = 
 //		NTV2_DEBUG_REGISTER_READ |
 //		NTV2_DEBUG_REGISTER_WRITE |

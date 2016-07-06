@@ -323,6 +323,7 @@ int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
 						  struct ntv2_features *features,
 						  struct ntv2_register *vid_reg)
 {
+	struct ntv2_module *ntv2_mod = ntv2_module_info();
 	struct uart_port *port;
 	int index;
 	int ret;
@@ -334,17 +335,18 @@ int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
 
 	NTV2_MSG_SERIAL_INFO("%s: configure serial device\n", ntv2_ser->name);
 
-	index = atomic_inc_return(&ntv2_module_info()->uart_index) - 1;
-	if (index >= NTV2_MAX_UARTS) {
+	ntv2_ser->features = features;
+	ntv2_ser->vid_reg = vid_reg;
+
+	/* get next serial port index */
+	index = atomic_inc_return(&ntv2_mod->uart_index) - 1;
+	if (index >= ntv2_mod->uart_max) {
 		NTV2_MSG_SERIAL_ERROR("%s: ntv2_serial too many uarts %d\n", ntv2_ser->name, index + 1);
 		return -ENOMEM;
 	}
 
-	ntv2_ser->features = features;
-	ntv2_ser->vid_reg = vid_reg;
-
+	/* configure the serial port */
 	port = &ntv2_ser->uart_port;
-
 	port->fifosize = features->serial_config[ntv2_ser->index]->fifo_size;
 	port->regshift = 2;
 	port->iotype = UPIO_MEM;
@@ -358,8 +360,8 @@ int ntv2_serial_configure(struct ntv2_serial *ntv2_ser,
 	NTV2_MSG_SERIAL_INFO("%s: register serial device: %s  port: %d\n",
 						 ntv2_ser->name, NTV2_TTY_NAME, index);
 
-	/* Register the port */
-	ret = uart_add_one_port(ntv2_module_info()->uart_driver, port);
+	/* register the serial port */
+	ret = uart_add_one_port(ntv2_mod->uart_driver, port);
 	if (ret < 0) {
 		NTV2_MSG_SERIAL_ERROR("%s: uart_add_one_port() failed %d  port: %d\n",
 							  ntv2_ser->name, ret, index);

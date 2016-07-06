@@ -29,6 +29,7 @@
 #include "ntv2_konareg.h"
 #include "ntv2_features.h"
 #include "ntv2_input.h"
+#include "ntv2_chrdev.h"
 
 static int ntv2_device_pci_configure(struct ntv2_device *ntv2_dev, struct pci_dev *pdev);
 static void ntv2_device_pci_release(struct ntv2_device *ntv2_dev);
@@ -154,6 +155,9 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 
 	/* free the input monitor */
 	ntv2_input_close(ntv2_dev->inp_mon);
+
+	/* close the character device */
+	ntv2_chrdev_close(ntv2_dev->chr_dev);
 
 	/* release the resources */
 	ntv2_device_irq_release(ntv2_dev);
@@ -286,6 +290,19 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	/* enable input detection */
 	ntv2_input_enable(ntv2_dev->inp_mon);
 
+	/* initialize character device */
+	ntv2_dev->chr_dev = ntv2_chrdev_open((struct ntv2_object*)ntv2_dev, "chr", 0);
+	if (ntv2_dev->chr_dev == NULL)
+		return  -ENOMEM;
+
+	result = ntv2_chrdev_configure(ntv2_dev->chr_dev,
+								   ntv2_dev->features,
+								   ntv2_dev->vid_reg);
+	if (result != 0)
+		return result;
+
+	ntv2_chrdev_enable(ntv2_dev->chr_dev);
+	
 	/* create the audio system */
 #ifdef NTV2_USE_SND_CARD_NEW
 	result = snd_card_new(&ntv2_dev->pci_dev->dev,
@@ -459,6 +476,7 @@ void ntv2_device_suspend(struct ntv2_device *ntv2_dev)
 	}
 
 	/* disable hardware stuff */
+	ntv2_chrdev_disable(ntv2_dev->chr_dev);
 	ntv2_input_disable(ntv2_dev->inp_mon);
 	ntv2_nwldma_disable(ntv2_dev->dma_engine);
 	ntv2_device_irq_disable(ntv2_dev);
@@ -477,6 +495,7 @@ void ntv2_device_resume(struct ntv2_device *ntv2_dev)
 	ntv2_device_irq_enable(ntv2_dev);
 	ntv2_nwldma_enable(ntv2_dev->dma_engine);
 	ntv2_input_enable(ntv2_dev->inp_mon);
+	ntv2_chrdev_enable(ntv2_dev->chr_dev);
 
 	/* resume audio */
 	if (ntv2_dev->snd_card != NULL)
