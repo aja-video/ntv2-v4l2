@@ -22,12 +22,25 @@
 #include "ntv2_register.h"
 #include "ntv2_konareg.h"
 
+struct ntv2_register_access {
+    u32			number;
+    u32			value;
+	u32			mask;
+	u32			shift;
+};
+
+#define NTV2_DEVICE_TYPE		0xbb
+#define IOCTL_NTV2_WRITE_REGISTER \
+	_IOW(NTV2_DEVICE_TYPE, 48, struct ntv2_register_access)
+#define IOCTL_NTV2_READ_REGISTER \
+	_IOWR(NTV2_DEVICE_TYPE, 49 , struct ntv2_register_access)
+
 
 static int ntv2_open(struct inode *inode, struct file *file)
 {
     struct ntv2_chrdev *ntv2_chr = container_of(inode->i_cdev, struct ntv2_chrdev, cdev);
 
-	NTV2_MSG_CDEV_STATE("%s: file open\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_STATE("%s: file open\n", ntv2_chr->name);
 
     file->private_data = ntv2_chr;
 
@@ -38,7 +51,7 @@ static int ntv2_release(struct inode *inode, struct file *file)
 {
     struct ntv2_chrdev *ntv2_chr = (struct ntv2_chrdev *)file->private_data;
 
-	NTV2_MSG_CDEV_STATE("%s: file release\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_STATE("%s: file release\n", ntv2_chr->name);
 
 	return 0;
 }
@@ -46,8 +59,51 @@ static int ntv2_release(struct inode *inode, struct file *file)
 static long ntv2_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
     struct ntv2_chrdev *ntv2_chr = (struct ntv2_chrdev *)file->private_data;
+	struct ntv2_register_access ra;
+	u32 read_value;
+	u32 write_value;
 
-	NTV2_MSG_CDEV_STATE("%s: file ioctl cmd %08x\n", ntv2_chr->name, cmd);
+//	NTV2_MSG_CHRDEV_STATE("%s: file ioctl cmd %08x\n", ntv2_chr->name, cmd);
+
+	switch (cmd) {
+	case IOCTL_NTV2_WRITE_REGISTER:
+		if(copy_from_user((void*)&ra, (const void*)arg, sizeof(struct ntv2_register_access)))
+			return -EFAULT;
+
+		if (ra.number == NTV2_DEBUG_REGISTER) {
+			ntv2_module_info()->debug_mask = ra.value;
+			break;
+		}
+
+		write_value = ra.value;
+		if (ra.mask != 0xffffffff) {
+			read_value = ntv2_register_read(ntv2_chr->vid_reg, ra.number);
+			read_value &= ~ra.mask;
+			write_value = (write_value << ra.shift) & ra.mask;
+			write_value |= read_value;
+		}
+		ntv2_register_write(ntv2_chr->vid_reg, ra.number, write_value);
+		break;
+
+	case IOCTL_NTV2_READ_REGISTER:
+		if(copy_from_user((void*)&ra, (const void*)arg, sizeof(struct ntv2_register_access)))
+			return -EFAULT;
+
+		if (ra.number == NTV2_DEBUG_REGISTER) {
+			ra.value = ntv2_module_info()->debug_mask;
+		} else if (ra.number == 70) {
+			ra.value = 0;
+		} else {
+			ra.value = ntv2_register_read(ntv2_chr->vid_reg, ra.number);
+			ra.value = (ra.value & ra.mask) >> ra.shift;
+		}
+
+		if(copy_to_user((void*)arg, (const void*)&ra, sizeof(struct ntv2_register_access)))
+			return -EFAULT;
+		break;
+	default:
+		return -EFAULT;
+	}
 
 	return 0;
 }
@@ -102,7 +158,7 @@ struct ntv2_chrdev *ntv2_chrdev_open(struct ntv2_object *ntv2_obj,
 
 	spin_lock_init(&ntv2_chr->state_lock);
 
-	NTV2_MSG_CDEV_INFO("%s: open ntv2_chrdev\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_INFO("%s: open ntv2_chrdev\n", ntv2_chr->name);
 
 	return ntv2_chr;
 }
@@ -112,7 +168,7 @@ void ntv2_chrdev_close(struct ntv2_chrdev *ntv2_chr)
 	if (ntv2_chr == NULL)
 		return;
 
-	NTV2_MSG_CDEV_INFO("%s: close ntv2_chrdev\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_INFO("%s: close ntv2_chrdev\n", ntv2_chr->name);
 
 	ntv2_chrdev_disable(ntv2_chr);
 
@@ -138,7 +194,7 @@ int ntv2_chrdev_configure(struct ntv2_chrdev *ntv2_chr,
 		(vid_reg == NULL))
 		return -EPERM;
 
-	NTV2_MSG_CDEV_INFO("%s: configure cdev\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_INFO("%s: configure cdev\n", ntv2_chr->name);
 
 	ntv2_chr->features = features;
 	ntv2_chr->vid_reg = vid_reg;
@@ -146,7 +202,7 @@ int ntv2_chrdev_configure(struct ntv2_chrdev *ntv2_chr,
 	/* get next character device index */
 	index = atomic_inc_return(&ntv2_mod->cdev_index) - 1;
 	if (index >= ntv2_mod->cdev_max) {
-		NTV2_MSG_CDEV_ERROR("%s: ntv2_cdev too many character devices %d\n", ntv2_chr->name, index);
+		NTV2_MSG_CHRDEV_ERROR("%s: ntv2_cdev too many character devices %d\n", ntv2_chr->name, index);
 		return -ENOMEM;
 	}
 
@@ -158,8 +214,8 @@ int ntv2_chrdev_configure(struct ntv2_chrdev *ntv2_chr,
 				   MKDEV(MAJOR(ntv2_mod->cdev_number), index),
 				   1);
 	if (res < 0) {
-		NTV2_MSG_CDEV_ERROR("%s: *error* cdev_add()  device %d  failed code %d\n",
-							index, ntv2_chr->name, res);
+		NTV2_MSG_CHRDEV_ERROR("%s: *error* cdev_add()  device %d  failed code %d\n",
+							  ntv2_chr->name, index, res);
 		return res;
 	}
 
@@ -176,7 +232,7 @@ int ntv2_chrdev_enable(struct ntv2_chrdev *ntv2_chr)
 	if (ntv2_chr->task_state == ntv2_task_state_enable)
 		return 0;
 
-	NTV2_MSG_CDEV_STATE("%s: file ops enable\n", ntv2_chr->name);
+	NTV2_MSG_CHRDEV_STATE("%s: file ops enable\n", ntv2_chr->name);
 
 	spin_lock_irqsave(&ntv2_chr->state_lock, flags);
 	ntv2_chr->task_state = ntv2_task_state_enable;
