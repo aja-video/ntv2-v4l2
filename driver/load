@@ -11,6 +11,14 @@ find /lib/modules/$(uname -r) -name videobuf2-v4l2.ko -exec /sbin/modprobe video
 major=`cat /proc/devices | awk "\\$2==\"ntv2dev\" {print \\$1}"`
 
 # remove and insert nodes
+rm -f /dev/ajantv2[0-3]
+mknod /dev/ajantv20 c $major 0
+mknod /dev/ajantv21 c $major 1
+mknod /dev/ajantv22 c $major 2
+mknod /dev/ajantv23 c $major 3
+
+chmod 666 /dev/ajantv2[0-3]
+
 rm -f /dev/oem2k[0-3]
 mknod /dev/oem2k0 c $major 0
 mknod /dev/oem2k1 c $major 1

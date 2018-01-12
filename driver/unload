@@ -3,4 +3,5 @@
 /sbin/rmmod ntv2video.ko 
 
 # remove stale nodes
+rm -f /dev/ajantv2[0-3]
 rm -f /dev/oem2k[0-3]
