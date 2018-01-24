@@ -10,10 +10,11 @@ This repository contains the AJA NTV2 V4L2/ALSA driver.
 	v1.1.0		add serial port for rovocam
 	v1.2.0		add audio mixer
 	v1.2.1		support kernels to 4.6
+	v1.2.2		support kernels to 4.14
 
 ## Requirements
 
-Builds in 3.10.0 <= linux (64 bit) <= 4.6.0 (approximately)
+Builds in 3.10.0 <= linux (64 bit) <= 4.14.0 (approximately)
 
 The driver has been tested on Ubuntu 14 and Centos 7.
 

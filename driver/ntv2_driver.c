@@ -140,14 +140,6 @@ static pci_ers_result_t ntv2_pci_error_detected(struct pci_dev *pdev, enum pci_c
 	return PCI_ERS_RESULT_CAN_RECOVER;
 }
 
-static pci_ers_result_t ntv2_pci_link_reset(struct pci_dev *pdev)
-{
-	struct ntv2_device *ntv2_dev = dev_get_drvdata(&pdev->dev);
-
-	NTV2_MSG_INFO("%s: pci link reset\n", ntv2_dev->name);
-	return 0;
-}
-
 static pci_ers_result_t ntv2_pci_slot_reset(struct pci_dev *pdev)
 {
 	struct ntv2_device *ntv2_dev = dev_get_drvdata(&pdev->dev);
@@ -201,7 +193,6 @@ MODULE_DEVICE_TABLE(pci, ntv2_pci_tbl);
 
 static const struct pci_error_handlers ntv2_pci_errors = {
 	.error_detected	= ntv2_pci_error_detected,
-	.link_reset		= ntv2_pci_link_reset,
 	.slot_reset		= ntv2_pci_slot_reset,
 	.resume			= ntv2_pci_error_resume,
 };

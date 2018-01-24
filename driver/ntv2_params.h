@@ -23,7 +23,7 @@
 #include "ntv2_common.h"
 
 #define NTV2_MODULE_NAME 			KBUILD_MODNAME
-#define NTV2_DRV_VERSION			"1.1.0"
+#define NTV2_DRV_VERSION			"1.2.2"
 
 #define NTV2_VENDOR_ID				0xf1d0
 #define NTV2_DEVICE_ID_KONA4		0xeb0b

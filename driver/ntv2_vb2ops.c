@@ -38,6 +38,11 @@
 /*
  * Setup the constraints of the queue
  */
+#ifdef NTV2_USE_QUEUE_SETUP_DEVICE
+static int ntv2_queue_setup(struct vb2_queue *vq,
+							unsigned int *nbuffers, unsigned int *nplanes,
+							unsigned int sizes[], struct device *alloc_ctxs[])
+#else
 #ifdef NTV2_USE_QUEUE_SETUP_NO_FORMAT
 static int ntv2_queue_setup(struct vb2_queue *vq,
 							unsigned int *nbuffers, unsigned int *nplanes,
@@ -51,6 +56,7 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const void *parg,
 static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 							unsigned int *nbuffers, unsigned int *nplanes,
 							unsigned int sizes[], void *alloc_ctxs[])
+#endif
 #endif
 #endif
 {
