@@ -46,6 +46,7 @@ struct ntv2_serial_config {
 struct ntv2_input_config {
 	const char*					name;
 	enum ntv2_input_type		type;
+	u32							version;
 	struct v4l2_dv_timings_cap	v4l2_timings_cap;
 	int							input_index;
 	u32							num_inputs;
@@ -54,6 +55,7 @@ struct ntv2_input_config {
 struct ntv2_source_config {
 	const char*					name;
 	enum ntv2_input_type		type;
+	u32							version;
 	u32							audio_source;
 	u32							num_channels;
 	int							input_index;

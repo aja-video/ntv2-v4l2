@@ -228,7 +228,7 @@ int ntv2_audio_set_source(struct ntv2_audio *ntv2_aud,
 			}
 		}
 
-		/* use the aduio from the aes source? */
+		/* use the audio from the aes source? */
 		if (!good_source) {
 			aes_config = ntv2_features_find_source_config(ntv2_aud->features,
 														  ntv2_aud->ntv2_chn->index,

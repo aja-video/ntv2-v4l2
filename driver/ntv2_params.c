@@ -17,7 +17,7 @@
  * SOFTWARE.
  */
 
-#include "ntv2_params.h"
+#include "ntv2_common.h"
 
 static struct ntv2_module ntv2_mod_info;
 

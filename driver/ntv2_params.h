@@ -20,8 +20,6 @@
 #ifndef NTV2_PARAMS_H
 #define NTV2_PARAMS_H
 
-#include "ntv2_common.h"
-
 #define NTV2_MODULE_NAME 			KBUILD_MODNAME
 #define NTV2_DRV_VERSION			"1.2.2"
 
@@ -30,6 +28,7 @@
 #define NTV2_DEVICE_ID_CORVID88		0xeb0d
 #define NTV2_DEVICE_ID_CORVID44		0xeb0e
 #define NTV2_DEVICE_ID_CORVIDHDBT	0xeb18
+#define NTV2_DEVICE_ID_KONAHDMI		0xeb24
 
 #define NTV2_PCI_BAR_NWL			0
 #define NTV2_PCI_BAR_VIDEO			1

@@ -691,7 +691,21 @@ static const struct v4l2_dv_timings_cap ntv2_timings_cap_sdi_quad = {
 	)
 };
 
-static const struct v4l2_dv_timings_cap ntv2_timings_cap_hdmi = {
+static const struct v4l2_dv_timings_cap ntv2_timings_cap_hdmi13 = {
+	.type = V4L2_DV_BT_656_1120,
+	/* keep this initialization for compatibility with GCC < 4.4.6 */
+	.reserved = { 0 },
+	V4L2_INIT_BT_TIMINGS(
+		720, 1920,				/* min/max width */
+		480, 1080,				/* min/max height */
+		13500000, 148500000,	/* min/max pixelclock*/
+		V4L2_DV_BT_STD_CEA861,	/* Supported standards */
+		/* capabilities */
+		V4L2_DV_BT_CAP_PROGRESSIVE | V4L2_DV_BT_CAP_INTERLACED
+	)
+};
+
+static const struct v4l2_dv_timings_cap ntv2_timings_cap_hdmi14 = {
 	.type = V4L2_DV_BT_656_1120,
 	/* keep this initialization for compatibility with GCC < 4.4.6 */
 	.reserved = { 0 },
@@ -699,6 +713,20 @@ static const struct v4l2_dv_timings_cap ntv2_timings_cap_hdmi = {
 		720, 3840,				/* min/max width */
 		480, 2160,				/* min/max height */
 		13500000, 297000000,	/* min/max pixelclock*/
+		V4L2_DV_BT_STD_CEA861,	/* Supported standards */
+		/* capabilities */
+		V4L2_DV_BT_CAP_PROGRESSIVE | V4L2_DV_BT_CAP_INTERLACED
+	)
+};
+
+static const struct v4l2_dv_timings_cap ntv2_timings_cap_hdmi20 = {
+	.type = V4L2_DV_BT_656_1120,
+	/* keep this initialization for compatibility with GCC < 4.4.6 */
+	.reserved = { 0 },
+	V4L2_INIT_BT_TIMINGS(
+		720, 3840,				/* min/max width */
+		480, 2160,				/* min/max height */
+		13500000, 600000000,	/* min/max pixelclock*/
 		V4L2_DV_BT_STD_CEA861,	/* Supported standards */
 		/* capabilities */
 		V4L2_DV_BT_CAP_PROGRESSIVE | V4L2_DV_BT_CAP_INTERLACED
@@ -744,7 +772,11 @@ static struct ntv2_input_config		nic_sdi_dual_56;
 static struct ntv2_input_config		nic_sdi_dual_78;
 static struct ntv2_input_config		nic_sdi_quad_1234;
 static struct ntv2_input_config		nic_sdi_quad_5678;
-static struct ntv2_input_config		nic_hdmi;
+static struct ntv2_input_config		nic_hdmi14_1;
+static struct ntv2_input_config		nic_hdmi20_1;
+static struct ntv2_input_config		nic_hdmi20_2;
+static struct ntv2_input_config		nic_hdmi13_3;
+static struct ntv2_input_config		nic_hdmi13_4;
 
 static struct ntv2_source_config	asc_auto;
 static struct ntv2_source_config	asc_sdi_1;
@@ -757,7 +789,10 @@ static struct ntv2_source_config	asc_sdi_7;
 static struct ntv2_source_config	asc_sdi_8;
 static struct ntv2_source_config	asc_aes;
 static struct ntv2_source_config	asc_analog;
-static struct ntv2_source_config	asc_hdmi;
+static struct ntv2_source_config	asc_hdmi_1;
+static struct ntv2_source_config	asc_hdmi_2;
+static struct ntv2_source_config	asc_hdmi_3;
+static struct ntv2_source_config	asc_hdmi_4;
 
 static struct ntv2_video_format 	nvf_525i5994;
 static struct ntv2_video_format 	nvf_625i5000;
@@ -775,14 +810,22 @@ static struct ntv2_video_format 	nvf_1080p6000;
 static struct ntv2_video_format 	nvf_1080i5000;
 static struct ntv2_video_format 	nvf_1080i5994;
 static struct ntv2_video_format 	nvf_1080i6000;
-static struct ntv2_video_format 	nvf_2160p2398;
-static struct ntv2_video_format 	nvf_2160p2400;
-static struct ntv2_video_format 	nvf_2160p2500;
-static struct ntv2_video_format 	nvf_2160p2997;
-static struct ntv2_video_format 	nvf_2160p3000;
-static struct ntv2_video_format 	nvf_2160p5000;
-static struct ntv2_video_format 	nvf_2160p5994;
-static struct ntv2_video_format 	nvf_2160p6000;
+static struct ntv2_video_format 	nvf_2160p2398_sqd;
+static struct ntv2_video_format 	nvf_2160p2400_sqd;
+static struct ntv2_video_format 	nvf_2160p2500_sqd;
+static struct ntv2_video_format 	nvf_2160p2997_sqd;
+static struct ntv2_video_format 	nvf_2160p3000_sqd;
+static struct ntv2_video_format 	nvf_2160p5000_sqd;
+static struct ntv2_video_format 	nvf_2160p5994_sqd;
+static struct ntv2_video_format 	nvf_2160p6000_sqd;
+static struct ntv2_video_format 	nvf_2160p2398_tsi;
+static struct ntv2_video_format 	nvf_2160p2400_tsi;
+static struct ntv2_video_format 	nvf_2160p2500_tsi;
+static struct ntv2_video_format 	nvf_2160p2997_tsi;
+static struct ntv2_video_format 	nvf_2160p3000_tsi;
+static struct ntv2_video_format 	nvf_2160p5000_tsi;
+static struct ntv2_video_format 	nvf_2160p5994_tsi;
+static struct ntv2_video_format 	nvf_2160p6000_tsi;
 
 static struct ntv2_pixel_format 	npf_uyvy;
 static struct ntv2_pixel_format 	npf_yuyv;
@@ -860,6 +903,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 1";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
@@ -868,6 +912,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 2";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 1;
 	nic->num_inputs = 1;
@@ -876,6 +921,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 3";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 2;
 	nic->num_inputs = 1;
@@ -884,6 +930,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 4";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 3;
 	nic->num_inputs = 1;
@@ -892,6 +939,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 5";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 4;
 	nic->num_inputs = 1;
@@ -900,6 +948,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 6";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 5;
 	nic->num_inputs = 1;
@@ -908,6 +957,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 7";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 6;
 	nic->num_inputs = 1;
@@ -916,6 +966,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 8";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->input_index = 7;
 	nic->num_inputs = 1;
@@ -925,6 +976,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 1-2";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 0;
 	nic->num_inputs = 2;
@@ -933,6 +985,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 3-4";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 2;
 	nic->num_inputs = 2;
@@ -941,6 +994,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 5-6";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 4;
 	nic->num_inputs = 2;
@@ -949,6 +1003,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 7-8";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->input_index = 6;
 	nic->num_inputs = 2;
@@ -958,6 +1013,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 1-4";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->input_index = 0;
 	nic->num_inputs = 4;
@@ -966,16 +1022,54 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "SDI 5-8";
 	nic->type = ntv2_input_type_sdi;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->input_index = 4;
 	nic->num_inputs = 4;
 
 	/* hdmi inputs */
-	nic = &nic_hdmi;
+	nic = &nic_hdmi14_1;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 1";
 	nic->type = ntv2_input_type_hdmi;
-	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi;
+	nic->version = 1;
+	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi14;
+	nic->input_index = 0;
+	nic->num_inputs = 1;
+
+	nic = &nic_hdmi20_1;
+	memset(nic, 0, sizeof(struct ntv2_input_config));
+	nic->name = "HDMI 1";
+	nic->type = ntv2_input_type_hdmi;
+	nic->version = 2;
+	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
+	nic->input_index = 0;
+	nic->num_inputs = 1;
+
+	nic = &nic_hdmi20_2;
+	memset(nic, 0, sizeof(struct ntv2_input_config));
+	nic->name = "HDMI 2";
+	nic->type = ntv2_input_type_hdmi;
+	nic->version = 2;
+	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
+	nic->input_index = 0;
+	nic->num_inputs = 1;
+
+	nic = &nic_hdmi13_3;
+	memset(nic, 0, sizeof(struct ntv2_input_config));
+	nic->name = "HDMI 3";
+	nic->type = ntv2_input_type_hdmi;
+	nic->version = 0;
+	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
+	nic->input_index = 0;
+	nic->num_inputs = 1;
+
+	nic = &nic_hdmi13_4;
+	memset(nic, 0, sizeof(struct ntv2_input_config));
+	nic->name = "HDMI 4";
+	nic->type = ntv2_input_type_hdmi;
+	nic->version = 0;
+	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
 
@@ -984,6 +1078,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "Auto";
 	nss->type = ntv2_input_type_auto;
+	nss->version = 0;
 	nss->audio_source = 0;
 	nss->num_channels = 0;
 	nss->input_index = 0;
@@ -994,6 +1089,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "AES";
 	nss->type = ntv2_input_type_aes;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_aes;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -1004,6 +1100,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 1";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 0;
@@ -1013,6 +1110,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 2";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 1;
@@ -1022,6 +1120,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 3";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 2;
@@ -1031,6 +1130,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 4";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 3;
@@ -1040,6 +1140,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 5";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 4;
@@ -1049,6 +1150,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 6";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 5;
@@ -1058,6 +1160,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 7";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 6;
@@ -1067,6 +1170,7 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "SDI 8";
 	nss->type = ntv2_input_type_sdi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
 	nss->input_index = 7;
@@ -1077,19 +1181,51 @@ static void ntv2_features_initialize(void) {
 	memset(nss, 0, sizeof(struct ntv2_source_config));
 	nss->name = "Analog";
 	nss->type = ntv2_input_type_analog;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_analog;
 	nss->num_channels = 2;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
 	/* audio hdmi source */
-	nss = &asc_hdmi;
+	nss = &asc_hdmi_1;
 	memset(nss, 0, sizeof(struct ntv2_source_config));
-	nss->name = "HDMI";
+	nss->name = "HDMI 1";
 	nss->type = ntv2_input_type_hdmi;
+	nss->version = 0;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
 	nss->input_index = 0;
+	nss->num_inputs = 1;
+
+	nss = &asc_hdmi_2;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "HDMI 2";
+	nss->type = ntv2_input_type_hdmi;
+	nss->version = 0;
+	nss->audio_source = ntv2_kona_audio_source_hdmi;
+	nss->num_channels = 8;
+	nss->input_index = 1;
+	nss->num_inputs = 1;
+
+	nss = &asc_hdmi_3;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "HDMI 3";
+	nss->type = ntv2_input_type_hdmi;
+	nss->version = 0;
+	nss->audio_source = ntv2_kona_audio_source_hdmi;
+	nss->num_channels = 8;
+	nss->input_index = 2;
+	nss->num_inputs = 1;
+
+	nss = &asc_hdmi_4;
+	memset(nss, 0, sizeof(struct ntv2_source_config));
+	nss->name = "HDMI 4";
+	nss->type = ntv2_input_type_hdmi;
+	nss->version = 0;
+	nss->audio_source = ntv2_kona_audio_source_hdmi;
+	nss->num_channels = 8;
+	nss->input_index = 3;
 	nss->num_inputs = 1;
 
 	/* 525i5994 timing */
@@ -1269,7 +1405,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_picture_interlaced;
 
 	/* 2160p2398 timing */
-	nvf = &nvf_2160p2398;
+	nvf = &nvf_2160p2398_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2398";
 	nvf->v4l2_timings = dvt_3840x2160p24;
@@ -1281,7 +1417,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p2400 timing */
-	nvf = &nvf_2160p2400;
+	nvf = &nvf_2160p2400_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2400";
 	nvf->v4l2_timings = dvt_3840x2160p24;
@@ -1293,7 +1429,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p2500 timing */
-	nvf = &nvf_2160p2500;
+	nvf = &nvf_2160p2500_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2500";
 	nvf->v4l2_timings = dvt_3840x2160p25;
@@ -1305,7 +1441,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p2997 timing */
-	nvf = &nvf_2160p2997;
+	nvf = &nvf_2160p2997_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2997";
 	nvf->v4l2_timings = dvt_3840x2160p30;
@@ -1317,7 +1453,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p3000 timing */
-	nvf = &nvf_2160p3000;
+	nvf = &nvf_2160p3000_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p3000";
 	nvf->v4l2_timings = dvt_3840x2160p30;
@@ -1329,7 +1465,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p5000 timing */
-	nvf = &nvf_2160p5000;
+	nvf = &nvf_2160p5000_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p5000";
 	nvf->v4l2_timings = dvt_3840x2160p50;
@@ -1341,7 +1477,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p5994 timing */
-	nvf = &nvf_2160p5994;
+	nvf = &nvf_2160p5994_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p5994";
 	nvf->v4l2_timings = dvt_3840x2160p60;
@@ -1353,7 +1489,7 @@ static void ntv2_features_initialize(void) {
 		ntv2_kona_frame_square_division;
 
 	/* 2160p6000 timing */
-	nvf = &nvf_2160p6000;
+	nvf = &nvf_2160p6000_sqd;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p6000";
 	nvf->v4l2_timings = dvt_3840x2160p60;
@@ -1363,6 +1499,102 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+
+	/* 2160p2398 timing */
+	nvf = &nvf_2160p2398_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p2398";
+	nvf->v4l2_timings = dvt_3840x2160p24;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_2398;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p2400 timing */
+	nvf = &nvf_2160p2400_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p2400";
+	nvf->v4l2_timings = dvt_3840x2160p24;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_2400;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p2500 timing */
+	nvf = &nvf_2160p2500_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p2500";
+	nvf->v4l2_timings = dvt_3840x2160p25;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_2500;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p2997 timing */
+	nvf = &nvf_2160p2997_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p2997";
+	nvf->v4l2_timings = dvt_3840x2160p30;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_2997;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p3000 timing */
+	nvf = &nvf_2160p3000_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p3000";
+	nvf->v4l2_timings = dvt_3840x2160p30;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_3000;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p5000 timing */
+	nvf = &nvf_2160p5000_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p5000";
+	nvf->v4l2_timings = dvt_3840x2160p50;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_5000;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p5994 timing */
+	nvf = &nvf_2160p5994_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p5994";
+	nvf->v4l2_timings = dvt_3840x2160p60;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_5994;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
+
+	/* 2160p6000 timing */
+	nvf = &nvf_2160p6000_tsi;
+	memset(nvf, 0, sizeof(struct ntv2_video_format));
+	nvf->name = "2160p6000";
+	nvf->v4l2_timings = dvt_3840x2160p60;
+	nvf->video_standard = ntv2_kona_video_standard_1080p;
+	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
+	nvf->frame_rate = ntv2_kona_frame_rate_6000;
+	nvf->frame_flags =
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_sample_interleaved;
 
 	/* UYVY16 format */
 	npf = &npf_uyvy;
@@ -1467,14 +1699,22 @@ static void all_video_formats(struct ntv2_features *features)
 	features->video_formats[13] = &nvf_1080i5000;
 	features->video_formats[14] = &nvf_1080i5994;
 	features->video_formats[15] = &nvf_1080i6000;
-	features->video_formats[16] = &nvf_2160p2398;
-	features->video_formats[17] = &nvf_2160p2400;
-	features->video_formats[18] = &nvf_2160p2500;
-	features->video_formats[19] = &nvf_2160p2997;
-	features->video_formats[20] = &nvf_2160p3000;
-	features->video_formats[21] = &nvf_2160p5000;
-	features->video_formats[22] = &nvf_2160p5994;
-	features->video_formats[23] = &nvf_2160p6000;
+	features->video_formats[16] = &nvf_2160p2398_sqd;
+	features->video_formats[17] = &nvf_2160p2400_sqd;
+	features->video_formats[18] = &nvf_2160p2500_sqd;
+	features->video_formats[19] = &nvf_2160p2997_sqd;
+	features->video_formats[20] = &nvf_2160p3000_sqd;
+	features->video_formats[21] = &nvf_2160p5000_sqd;
+	features->video_formats[22] = &nvf_2160p5994_sqd;
+	features->video_formats[23] = &nvf_2160p6000_sqd;
+	features->video_formats[24] = &nvf_2160p2398_tsi;
+	features->video_formats[25] = &nvf_2160p2400_tsi;
+	features->video_formats[26] = &nvf_2160p2500_tsi;
+	features->video_formats[27] = &nvf_2160p2997_tsi;
+	features->video_formats[28] = &nvf_2160p3000_tsi;
+	features->video_formats[29] = &nvf_2160p5000_tsi;
+	features->video_formats[30] = &nvf_2160p5994_tsi;
+	features->video_formats[31] = &nvf_2160p6000_tsi;
 }
 
 static void all_yuv_pixel_formats(struct ntv2_features *features)
@@ -1740,7 +1980,7 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->video_config[0] = &nvc_capture;
 	features->audio_config[0] = &nac_capture;
 
-	features->input_config[0][0] = &nic_hdmi;
+	features->input_config[0][0] = &nic_hdmi14_1;
 
 	features->video_formats[0] = &nvf_525i5994;
 	features->video_formats[1] = &nvf_625i5000;
@@ -1758,19 +1998,56 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->video_formats[13] = &nvf_1080i5000;
 	features->video_formats[14] = &nvf_1080i5994;
 	features->video_formats[15] = &nvf_1080i6000;
-	features->video_formats[16] = &nvf_2160p2398;
-	features->video_formats[17] = &nvf_2160p2400;
-	features->video_formats[18] = &nvf_2160p2500;
-	features->video_formats[19] = &nvf_2160p2997;
-	features->video_formats[20] = &nvf_2160p3000;
+	features->video_formats[16] = &nvf_2160p2398_sqd;
+	features->video_formats[17] = &nvf_2160p2400_sqd;
+	features->video_formats[18] = &nvf_2160p2500_sqd;
+	features->video_formats[19] = &nvf_2160p2997_sqd;
+	features->video_formats[20] = &nvf_2160p3000_sqd;
 
 	features->source_config[0][0] = &asc_auto;
 	features->source_config[0][1] = &asc_aes;
-	features->source_config[0][2] = &asc_hdmi;
+	features->source_config[0][2] = &asc_hdmi_1;
 
 	all_pixel_formats(features);
 	build_v4l2_timings(features);
 
 	features->serial_config[0] = &nsc_uartlite;
+}
+
+static void ntv2_features_konahdmi(struct ntv2_features *features) 
+{
+	features->device_name = "Kona HDMI";
+	features->pcm_name = "Kona HDMI PCM";
+	features->pci_vendor = NTV2_VENDOR_ID;
+	features->pci_device = NTV2_DEVICE_ID_KONAHDMI;
+	features->pci_subsystem_vendor = PCI_ANY_ID;
+	features->pci_subsystem_device = PCI_ANY_ID;
+	features->num_video_channels = 4;
+	features->num_audio_channels = 4;
+	features->num_hdmi_inputs = 4;
+	features->num_aes_inputs = 0;
+	features->frame_buffer_size = 0x20000000;
+	features->num_serial_ports = 0;
+
+	features->video_config[0] = &nvc_capture;
+	features->audio_config[0] = &nac_capture;
+
+	features->input_config[0][0] = &nic_hdmi20_1;
+	features->input_config[1][0] = &nic_hdmi20_2;
+	features->input_config[2][0] = &nic_hdmi13_3;
+	features->input_config[3][0] = &nic_hdmi13_4;
+
+	features->source_config[0][0] = &asc_auto;
+	features->source_config[0][1] = &asc_hdmi_1;
+	features->source_config[1][0] = &asc_auto;
+	features->source_config[1][1] = &asc_hdmi_2;
+	features->source_config[2][0] = &asc_auto;
+	features->source_config[2][1] = &asc_hdmi_3;
+	features->source_config[3][0] = &asc_auto;
+	features->source_config[3][1] = &asc_hdmi_4;
+
+	all_video_formats(features);
+	all_pixel_formats(features);
+	build_v4l2_timings(features);
 }
 

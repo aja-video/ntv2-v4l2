@@ -148,8 +148,8 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 		new_bit1 = (stream->source_format.input_index & 0x2) >> 1;
 	} else if (stream->source_format.type == ntv2_input_type_hdmi) {
 		new_source = ntv2_kona_audio_source_hdmi;
-		new_bit0 = 0;
-		new_bit1 = 0;
+		new_bit0 = stream->source_format.input_index & 0x1;
+		new_bit1 = (stream->source_format.input_index & 0x2) >> 1;
 	}
 
 	/* set audio source */
