@@ -211,12 +211,15 @@ static struct video_register_data video_output_data[NTV2_MAX_CHANNELS];
 static struct sdi_input_status sdi_input_status[NTV2_MAX_CHANNELS];
 static struct video_field video_fs_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static struct video_field video_csc_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
+static struct video_field video_mux_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_sdi_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_dl_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_csc_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_csc_rgb_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_hdmi_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_hdmi_rgb_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
+static u32 video_mux_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
+static u32 video_mux_rgb_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_standard_to_hdmi[NTV2_MAX_VIDEO_STANDARDS];
 static u32 frame_rate_to_hdmi[NTV2_MAX_FRAME_RATES];
 static const char *video_standard_name[NTV2_MAX_VIDEO_STANDARDS];
@@ -602,6 +605,24 @@ void ntv2_kona_register_initialize(void)
 	video_csc_route[7][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select23, 0);
 	video_csc_route[7][1].fld = ntv2_kona_fld_csc8_key_source;
 
+	memset(video_mux_route, 0, sizeof(video_mux_route));
+	video_mux_route[0][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select32, 0);
+	video_mux_route[0][0].fld = ntv2_kona_fld_425mux1_ds1_source;
+	video_mux_route[0][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select32, 0);
+	video_mux_route[0][1].fld = ntv2_kona_fld_425mux1_ds2_source;
+	video_mux_route[1][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select32, 0);
+	video_mux_route[1][0].fld = ntv2_kona_fld_425mux2_ds1_source;
+	video_mux_route[1][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select32, 0);
+	video_mux_route[1][1].fld = ntv2_kona_fld_425mux2_ds2_source;
+	video_mux_route[2][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select33, 0);
+	video_mux_route[2][0].fld = ntv2_kona_fld_425mux3_ds1_source;
+	video_mux_route[2][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select33, 0);
+	video_mux_route[2][1].fld = ntv2_kona_fld_425mux3_ds2_source;
+	video_mux_route[3][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select33, 0);
+	video_mux_route[3][0].fld = ntv2_kona_fld_425mux4_ds1_source;
+	video_mux_route[3][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select33, 0);
+	video_mux_route[3][1].fld = ntv2_kona_fld_425mux4_ds2_source;
+
 	/* organize video routing sources by channel index */
 	memset(video_sdi_source, 0, sizeof(video_sdi_source));
 	video_sdi_source[0][0] = ntv2_kona_xpt_sdiin1_ds1;
@@ -664,12 +685,44 @@ void ntv2_kona_register_initialize(void)
 	video_hdmi_yuv_source[0][1] = ntv2_kona_xpt_hdmiin1_yuv_q2;
 	video_hdmi_yuv_source[0][2] = ntv2_kona_xpt_hdmiin1_yuv_q3;
 	video_hdmi_yuv_source[0][3] = ntv2_kona_xpt_hdmiin1_yuv_q4;
+	video_hdmi_yuv_source[1][0] = ntv2_kona_xpt_hdmiin2_yuv_q1;
+	video_hdmi_yuv_source[1][1] = ntv2_kona_xpt_hdmiin2_yuv_q2;
+	video_hdmi_yuv_source[1][2] = ntv2_kona_xpt_hdmiin2_yuv_q3;
+	video_hdmi_yuv_source[1][3] = ntv2_kona_xpt_hdmiin2_yuv_q4;
+	video_hdmi_yuv_source[2][0] = ntv2_kona_xpt_hdmiin3_yuv_q1;
+	video_hdmi_yuv_source[3][0] = ntv2_kona_xpt_hdmiin4_yuv_q1;
 
 	memset(video_hdmi_rgb_source, 0, sizeof(video_hdmi_rgb_source));
 	video_hdmi_rgb_source[0][0] = ntv2_kona_xpt_hdmiin1_rgb_q1;
 	video_hdmi_rgb_source[0][1] = ntv2_kona_xpt_hdmiin1_rgb_q2;
 	video_hdmi_rgb_source[0][2] = ntv2_kona_xpt_hdmiin1_rgb_q3;
 	video_hdmi_rgb_source[0][3] = ntv2_kona_xpt_hdmiin1_rgb_q4;
+	video_hdmi_rgb_source[1][0] = ntv2_kona_xpt_hdmiin2_rgb_q1;
+	video_hdmi_rgb_source[1][1] = ntv2_kona_xpt_hdmiin2_rgb_q2;
+	video_hdmi_rgb_source[1][2] = ntv2_kona_xpt_hdmiin2_rgb_q3;
+	video_hdmi_rgb_source[1][3] = ntv2_kona_xpt_hdmiin2_rgb_q4;
+	video_hdmi_rgb_source[2][0] = ntv2_kona_xpt_hdmiin3_rgb_q1;
+	video_hdmi_rgb_source[3][0] = ntv2_kona_xpt_hdmiin4_rgb_q1;
+
+	memset(video_mux_yuv_source, 0, sizeof(video_mux_yuv_source));
+	video_mux_yuv_source[0][0] = ntv2_kona_xpt_425mux1_ds1_yuv;
+	video_mux_yuv_source[0][1] = ntv2_kona_xpt_425mux1_ds2_yuv;
+	video_mux_yuv_source[1][0] = ntv2_kona_xpt_425mux2_ds1_yuv;
+	video_mux_yuv_source[1][1] = ntv2_kona_xpt_425mux2_ds2_yuv;
+	video_mux_yuv_source[2][0] = ntv2_kona_xpt_425mux3_ds1_yuv;
+	video_mux_yuv_source[2][1] = ntv2_kona_xpt_425mux3_ds2_yuv;
+	video_mux_yuv_source[3][0] = ntv2_kona_xpt_425mux4_ds1_yuv;
+	video_mux_yuv_source[3][1] = ntv2_kona_xpt_425mux4_ds2_yuv;
+
+	memset(video_mux_rgb_source, 0, sizeof(video_mux_rgb_source));
+	video_mux_rgb_source[0][0] = ntv2_kona_xpt_425mux1_ds1_rgb;
+	video_mux_rgb_source[0][1] = ntv2_kona_xpt_425mux1_ds2_rgb;
+	video_mux_rgb_source[1][0] = ntv2_kona_xpt_425mux2_ds1_rgb;
+	video_mux_rgb_source[1][1] = ntv2_kona_xpt_425mux2_ds2_rgb;
+	video_mux_rgb_source[2][0] = ntv2_kona_xpt_425mux3_ds1_rgb;
+	video_mux_rgb_source[2][1] = ntv2_kona_xpt_425mux3_ds2_rgb;
+	video_mux_rgb_source[3][0] = ntv2_kona_xpt_425mux4_ds1_rgb;
+	video_mux_rgb_source[3][1] = ntv2_kona_xpt_425mux4_ds2_rgb;
 
 	/* ntv2 video standard to hdmi video standard */
 	for (i = 0; i < NTV2_MAX_VIDEO_STANDARDS; i++) {
@@ -1148,6 +1201,32 @@ void ntv2_route_sdi_to_csc(struct ntv2_register* ntv2_reg,
 //				  video_csc_route[csc_index][csc_stream].reg, val, mask);
 }
 
+void ntv2_route_sdi_to_mux(struct ntv2_register* ntv2_reg,
+						   int sdi_index, int sdi_stream, bool sdi_rgb,
+						   int mux_index, int mux_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(sdi_index < 0) || (sdi_index >= NTV2_MAX_CHANNELS) ||
+		(sdi_stream < 0) || (sdi_stream >= NTV2_MAX_STREAMS) ||
+		(mux_index < 0) || (mux_index >= NTV2_MAX_CHANNELS) ||
+		(mux_stream < 0) || (mux_stream >= NTV2_MAX_STREAMS) ||
+		(video_mux_route[mux_index][mux_stream].reg == 0))
+		return;
+
+	if (sdi_rgb) {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_dl_source[sdi_index][sdi_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_sdi_source[sdi_index][sdi_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_mux_route[mux_index][mux_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_mux_route[mux_index][mux_stream].reg, val, mask);
+//	NTV2_MSG_INFO("write reg %d  val %08x  mask %08x\n",
+//				  video_mux_route[mux_index][mux_stream].reg, val, mask);
+}
+
 void ntv2_route_hdmi_to_fs(struct ntv2_register* ntv2_reg,
 						   int hdmi_index, int hdmi_stream, bool hdmi_rgb,
 						   int fs_index, int fs_stream)
@@ -1198,6 +1277,30 @@ void ntv2_route_hdmi_to_csc(struct ntv2_register* ntv2_reg,
 	ntv2_register_rmw(ntv2_reg, video_csc_route[csc_index][csc_stream].reg, val, mask);
 }
 
+void ntv2_route_hdmi_to_mux(struct ntv2_register* ntv2_reg,
+							int hdmi_index, int hdmi_stream, bool hdmi_rgb,
+							int mux_index, int mux_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(hdmi_index < 0) || (hdmi_index >= NTV2_MAX_CHANNELS) ||
+		(hdmi_stream < 0) || (hdmi_stream >= NTV2_MAX_STREAMS) ||
+		(mux_index < 0) || (mux_index >= NTV2_MAX_CHANNELS) ||
+		(mux_stream < 0) || (mux_stream >= NTV2_MAX_STREAMS) ||
+		(video_mux_route[mux_index][mux_stream].reg == 0))
+		return;
+
+	if (hdmi_rgb) {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_hdmi_rgb_source[hdmi_index][hdmi_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_hdmi_yuv_source[hdmi_index][hdmi_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_mux_route[mux_index][mux_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_mux_route[mux_index][mux_stream].reg, val, mask);
+}
+
 void ntv2_route_csc_to_fs(struct ntv2_register* ntv2_reg,
 						  int csc_index, int csc_stream, bool csc_rgb,
 						  int fs_index, int fs_stream)
@@ -1223,3 +1326,56 @@ void ntv2_route_csc_to_fs(struct ntv2_register* ntv2_reg,
 //	NTV2_MSG_INFO("write reg %d  val %08x  mask %08x\n",
 //				  video_fs_route[fs_index][fs_stream].reg, val, mask);
 }
+
+void ntv2_route_csc_to_mux(struct ntv2_register* ntv2_reg,
+						   int csc_index, int csc_stream, bool csc_rgb,
+						   int mux_index, int mux_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(csc_index < 0) || (csc_index >= NTV2_MAX_CHANNELS) ||
+		(csc_stream < 0) || (csc_stream >= NTV2_MAX_STREAMS) ||
+		(mux_index < 0) || (mux_index >= NTV2_MAX_CHANNELS) ||
+		(mux_stream < 0) || (mux_stream >= NTV2_MAX_STREAMS) ||
+		(video_mux_route[mux_index][mux_stream].reg == 0))
+		return;
+
+	if (csc_rgb) {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_csc_rgb_source[csc_index][csc_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_mux_route[mux_index][mux_stream].fld, video_csc_yuv_source[csc_index][csc_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_mux_route[mux_index][mux_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_mux_route[mux_index][mux_stream].reg, val, mask);
+//	NTV2_MSG_INFO("write reg %d  val %08x  mask %08x\n",
+//				  video_mux_route[mux_index][mux_stream].reg, val, mask);
+}
+
+void ntv2_route_mux_to_fs(struct ntv2_register* ntv2_reg,
+						  int mux_index, int mux_stream, bool mux_rgb,
+						  int fs_index, int fs_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(mux_index < 0) || (mux_index >= NTV2_MAX_CHANNELS) ||
+		(mux_stream < 0) || (mux_stream >= NTV2_MAX_STREAMS) ||
+		(fs_index < 0) || (fs_index >= NTV2_MAX_CHANNELS) ||
+		(fs_stream < 0) || (fs_stream >= NTV2_MAX_STREAMS) ||
+		(video_fs_route[fs_index][fs_stream].reg == 0))
+		return;
+
+	if (mux_rgb) {
+		val = NTV2_FLD_SET(video_fs_route[fs_index][fs_stream].fld, video_mux_rgb_source[mux_index][mux_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_fs_route[fs_index][fs_stream].fld, video_mux_yuv_source[mux_index][mux_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_fs_route[fs_index][fs_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_fs_route[fs_index][fs_stream].reg, val, mask);
+//	NTV2_MSG_INFO("write reg %d  val %08x  mask %08x\n",
+//				  video_fs_route[fs_index][fs_stream].reg, val, mask);
+}
+
