@@ -97,7 +97,9 @@ struct ntv2_features {
 	struct ntv2_pixel_format	*pixel_formats[NTV2_MAX_PIXEL_FORMATS];
 	struct v4l2_dv_timings		*v4l2_timings[NTV2_MAX_VIDEO_FORMATS];
 
-	unsigned long				sdi_owner[NTV2_MAX_SDI_COMPONENTS];
+	unsigned long				sdi_owner[NTV2_MAX_SDI_INPUTS];
+	unsigned long				hdmi_owner[NTV2_MAX_HDMI_INPUTS];
+	unsigned long				channel_owner[NTV2_MAX_CHANNELS];
 
 	struct ntv2_serial_config	*serial_config[NTV2_MAX_CHANNELS];
 };
@@ -189,10 +191,18 @@ int ntv2_features_get_frame_range(struct ntv2_features *features,
 u32 ntv2_features_get_audio_capture_address(struct ntv2_features *features, u32 index);
 u32 ntv2_features_get_audio_play_address(struct ntv2_features *features, u32 index);
 
-int ntv2_features_acquire_sdi_component(struct ntv2_features *features,
-										int index, int num, unsigned long owner);
-int ntv2_features_release_sdi_component(struct ntv2_features *features,
-										int index, int num, unsigned long owner);
+int ntv2_features_acquire_sdi_inputs(struct ntv2_features *features,
+									 int index, int num, unsigned long owner);
+int ntv2_features_release_sdi_inputs(struct ntv2_features *features,
+									 int index, int num, unsigned long owner);
+int ntv2_features_acquire_hdmi_inputs(struct ntv2_features *features,
+									  int index, int num, unsigned long owner);
+int ntv2_features_release_hdmi_inputs(struct ntv2_features *features,
+									  int index, int num, unsigned long owner);
+int ntv2_features_acquire_channels(struct ntv2_features *features,
+								   int index, int num, unsigned long owner);
+int ntv2_features_release_channels(struct ntv2_features *features,
+								   int index, int num, unsigned long owner);
 void ntv2_features_release_components(struct ntv2_features *features, unsigned long owner);
 
 bool ntv2_features_valid_dv_timings(struct ntv2_features *features,

@@ -167,7 +167,7 @@ int ntv2_input_disable(struct ntv2_input *ntv2_inp)
 
 	spin_lock_irqsave(&ntv2_inp->state_lock, flags);
 	ntv2_inp->monitor_state = ntv2_task_state_disable;
-	memset(&ntv2_inp->sdi_input_state, 0, NTV2_MAX_SDI_COMPONENTS*sizeof(struct ntv2_sdi_input_state));
+	memset(&ntv2_inp->sdi_input_state, 0, NTV2_MAX_SDI_INPUTS*sizeof(struct ntv2_sdi_input_state));
 	spin_unlock_irqrestore(&ntv2_inp->state_lock, flags);
 
 	return 0;

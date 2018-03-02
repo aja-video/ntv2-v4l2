@@ -37,7 +37,7 @@
 
 #define NTV2_MAX_CHANNELS			8
 #define NTV2_MAX_STREAMS			4
-#define NTV2_MAX_SDI_COMPONENTS		8
+#define NTV2_MAX_SDI_INPUTS			8
 #define NTV2_MAX_HDMI_INPUTS		4
 #define NTV2_MAX_VIDEO_FORMATS		32
 #define NTV2_MAX_PIXEL_FORMATS		8
@@ -213,6 +213,7 @@ struct ntv2_video_format {
 	u32							frame_geometry;
 	u32							frame_rate;
 	u32							frame_flags;
+	u32							num_channels;
 };
 
 struct ntv2_pixel_format {

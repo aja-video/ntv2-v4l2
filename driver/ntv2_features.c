@@ -437,15 +437,15 @@ u32 ntv2_features_get_audio_playback_address(struct ntv2_features *features, u32
 	return (features->frame_buffer_size - 0x800000*(index + 1));
 }
 
-int ntv2_features_acquire_sdi_component(struct ntv2_features *features,
-										int index, int num, unsigned long owner)
+int ntv2_features_acquire_sdi_inputs(struct ntv2_features *features,
+									 int index, int num, unsigned long owner)
 {
 	unsigned long flags;
 	int i;
 
 	if ((features == NULL) ||
 		(index < 0) ||
-		((index + num) > NTV2_MAX_SDI_COMPONENTS) ||
+		((index + num) > NTV2_MAX_SDI_INPUTS) ||
 		(owner == 0))
 		return -EPERM;
 
@@ -466,15 +466,15 @@ int ntv2_features_acquire_sdi_component(struct ntv2_features *features,
 	return 0;
 }
 
-int ntv2_features_release_sdi_component(struct ntv2_features *features,
-										int index, int num, unsigned long owner)
+int ntv2_features_release_sdi_inputs(struct ntv2_features *features,
+									 int index, int num, unsigned long owner)
 {
 	unsigned long flags;
 	int i;
 
 	if ((features == NULL) ||
 		(index < 0) ||
-		((index + num) > NTV2_MAX_SDI_COMPONENTS) ||
+		((index + num) > NTV2_MAX_SDI_INPUTS) ||
 		(owner == 0))
 		return -EPERM;
 
@@ -488,7 +488,123 @@ int ntv2_features_release_sdi_component(struct ntv2_features *features,
 	}
 
 	for (i = 0; i < num; i++)
-		features->sdi_owner[index] = 0;
+		features->sdi_owner[index + i] = 0;
+
+	spin_unlock_irqrestore(&features->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_features_acquire_hdmi_inputs(struct ntv2_features *features,
+									  int index, int num, unsigned long owner)
+{
+	unsigned long flags;
+	int i;
+
+	if ((features == NULL) ||
+		(index < 0) ||
+		((index + num) > NTV2_MAX_HDMI_INPUTS) ||
+		(owner == 0))
+		return -EPERM;
+
+	spin_lock_irqsave(&features->state_lock, flags);
+
+	for (i = 0; i < num; i++) {
+		if (features->hdmi_owner[index + i] != 0) {
+			spin_unlock_irqrestore(&features->state_lock, flags);
+			return -EBUSY;
+		}
+	}
+
+	for (i = 0; i < num; i++)
+		features->hdmi_owner[index + i] = owner;
+
+	spin_unlock_irqrestore(&features->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_features_release_hdmi_inputs(struct ntv2_features *features,
+									  int index, int num, unsigned long owner)
+{
+	unsigned long flags;
+	int i;
+
+	if ((features == NULL) ||
+		(index < 0) ||
+		((index + num) > NTV2_MAX_HDMI_INPUTS) ||
+		(owner == 0))
+		return -EPERM;
+
+	spin_lock_irqsave(&features->state_lock, flags);
+
+	for (i = 0; i < num; i++) {
+		if (features->hdmi_owner[index + i] != owner) {
+			spin_unlock_irqrestore(&features->state_lock, flags);
+			return -EINVAL;
+		}
+	}
+
+	for (i = 0; i < num; i++)
+		features->hdmi_owner[index + i] = 0;
+
+	spin_unlock_irqrestore(&features->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_features_acquire_channels(struct ntv2_features *features,
+								   int index, int num, unsigned long owner)
+{
+	unsigned long flags;
+	int i;
+
+	if ((features == NULL) ||
+		(index < 0) ||
+		((index + num) > NTV2_MAX_CHANNELS) ||
+		(owner == 0))
+		return -EPERM;
+
+	spin_lock_irqsave(&features->state_lock, flags);
+
+	for (i = 0; i < num; i++) {
+		if (features->channel_owner[index + i] != 0) {
+			spin_unlock_irqrestore(&features->state_lock, flags);
+			return -EBUSY;
+		}
+	}
+
+	for (i = 0; i < num; i++)
+		features->channel_owner[index + i] = owner;
+
+	spin_unlock_irqrestore(&features->state_lock, flags);
+
+	return 0;
+}
+
+int ntv2_features_release_channels(struct ntv2_features *features,
+								   int index, int num, unsigned long owner)
+{
+	unsigned long flags;
+	int i;
+
+	if ((features == NULL) ||
+		(index < 0) ||
+		((index + num) > NTV2_MAX_CHANNELS) ||
+		(owner == 0))
+		return -EPERM;
+
+	spin_lock_irqsave(&features->state_lock, flags);
+
+	for (i = 0; i < num; i++) {
+		if (features->channel_owner[index + i] != owner) {
+			spin_unlock_irqrestore(&features->state_lock, flags);
+			return -EINVAL;
+		}
+	}
+
+	for (i = 0; i < num; i++)
+		features->channel_owner[index + i] = 0;
 
 	spin_unlock_irqrestore(&features->state_lock, flags);
 
@@ -505,9 +621,17 @@ void ntv2_features_release_components(struct ntv2_features *features, unsigned l
 
 	spin_lock_irqsave(&features->state_lock, flags);
 
-	for (i = 0; i < NTV2_MAX_SDI_COMPONENTS; i++) {
+	for (i = 0; i < NTV2_MAX_SDI_INPUTS; i++) {
 		if (features->sdi_owner[i] == owner)
 			features->sdi_owner[i] = 0;
+	}
+	for (i = 0; i < NTV2_MAX_HDMI_INPUTS; i++) {
+		if (features->hdmi_owner[i] == owner)
+			features->hdmi_owner[i] = 0;
+	}
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->channel_owner[i] == owner)
+			features->channel_owner[i] = 0;
 	}
 
 	spin_unlock_irqrestore(&features->state_lock, flags);
@@ -1032,7 +1156,7 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 1";
 	nic->type = ntv2_input_type_hdmi;
-	nic->version = 1;
+	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi14;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
@@ -1041,18 +1165,18 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 1";
 	nic->type = ntv2_input_type_hdmi;
-	nic->version = 2;
+	nic->version = 1;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
-	nic->input_index = 0;
+	nic->input_index = 1;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi20_2;
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 2";
 	nic->type = ntv2_input_type_hdmi;
-	nic->version = 2;
+	nic->version = 1;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
-	nic->input_index = 0;
+	nic->input_index = 2;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi13_3;
@@ -1061,7 +1185,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_hdmi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
-	nic->input_index = 0;
+	nic->input_index = 1;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi13_4;
@@ -1070,7 +1194,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_hdmi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
-	nic->input_index = 0;
+	nic->input_index = 2;
 	nic->num_inputs = 1;
 
 	/* audio auto source */
@@ -1238,6 +1362,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_interlaced;
+	nvf->num_channels = 1;
 
 	/* 625i5000 timing */
 	nvf = &nvf_625i5000;
@@ -1249,6 +1374,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_interlaced;
+	nvf->num_channels = 1;
 
 	/* 720p5000 timing */
 	nvf = &nvf_720p5000;
@@ -1260,6 +1386,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 720p5994 timing */
 	nvf = &nvf_720p5994;
@@ -1271,6 +1398,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 720p6000 timing */
 	nvf = &nvf_720p6000;
@@ -1282,6 +1410,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p2398 timing */
 	nvf = &nvf_1080p2398;
@@ -1293,6 +1422,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2398;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p2400 timing */
 	nvf = &nvf_1080p2400;
@@ -1304,6 +1434,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2400;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p2500 timing */
 	nvf = &nvf_1080p2500;
@@ -1315,6 +1446,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p2997 timing */
 	nvf = &nvf_1080p2997;
@@ -1326,6 +1458,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p3000 timing */
 	nvf = &nvf_1080p3000;
@@ -1337,6 +1470,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_3000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p5000 timing */
 	nvf = &nvf_1080p5000;
@@ -1348,6 +1482,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p5994 timing */
 	nvf = &nvf_1080p5994;
@@ -1359,6 +1494,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080p6000 timing */
 	nvf = &nvf_1080p6000;
@@ -1370,6 +1506,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive;
+	nvf->num_channels = 1;
 
 	/* 1080i5000 timing */
 	nvf = &nvf_1080i5000;
@@ -1381,6 +1518,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_interlaced;
+	nvf->num_channels = 1;
 
 	/* 1080i5994 timing */
 	nvf = &nvf_1080i5994;
@@ -1392,6 +1530,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_interlaced;
+	nvf->num_channels = 1;
 
 	/* 1080i6000 timing */
 	nvf = &nvf_1080i6000;
@@ -1403,6 +1542,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_interlaced;
+	nvf->num_channels = 1;
 
 	/* 2160p2398 timing */
 	nvf = &nvf_2160p2398_sqd;
@@ -1415,6 +1555,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p2400 timing */
 	nvf = &nvf_2160p2400_sqd;
@@ -1427,6 +1568,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p2500 timing */
 	nvf = &nvf_2160p2500_sqd;
@@ -1439,6 +1581,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p2997 timing */
 	nvf = &nvf_2160p2997_sqd;
@@ -1451,6 +1594,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p3000 timing */
 	nvf = &nvf_2160p3000_sqd;
@@ -1463,6 +1607,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p5000 timing */
 	nvf = &nvf_2160p5000_sqd;
@@ -1475,6 +1620,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p5994 timing */
 	nvf = &nvf_2160p5994_sqd;
@@ -1487,6 +1633,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p6000 timing */
 	nvf = &nvf_2160p6000_sqd;
@@ -1499,6 +1646,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_square_division;
+	nvf->num_channels = 4;
 
 	/* 2160p2398 timing */
 	nvf = &nvf_2160p2398_tsi;
@@ -1511,6 +1659,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p2400 timing */
 	nvf = &nvf_2160p2400_tsi;
@@ -1523,6 +1672,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p2500 timing */
 	nvf = &nvf_2160p2500_tsi;
@@ -1535,6 +1685,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p2997 timing */
 	nvf = &nvf_2160p2997_tsi;
@@ -1547,6 +1698,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p3000 timing */
 	nvf = &nvf_2160p3000_tsi;
@@ -1559,6 +1711,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p5000 timing */
 	nvf = &nvf_2160p5000_tsi;
@@ -1571,6 +1724,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p5994 timing */
 	nvf = &nvf_2160p5994_tsi;
@@ -1583,6 +1737,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* 2160p6000 timing */
 	nvf = &nvf_2160p6000_tsi;
@@ -1595,6 +1750,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_sample_interleaved;
+	nvf->num_channels = 2;
 
 	/* UYVY16 format */
 	npf = &npf_uyvy;
