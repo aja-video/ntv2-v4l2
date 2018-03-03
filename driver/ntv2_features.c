@@ -1527,8 +1527,8 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Corvid 44";
-	features->pcm_name = "Corvid 44 PCM";
+	features->device_name = "Corvid44";
+	features->pcm_name = "Corvid44 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVID44;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1584,8 +1584,8 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Corvid 88";
-	features->pcm_name = "Corvid 88 PCM";
+	features->device_name = "Corvid88";
+	features->pcm_name = "Corvid88 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVID88;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1669,8 +1669,8 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 {
 	int i;
 
-	features->device_name = "Kona 4";
-	features->pcm_name = "Kona 4 PCM";
+	features->device_name = "Kona4";
+	features->pcm_name = "Kona4 PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_KONA4;
 	features->pci_subsystem_vendor = PCI_ANY_ID;
@@ -1724,8 +1724,8 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 
 static void ntv2_features_corvidhdbt(struct ntv2_features *features) 
 {
-	features->device_name = "Corvid HB-R";
-	features->pcm_name = "Corvid HB-R PCM";
+	features->device_name = "CorvidHB-R";
+	features->pcm_name = "CorvidHB-R PCM";
 	features->pci_vendor = NTV2_VENDOR_ID;
 	features->pci_device = NTV2_DEVICE_ID_CORVIDHDBT;
 	features->pci_subsystem_vendor = PCI_ANY_ID;

@@ -33,7 +33,9 @@ static int ntv2_querycap(struct file *file,
 	struct ntv2_video *ntv2_vid = video_drvdata(file);
 
 	strlcpy(cap->driver, ntv2_module_info()->name, sizeof(cap->driver));
-	strlcpy(cap->card, ntv2_vid->features->device_name, sizeof(cap->card));
+//	strlcpy(cap->card, ntv2_vid->features->device_name, sizeof(cap->card));
+	snprintf(cap->card, sizeof(cap->card),
+			 "%s Ch%d", ntv2_vid->features->device_name, ntv2_vid->index);
 	snprintf(cap->bus_info, sizeof(cap->bus_info),
 			 "PCI:%s", pci_name(ntv2_vid->ntv2_dev->pci_dev));
 	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE |
