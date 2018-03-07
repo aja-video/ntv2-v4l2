@@ -27,6 +27,7 @@ static void ntv2_features_corvid44(struct ntv2_features *features);
 static void ntv2_features_corvid88(struct ntv2_features *features);
 static void ntv2_features_kona4(struct ntv2_features *features);
 static void ntv2_features_corvidhdbt(struct ntv2_features *features);
+static void ntv2_features_konahdmi(struct ntv2_features *features);
 
 
 struct ntv2_features *ntv2_features_open(struct ntv2_object *ntv2_obj,
@@ -71,16 +72,18 @@ int ntv2_features_configure(struct ntv2_features *features, u32 id)
 	if (features == NULL)
 		return -EPERM;
 
+	features->device_id = id;
+
 	switch(id) {
-	case 0x10565400: ntv2_features_corvid44(features); break;
-	case 0x10538200: ntv2_features_corvid88(features); break;
-	case 0X10518400: ntv2_features_kona4(features); break;
-	case 0x10668200: ntv2_features_corvidhdbt(features); break;
+	case NTV2_DEVICE_ID_CORVID44:	ntv2_features_corvid44(features);		break;
+	case NTV2_DEVICE_ID_CORVID88:	ntv2_features_corvid88(features);		break;
+	case NTV2_DEVICE_ID_KONA4:		ntv2_features_kona4(features);			break;
+	case NTV2_DEVICE_ID_CORVIDHDBT:	ntv2_features_corvidhdbt(features);		break;
+	case NTV2_DEVICE_ID_KONAHDMI:	ntv2_features_konahdmi(features);		break;
 	default:
 		return -ENODEV;
 	}
 
-	features->device_id = id;
 	return 0;
 }
 
@@ -1925,10 +1928,6 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 
 	features->device_name = "Corvid44";
 	features->pcm_name = "Corvid44 PCM";
-	features->pci_vendor = NTV2_VENDOR_ID;
-	features->pci_device = NTV2_DEVICE_ID_CORVID44;
-	features->pci_subsystem_vendor = PCI_ANY_ID;
-	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
@@ -1982,10 +1981,6 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 
 	features->device_name = "Corvid88";
 	features->pcm_name = "Corvid88 PCM";
-	features->pci_vendor = NTV2_VENDOR_ID;
-	features->pci_device = NTV2_DEVICE_ID_CORVID88;
-	features->pci_subsystem_vendor = PCI_ANY_ID;
-	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 8;
 	features->num_audio_channels = 8;
 	features->num_sdi_inputs = 8;
@@ -2067,10 +2062,6 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 
 	features->device_name = "Kona4";
 	features->pcm_name = "Kona4 PCM";
-	features->pci_vendor = NTV2_VENDOR_ID;
-	features->pci_device = NTV2_DEVICE_ID_KONA4;
-	features->pci_subsystem_vendor = PCI_ANY_ID;
-	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_sdi_inputs = 4;
@@ -2122,10 +2113,6 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 {
 	features->device_name = "CorvidHB-R";
 	features->pcm_name = "CorvidHB-R PCM";
-	features->pci_vendor = NTV2_VENDOR_ID;
-	features->pci_device = NTV2_DEVICE_ID_CORVIDHDBT;
-	features->pci_subsystem_vendor = PCI_ANY_ID;
-	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 1;
 	features->num_audio_channels = 1;
 	features->num_hdmi_inputs = 1;
@@ -2174,10 +2161,6 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 {
 	features->device_name = "Kona HDMI";
 	features->pcm_name = "Kona HDMI PCM";
-	features->pci_vendor = NTV2_VENDOR_ID;
-	features->pci_device = NTV2_DEVICE_ID_KONAHDMI;
-	features->pci_subsystem_vendor = PCI_ANY_ID;
-	features->pci_subsystem_device = PCI_ANY_ID;
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_hdmi_inputs = 4;

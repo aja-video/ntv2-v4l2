@@ -72,10 +72,6 @@ struct ntv2_features {
 	u32							device_id;
 	const char					*device_name;
 	const char					*pcm_name;
-	unsigned short  			pci_vendor;
-	unsigned short  			pci_device;
-	unsigned short  			pci_subsystem_vendor;
-	unsigned short  			pci_subsystem_device;
 
 	u32							num_video_channels;
 	u32							num_audio_channels;

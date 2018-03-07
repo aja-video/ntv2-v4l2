@@ -45,6 +45,13 @@ struct ntv2_hdmiin {
 	struct ntv2_register			*vid_reg;
 	struct ntv2_konai2c				*i2c_reg;
 	spinlock_t 						state_lock;
+	struct ntv2_reg_value			*edid_reg;
+	u32								edid_size;
+
+	u8								i2c_hpa_default;
+	u8								i2c_color_default;
+	u32								i2c_reset_count;
+	u32								lock_error_count;
 
 	struct ntv2_hdmiin_format	 	input_format;
 

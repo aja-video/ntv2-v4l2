@@ -65,6 +65,12 @@ static const u8 tmds_frequency_clear_mask		= 0x02;
 static const u8 audio_lock_reg					= 0x04;
 static const u8 audio_lock_mask					= 0x01;
 
+static const u8 io_color_reg					= 0x02;
+static const u8 io_color_space_mask				= 0x06;
+
+static const u8 hdmi_hpa_reg					= 0x6c;
+static const u8 hdmi_hpa_manual_mask			= 0x01;
+
 static const u8 hdmi_mode_reg					= 0x05;
 static const u8 hdmi_mode_mask					= 0x80;
 static const u8 hdmi_encrypted_mask				= 0x40;

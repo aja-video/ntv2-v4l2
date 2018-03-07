@@ -75,6 +75,7 @@ static int ntv2_hdmiin_read_verify(struct ntv2_hdmiin *ntv2_hin,
 								   struct ntv2_reg_value *reg_value,
 								   int count);
 static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin);
+static void ntv2_hdmiin_hot_plug(struct ntv2_hdmiin *ntv2_hin);
 static int ntv2_hdmiin_set_color_mode(struct ntv2_hdmiin *ntv2_hin, bool yuv_input, bool yuv_output);
 static int ntv2_hdmiin_set_uhd_mode(struct ntv2_hdmiin *ntv2_hin, bool enable);
 static int ntv2_hdmi_set_derep_mode(struct ntv2_hdmiin *ntv2_hin, bool enable);
@@ -134,6 +135,7 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 						  struct ntv2_register *vid_reg)
 {
 	int result;
+	int i;
 
 	if ((ntv2_hin == NULL) ||
 		(features == NULL) ||
@@ -156,115 +158,15 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 	if (result < 0)
 		return result;
 
-	return 0;
-}
-
-int ntv2_hdmiin_enable(struct ntv2_hdmiin *ntv2_hin)
-{
-	if (ntv2_hin == NULL)
-		return -EPERM;
-
-	if (ntv2_hin->monitor_state == ntv2_task_state_enable)
-		return 0;
-
-	NTV2_MSG_HDMIIN_STATE("%s: enable hdmi input monitor\n", ntv2_hin->name);
-
-	ntv2_hin->monitor_task = kthread_run(ntv2_hdmiin_monitor, (void*)ntv2_hin, ntv2_hin->name);
-	if (IS_ERR(ntv2_hin->monitor_task)) {
-		ntv2_hin->monitor_task = NULL;
-		return -ENOMEM;
+	if (features->device_id == NTV2_DEVICE_ID_CORVIDHDBT) {
+		ntv2_hin->edid_reg = init_edid_g;
+		ntv2_hin->edid_size = init_edid_g_size;
 	}
 
-	ntv2_hin->monitor_state = ntv2_task_state_enable;
-
-	return 0;
-}
-
-int ntv2_hdmiin_disable(struct ntv2_hdmiin *ntv2_hin)
-{
-	if (ntv2_hin == NULL)
-		return -EPERM;
-
-	if (ntv2_hin->monitor_state != ntv2_task_state_enable)
-		return 0;
-
-	NTV2_MSG_HDMIIN_STATE("%s: disable hdmi input monitor\n", ntv2_hin->name);
-
-	if (ntv2_hin->monitor_task != NULL) {
-		kthread_stop(ntv2_hin->monitor_task);
-		ntv2_hin->monitor_task = NULL;
+	if (features->device_id == NTV2_DEVICE_ID_KONAHDMI) {
+		ntv2_hin->edid_reg = init_edid_g;
+		ntv2_hin->edid_size = init_edid_g_size;
 	}
-
-	ntv2_hin->monitor_state = ntv2_task_state_disable;
-
-	return 0;
-}
-
-int ntv2_hdmiin_get_input_format(struct ntv2_hdmiin *ntv2_hin,
-								 struct ntv2_hdmiin_format *format)
-{
-	unsigned long flags;
-
-	if ((ntv2_hin == NULL) ||
-		(format == NULL))
-		return -EPERM;
-
-	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
-	*format = ntv2_hin->input_format;
-	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
-
-	return 0;
-}
-
-static int ntv2_hdmiin_monitor(void* data)
-{
-	struct ntv2_hdmiin *ntv2_hin = (struct ntv2_hdmiin *)data;
-	int res;
-
-	if (ntv2_hin == NULL)
-		return -EPERM;
-
-	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task start\n", ntv2_hin->name);
-
-	res = ntv2_hdmiin_initialize(ntv2_hin);
-
-	while(!kthread_should_stop()) {
-		if (res == 0) {
-			ntv2_hdmiin_periodic_update(ntv2_hin);
-		}
-		msleep_interruptible(100);
-	}
-
-	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task stop\n", ntv2_hin->name);
-
-	return 0;
-}
-
-static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
-{
-	struct ntv2_konai2c *i2c_reg = ntv2_hin->i2c_reg;
-	int res;
-	int i;
-
-	/* initialize periodic update state */
-	ntv2_hin->relock_reports = 0;
-	ntv2_hin->hdmi_mode = false;
-	ntv2_hin->hdcp_mode = false;
-	ntv2_hin->derep_mode = false;;
-	ntv2_hin->uhd_mode = false;
-	ntv2_hin->cable_present = false;
-	ntv2_hin->clock_present = false;
-	ntv2_hin->input_locked = false;
-	ntv2_hin->pixel_double_mode = false;
-	ntv2_hin->avi_packet_present = false;
-	ntv2_hin->vsi_packet_present = false;
-	ntv2_hin->interlaced_mode = false;
-	ntv2_hin->deep_color_10bit = false;
-	ntv2_hin->deep_color_12bit = false;
-	ntv2_hin->yuv_mode = false;
-	ntv2_hin->prefer_yuv = false;
-	ntv2_hin->prefer_rgb = false;
-	ntv2_hin->relock_reports = NTV2_REPORT_ANY;
 
 	/* initialize hdmi avi vic to ntv2 standard and rate table */
 	for (i = 0; i < NTV2_AVI_VIC_INFO_SIZE; i++) {
@@ -358,6 +260,116 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	ntv2_vsi_vic_info[4].video_standard = ntv2_kona_video_standard_4096x2160p;
 	ntv2_vsi_vic_info[4].frame_rate = ntv2_kona_frame_rate_2400;
 
+	return 0;
+}
+
+int ntv2_hdmiin_enable(struct ntv2_hdmiin *ntv2_hin)
+{
+	if (ntv2_hin == NULL)
+		return -EPERM;
+
+	if (ntv2_hin->monitor_state == ntv2_task_state_enable)
+		return 0;
+
+	NTV2_MSG_HDMIIN_STATE("%s: enable hdmi input monitor\n", ntv2_hin->name);
+
+	ntv2_hin->monitor_task = kthread_run(ntv2_hdmiin_monitor, (void*)ntv2_hin, ntv2_hin->name);
+	if (IS_ERR(ntv2_hin->monitor_task)) {
+		ntv2_hin->monitor_task = NULL;
+		return -ENOMEM;
+	}
+
+	ntv2_hin->monitor_state = ntv2_task_state_enable;
+
+	return 0;
+}
+
+int ntv2_hdmiin_disable(struct ntv2_hdmiin *ntv2_hin)
+{
+	if (ntv2_hin == NULL)
+		return -EPERM;
+
+	if (ntv2_hin->monitor_state != ntv2_task_state_enable)
+		return 0;
+
+	NTV2_MSG_HDMIIN_STATE("%s: disable hdmi input monitor\n", ntv2_hin->name);
+
+	if (ntv2_hin->monitor_task != NULL) {
+		kthread_stop(ntv2_hin->monitor_task);
+		ntv2_hin->monitor_task = NULL;
+	}
+
+	ntv2_hin->monitor_state = ntv2_task_state_disable;
+
+	return 0;
+}
+
+int ntv2_hdmiin_get_input_format(struct ntv2_hdmiin *ntv2_hin,
+								 struct ntv2_hdmiin_format *format)
+{
+	unsigned long flags;
+
+	if ((ntv2_hin == NULL) ||
+		(format == NULL))
+		return -EPERM;
+
+	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
+	*format = ntv2_hin->input_format;
+	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
+
+	return 0;
+}
+
+static int ntv2_hdmiin_monitor(void* data)
+{
+	struct ntv2_hdmiin *ntv2_hin = (struct ntv2_hdmiin *)data;
+
+	if (ntv2_hin == NULL)
+		return -EPERM;
+
+	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task start\n", ntv2_hin->name);
+
+	ntv2_hdmiin_initialize(ntv2_hin);
+
+	while(!kthread_should_stop()) {
+		if (ntv2_hdmiin_periodic_update(ntv2_hin) < 0) {
+			ntv2_hdmiin_initialize(ntv2_hin);
+		}
+		msleep_interruptible(100);
+	}
+
+	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task stop\n", ntv2_hin->name);
+
+	return 0;
+}
+
+static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
+{
+	struct ntv2_konai2c *i2c_reg = ntv2_hin->i2c_reg;
+	int res;
+
+	/* initialize periodic update state */
+	ntv2_hin->relock_reports = 0;
+	ntv2_hin->hdmi_mode = false;
+	ntv2_hin->hdcp_mode = false;
+	ntv2_hin->derep_mode = false;;
+	ntv2_hin->uhd_mode = false;
+	ntv2_hin->cable_present = false;
+	ntv2_hin->clock_present = false;
+	ntv2_hin->input_locked = false;
+	ntv2_hin->pixel_double_mode = false;
+	ntv2_hin->avi_packet_present = false;
+	ntv2_hin->vsi_packet_present = false;
+	ntv2_hin->interlaced_mode = false;
+	ntv2_hin->deep_color_10bit = false;
+	ntv2_hin->deep_color_12bit = false;
+	ntv2_hin->yuv_mode = false;
+	ntv2_hin->prefer_yuv = false;
+	ntv2_hin->prefer_rgb = false;
+	ntv2_hin->relock_reports = NTV2_REPORT_ANY;
+
+	ntv2_hdmiin_set_no_video(ntv2_hin);
+
 	/* reset the hdmi input chip */
 	ntv2_konai2c_set_device(i2c_reg, device_io_bank);
 	ntv2_konai2c_write(i2c_reg, 0xff, 0x80);
@@ -377,24 +389,30 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_hdmi_bank, init_hdmi1, init_hdmi1_size);
 	if (res < 0)
 		goto bad_write;
+	
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_io_bank, init_io2_non4k, init_io2_non4k_size);
 	if (res < 0)
 		goto bad_write;
+	ntv2_hin->i2c_color_default = 0xf2;  // must match init settings
+  
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_cp_bank, init_cp3, init_cp3_size);
 	if (res < 0)
 		goto bad_write;
+	
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_repeater_bank, init_rep4, init_rep4_size);
 	if (res < 0)
 		goto bad_write;
+	
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_dpll_bank, init_dpll5_non4k, init_dpll5_non4k_size);
 	if (res < 0)
 		goto bad_write;
+	
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_hdmi_bank, init_hdmi6, init_hdmi6_size);
 	if (res < 0)
 		goto bad_write;
 
 	/* load edid */
-	res = ntv2_hdmiin_write_multi(ntv2_hin, device_edid_bank, init_edid_g, init_edid_g_size);
+	res = ntv2_hdmiin_write_multi(ntv2_hin, device_edid_bank, ntv2_hin->edid_reg, ntv2_hin->edid_size);
 	if (res < 0)
 		goto bad_write;
 
@@ -402,7 +420,8 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_hdmi_bank, init_hdmi8, init_hdmi8_size);
 	if (res < 0)
 		goto bad_write;
-
+	ntv2_hin->i2c_hpa_default = 0x04;  // must match init settings
+	
 	return 0;
 
 bad_write:
@@ -466,7 +485,8 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	struct ntv2_konai2c *i2c_reg;
 	struct ntv2_hdmiin_format dvi_format;
 	struct ntv2_hdmiin_format hdmi_format;
-	struct ntv2_hdmiin_format input_format;
+	struct ntv2_hdmiin_format vid_format;
+	bool present = false;
 	bool tmds_lock_change = false;
 	bool tmds_frequency_change = false;
 	bool derep_on = false;
@@ -491,6 +511,26 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 			return res;
 	}
 
+	/* cable detect */
+	data = ntv2_konai2c_cache_read(i2c_reg, cable_detect_reg);
+	present = (data & cable_detect_mask) == cable_detect_mask;
+	if (present != ntv2_hin->cable_present) {
+		ntv2_hin->relock_reports |= NTV2_REPORT_CABLE;
+		ntv2_hin->cable_present = present;
+	}
+	if ((ntv2_hin->relock_reports & NTV2_REPORT_CABLE) != 0) {
+		NTV2_MSG_HDMIIN_STATE("%s: cable %s\n",
+							  ntv2_hin->name, 
+							  (ntv2_hin->cable_present) ? "present" : "absent")
+		ntv2_hin->relock_reports &= ~NTV2_REPORT_CABLE;
+	}
+	if (!ntv2_hin->cable_present) {
+		ntv2_hdmiin_set_no_video(ntv2_hin);		
+		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
+		ntv2_hin->relock_reports &= ~NTV2_REPORT_CABLE;
+		return res;
+	}
+
 	/* check tmds lock transition */
 	data = ntv2_konai2c_cache_read(i2c_reg, tmds_lock_detect_reg);
 	tmds_lock_change = (data & tmds_lock_detect_mask) == tmds_lock_detect_mask;
@@ -513,16 +553,6 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
 	}
 
-	/* cable detect */
-	data = ntv2_konai2c_cache_read(i2c_reg, cable_detect_reg);
-	ntv2_hin->cable_present = (data & cable_detect_mask) == cable_detect_mask;
-	if ((ntv2_hin->relock_reports & NTV2_REPORT_CABLE) != 0)	{
-		NTV2_MSG_HDMIIN_STATE("%s: cable %s\n",
-							  ntv2_hin->name, 
-							  (ntv2_hin->cable_present) ? "present" : "absent")
-		ntv2_hin->relock_reports &= ~NTV2_REPORT_CABLE;
-	}
-
 	/* check input clock */
 	data = ntv2_konai2c_cache_read(i2c_reg, clock_detect_reg);
 	ntv2_hin->clock_present = (data & clock_tmdsa_lock_mask) == clock_tmdsa_lock_mask;
@@ -542,21 +572,20 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	ntv2_hin->vsi_packet_present = (data & packet_detect_vsi_mask) == packet_detect_vsi_mask;
 
 	/* if pll lock was lost, recover to a state where we can take valid measurements */
-	if (tmds_lock_change) {
-		if (ntv2_hin->uhd_mode)
-			ntv2_hdmiin_set_uhd_mode(ntv2_hin, false);
+	if (!ntv2_hin->clock_present || tmds_lock_change) {
+		if (ntv2_hin->uhd_mode) {
+			res = ntv2_hdmiin_set_uhd_mode(ntv2_hin, false);
+			if (res < 0) 
+				return res;
+		}
 
-		if (ntv2_hin->derep_mode)
-			ntv2_hdmi_set_derep_mode(ntv2_hin, false);
+		if (ntv2_hin->derep_mode) {
+			res = ntv2_hdmi_set_derep_mode(ntv2_hin, false);
+			if (res < 0) 
+				return res;
+		}
 
-		ntv2_hdmiin_set_no_video(ntv2_hin);
-		return 0;
-	}
-
-	if (!ntv2_hin->clock_present)
-	{
-		ntv2_hdmiin_set_no_video(ntv2_hin);
-		return 0;
+		goto bad_lock;
 	}
 
 	/* read hdmi bank */
@@ -600,12 +629,6 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	data = ntv2_konai2c_cache_read(i2c_reg, audio_lock_reg);
 	ntv2_hin->audio_locked = (data & audio_lock_mask) != 0;
 
-	/* can not decrypt hdcp */
-	if (ntv2_hin->hdcp_mode) {
-		ntv2_hdmiin_set_no_video(ntv2_hin);
-		return 0;
-	}
-
 	/* get current tmds frequency, does not work in uhd mode */
 	if ((ntv2_hin->relock_reports & NTV2_REPORT_FREQ) && !ntv2_hin->uhd_mode) {
 		/* read the new tmds fequency */
@@ -633,11 +656,15 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		  the last such request really "took" and keep trying.
 		*/
 		if (derep_on && !ntv2_hin->derep_mode) {
-			ntv2_hdmi_set_derep_mode(ntv2_hin, true);
+			res = ntv2_hdmi_set_derep_mode(ntv2_hin, true);
+			if (res < 0) 
+				return res;
 			return 0;
 		}
 		if (!derep_on && ntv2_hin->derep_mode) {
-			ntv2_hdmi_set_derep_mode(ntv2_hin, false);
+			res = ntv2_hdmi_set_derep_mode(ntv2_hin, false);
+			if (res < 0) 
+				return res;
 			return 0;
 		}
 	}
@@ -657,11 +684,12 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		ntv2_hin->relock_reports &= ~NTV2_REPORT_INFO;
 	}
 
-	if (!ntv2_hin->input_locked)
+	if (!ntv2_hin->input_locked || ntv2_hin->hdcp_mode)
 	{
 		ntv2_hin->relock_reports |= NTV2_REPORT_INFO;
-		return 0;
+		goto bad_lock;
 	}
+	ntv2_hin->lock_error_count = 0;
 
 	/* update timing values */
 	if (ntv2_hin->relock_reports & NTV2_REPORT_TIMING) {
@@ -701,13 +729,15 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		 ((ntv2_hin->v_active_lines1 < 200) || (ntv2_hin->v_total_lines1 < 200) ||
 		  (ntv2_hin->v_sync_lines1 == 0)))) {
 		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
-		return 0;
+		goto bad_lock;
 	}
 
 	/* switch modes for uhd */
-	if ((ntv2_hin->h_active_pixels > 2048) &&
+	if ((ntv2_hin->v_total_lines0 > 1125) &&
 		(!ntv2_hin->uhd_mode)) {
-		ntv2_hdmiin_set_uhd_mode(ntv2_hin, true);
+		res = ntv2_hdmiin_set_uhd_mode(ntv2_hin, true);
+		if (res < 0)
+			return res;
 		return 0;
 	}
 
@@ -733,7 +763,7 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	/* setup is done, probably an unsupported input format */
 	if ((dvi_format.video_standard == ntv2_kona_video_standard_none) ||
 		(dvi_format.frame_rate == ntv2_kona_frame_rate_none)) {
-		return 0;
+//		return 0;
 	}
 
 	hdmi_format.video_standard = ntv2_kona_video_standard_none;
@@ -774,31 +804,31 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 	}
 
 	/* initialize formats */
-	input_format.video_standard = ntv2_kona_video_standard_none;
-	input_format.frame_rate = ntv2_kona_frame_rate_none;
-	input_format.frame_flags = 0;
-	input_format.pixel_flags = 0;
-	input_format.audio_detect = 0;
+	vid_format.video_standard = ntv2_kona_video_standard_none;
+	vid_format.frame_rate = ntv2_kona_frame_rate_none;
+	vid_format.frame_flags = 0;
+	vid_format.pixel_flags = 0;
+	vid_format.audio_detect = 0;
 
 	if (ntv2_hin->relock_reports & NTV2_REPORT_FORMAT)
 	{
 		/* determine source format */
 		if (hdmi_format.video_standard == dvi_format.video_standard) {
-			input_format.video_standard = hdmi_format.video_standard;
-			input_format.frame_rate = dvi_format.frame_rate;
-			input_format.frame_flags = hdmi_format.frame_flags;
-			input_format.pixel_flags = hdmi_format.pixel_flags;
-			input_format.audio_detect = ntv2_hin->audio_present?
+			vid_format.video_standard = hdmi_format.video_standard;
+			vid_format.frame_rate = dvi_format.frame_rate;
+			vid_format.frame_flags = hdmi_format.frame_flags;
+			vid_format.pixel_flags = hdmi_format.pixel_flags;
+			vid_format.audio_detect = ntv2_hin->audio_present?
 				(ntv2_hin->audio_multichannel? 0xf : 0x1) : 0x0;
 		} else {
-			input_format.video_standard = dvi_format.video_standard;
-			input_format.frame_rate = dvi_format.frame_rate;
-			input_format.frame_flags = dvi_format.frame_flags;
-			input_format.pixel_flags = dvi_format.pixel_flags;
+			vid_format.video_standard = dvi_format.video_standard;
+			vid_format.frame_rate = dvi_format.frame_rate;
+			vid_format.frame_flags = dvi_format.frame_flags;
+			vid_format.pixel_flags = dvi_format.pixel_flags;
 		}
 
 		/* configure output color space */
-		yuv_input = (input_format.pixel_flags & ntv2_kona_pixel_yuv) != 0;
+		yuv_input = (vid_format.pixel_flags & ntv2_kona_pixel_yuv) != 0;
 		yuv_output = yuv_input;
 		if (!ntv2_hin->uhd_mode) {
 			if (ntv2_hin->prefer_yuv)
@@ -810,45 +840,73 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 
 		/* correct output pixel flags */
 		if (yuv_output) {
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_rgb) | ntv2_kona_pixel_yuv;
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_444) | ntv2_kona_pixel_422;
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_full) | ntv2_kona_pixel_smpte;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_rgb) | ntv2_kona_pixel_yuv;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_444) | ntv2_kona_pixel_422;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_full) | ntv2_kona_pixel_smpte;
 			if (!yuv_input) {
-				if ((input_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
-					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_12bit;
+				if ((vid_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
+					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_12bit;
 				}
-				if ((input_format.pixel_flags & ntv2_kona_pixel_8bit) != 0) {
-					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
+				if ((vid_format.pixel_flags & ntv2_kona_pixel_8bit) != 0) {
+					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
 				}
 			}
 		} else {
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_yuv) | ntv2_kona_pixel_rgb;
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_422) | ntv2_kona_pixel_444;
-			input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_smpte) | ntv2_kona_pixel_full;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_yuv) | ntv2_kona_pixel_rgb;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_422) | ntv2_kona_pixel_444;
+			vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_smpte) | ntv2_kona_pixel_full;
 			if (yuv_input) {
-				if ((input_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
-					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_8bit;
+				if ((vid_format.pixel_flags & ntv2_kona_pixel_10bit) != 0) {
+					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_10bit) | ntv2_kona_pixel_8bit;
 				}
-				if ((input_format.pixel_flags & ntv2_kona_pixel_12bit) != 0) {
-					input_format.pixel_flags = (input_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
+				if ((vid_format.pixel_flags & ntv2_kona_pixel_12bit) != 0) {
+					vid_format.pixel_flags = (vid_format.pixel_flags & ~ntv2_kona_pixel_8bit) | ntv2_kona_pixel_10bit;
 				}
 			}
 		}
 
-		ntv2_hdmiin_set_video_format(ntv2_hin, &input_format);
+		ntv2_hdmiin_set_video_format(ntv2_hin, &vid_format);
 
 		NTV2_MSG_HDMIIN_STATE("%s: video standard %s  rate %s  frame %08x  pixel %08x  audio %08x\n",
 							  ntv2_hin->name,
-							  ntv2_video_standard_name(input_format.video_standard),
-							  ntv2_frame_rate_name(input_format.frame_rate),
-							  input_format.frame_flags,
-							  input_format.pixel_flags,
-							  input_format.audio_detect);
+							  ntv2_video_standard_name(vid_format.video_standard),
+							  ntv2_frame_rate_name(vid_format.frame_rate),
+							  vid_format.frame_flags,
+							  vid_format.pixel_flags,
+							  vid_format.audio_detect);
 
 		ntv2_hin->relock_reports &= ~NTV2_REPORT_FORMAT;
 	}
 
 	return 0;
+
+bad_lock:
+	ntv2_hdmiin_set_no_video(ntv2_hin);
+
+	ntv2_hin->lock_error_count++;
+	if (ntv2_hin->lock_error_count > 10) {
+		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
+		ntv2_hdmiin_hot_plug(ntv2_hin);
+
+		if (ntv2_hin->uhd_mode)
+			ntv2_hdmiin_set_uhd_mode(ntv2_hin, false);
+		if (ntv2_hin->derep_mode)
+			ntv2_hdmi_set_derep_mode(ntv2_hin, false);
+
+		ntv2_hin->lock_error_count = 0;
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static void ntv2_hdmiin_hot_plug(struct ntv2_hdmiin *ntv2_hin)
+{
+	ntv2_konai2c_set_device(ntv2_hin->i2c_reg, device_hdmi_bank);
+
+	ntv2_konai2c_write(ntv2_hin->i2c_reg, hdmi_hpa_reg, ntv2_hin->i2c_hpa_default | hdmi_hpa_manual_mask);
+	msleep_interruptible(250);
+	ntv2_konai2c_write(ntv2_hin->i2c_reg, hdmi_hpa_reg, ntv2_hin->i2c_hpa_default & ~hdmi_hpa_manual_mask);
 }
 
 static int ntv2_hdmiin_set_color_mode(struct ntv2_hdmiin *ntv2_hin, bool yuv_input, bool yuv_output)
@@ -865,11 +923,11 @@ static int ntv2_hdmiin_set_color_mode(struct ntv2_hdmiin *ntv2_hin, bool yuv_inp
 		}
 	} else {
 		if (yuv_output) {
-			ntv2_konai2c_rmw(ntv2_hin->i2c_reg, 0x02, 0x04, 0x06);
+			ntv2_konai2c_write(ntv2_hin->i2c_reg, 0x02, (ntv2_hin->i2c_color_default & ~0x06) | 0x04);
 			ntv2_konai2c_write(ntv2_hin->i2c_reg, 0x03, 0x82);
 			ntv2_hin->yuv_mode = true;
 		} else {
-			ntv2_konai2c_rmw(ntv2_hin->i2c_reg, 0x02, 0x02, 0x06);
+			ntv2_konai2c_write(ntv2_hin->i2c_reg, 0x02, (ntv2_hin->i2c_color_default & ~0x06) | 0x02);
 			ntv2_konai2c_write(ntv2_hin->i2c_reg, 0x03, 0x42);
 			ntv2_hin->yuv_mode = false;
 		}

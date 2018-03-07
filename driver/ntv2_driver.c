@@ -164,31 +164,31 @@ static struct uart_driver ntv2_uart_driver = {
 
 static const struct pci_device_id ntv2_pci_tbl[] = {
 	{
-	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_KONA4,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_KONA4,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0
 	},
 	{
-	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_CORVID88,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_CORVID88,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0
 	},
 	{
-	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_CORVID44,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_CORVID44,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0
 	},
 	{
-	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_CORVIDHDBT,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_CORVIDHDBT,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0
 	},
 	{
-	   NTV2_VENDOR_ID, NTV2_DEVICE_ID_KONAHDMI,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_KONAHDMI,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0
