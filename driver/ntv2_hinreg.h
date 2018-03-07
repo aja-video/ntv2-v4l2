@@ -287,7 +287,8 @@ static struct ntv2_reg_value init_hdmi1[] =
 	{ 0x93, 0x03 },
 	{ 0x5A, 0x80 },
 
-	{ 0x6C, 0x14 },		/* Auto-assert HPD 100ms after (EDID active & cable detect) */
+//	{ 0x6C, 0x14 },		/* Auto-assert HPD 100ms after (EDID active & cable detect) */
+	{ 0x6C, 0x54 },		/* Auto-assert HPD 100ms after (EDID active & cable detect) */
 	{ 0x0d, 0x02 }		/* Set TMDS frequency change tolerance to 2MHz */
 };
 static int init_hdmi1_size = sizeof(init_hdmi1) / sizeof(struct ntv2_reg_value);
@@ -390,8 +391,12 @@ static int init_io2_non4k_size = sizeof(init_io2_non4k) / sizeof(struct ntv2_reg
 static struct ntv2_reg_value init_io2_4k[] = 
 /* IO registers - I2C address = 0x98 */
 {
-	{ 0x00, 0x02 },		/* ADI Recommended Write */
-	{ 0x01, 0x06 },		/* ADI Recommended Write  */
+//	{ 0x00, 0x02 },		/* ADI Recommended Write */
+//	{ 0x01, 0x06 },		/* ADI Recommended Write  */
+
+	{ 0x00, 0x19 },		/* ADI Recommended Write per PCN 15_0178 */
+	{ 0x01, 0x05 },		/* ADI Recommended Write per PCN 15_0178 */
+
 	{ 0x02, 0xf2 },		/* INP_COLOR_SPACE[3:0], Address 0x02[7:4] = 1111 */
 						/* 1111: Input color space depends on color space reported by HDMI block */
 						/* ALT_GAMMA, Address 0x02[3] */
@@ -461,8 +466,11 @@ static struct ntv2_reg_value init_io2_4k[] =
 	{ 0x15, 0x80 },		/* Disable Tristate of Pins */
 /*!!        { 0x19, 0x80 },	%%%%%	LLC DLL phase */
 	{ 0x33, 0x40 },		/* LLC DLL MUX enable */
-	{ 0xdd, 0xA0 } 		/* Normal LLC frequency = 0x00 for non-4K modes */
+//	{ 0xdd, 0xA0 } 		/* Normal LLC frequency = 0x00 for non-4K modes */
 						/* LLC Half frequence = 0xA0 for 4K modes */
+
+	{ 0xdd, 0x00 },		/* ADI Recommended Write per PCN 15_0178 */
+	{ 0xE7, 0x04 }		/* ADI Recommended Write per PCN 15_0178 */
 };
 static int init_io2_4k_size = sizeof(init_io2_4k) / sizeof(struct ntv2_reg_value);
 
@@ -564,7 +572,8 @@ static int init_hdmi6_size = sizeof(init_hdmi6) / sizeof(struct ntv2_reg_value);
 static struct ntv2_reg_value init_hdmi8[] = 
 /* HDMI Registers - I2C address = 0x68 */
 {
-	{ 0x6c, 0x04 }		/* HPA_MANUAL, Address 0x6C[0] */
+//	{ 0x6c, 0x04 }		/* HPA_MANUAL, Address 0x6C[0] */
+	{ 0x6c, 0x54 }		/* HPA_MANUAL, Address 0x6C[0] */
 						/* 0 (default)HPA takes its value based on HPA_AUTO_INT_EDID */
 						/* HPA_AUTO_INT_EDID[1:0],Address 0x6C[2:1] */
 						/* HPA_AUTO_INT_EDID[1:0] */
