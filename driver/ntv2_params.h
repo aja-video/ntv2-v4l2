@@ -53,6 +53,8 @@
 #define NTV2_MAX_VIDEO_STANDARDS	16
 #define NTV2_MAX_FRAME_GEOMETRIES	24
 #define NTV2_MAX_INPUT_GEOMETRIES	8
+#define NTV2_MAX_COLOR_SPACES		8
+#define NTV2_MAX_COLOR_DEPTHS		8
 
 #define NTV2_MAX_UARTS				16
 #define NTV2_TTY_NAME				"ttyNTV"
@@ -69,7 +71,8 @@
 #else
 #define NTV2_REG(reg, ...) extern const u32 reg[]
 #define NTV2_FLD(field, size, shift) extern const u32 field
-#define NTV2_CON(con, value) extern const u32 con
+//#define NTV2_CON(con, value) extern const u32 con
+#define NTV2_CON(con, value) enum { con = (value) }
 #endif
 
 #define NTV2_REG_COUNT(reg) (reg[0])
@@ -101,6 +104,8 @@
 #define NTV2_DEBUG_HDMIIN_STATE			0x00001000
 #define NTV2_DEBUG_SERIAL_STATE			0x00002000
 #define NTV2_DEBUG_CHRDEV_STATE			0x00004000
+#define NTV2_DEBUG_HDMIIN4_STATE		0x00010000
+#define NTV2_DEBUG_HDMIIN4_DETECT		0x00020000
 #define NTV2_DEBUG_VIDEO_STREAM			0x00100000
 #define NTV2_DEBUG_AUDIO_STREAM			0x00200000
 #define NTV2_DEBUG_CHANNEL_STREAM		0x00400000
@@ -157,6 +162,10 @@
 #define NTV2_MSG_HDMIIN_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN_STATE, string, __VA_ARGS__)
+#define NTV2_MSG_HDMIIN4_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
+#define NTV2_MSG_HDMIIN4_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_HDMIIN4_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN4_STATE, string, __VA_ARGS__)
+#define NTV2_MSG_HDMIIN4_DETECT(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN4_DETECT, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_SERIAL_STATE, string, __VA_ARGS__)

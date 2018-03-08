@@ -226,6 +226,8 @@ static const char *video_standard_name[NTV2_MAX_VIDEO_STANDARDS];
 static const char *frame_geometry_name[NTV2_MAX_FRAME_GEOMETRIES];
 static const char *input_geometry_name[NTV2_MAX_INPUT_GEOMETRIES];
 static const char *frame_rate_name[NTV2_MAX_FRAME_RATES];
+static const char *color_space_name[NTV2_MAX_COLOR_SPACES];
+static const char *color_depth_name[NTV2_MAX_COLOR_DEPTHS];
 static bool register_data_init = false;
 
 void ntv2_kona_register_initialize(void)
@@ -812,6 +814,23 @@ void ntv2_kona_register_initialize(void)
 	frame_rate_name[ntv2_kona_frame_rate_1500] = "15";
 	frame_rate_name[ntv2_kona_frame_rate_1400] = "14";
 
+	for (i = 0; i < NTV2_MAX_COLOR_SPACES; i++) {
+		color_space_name[i] = "undefined";
+	}
+	color_space_name[ntv2_kona_color_space_yuv422] = "yuv 422";
+	color_space_name[ntv2_kona_color_space_rgb444] = "rgb 444";
+	color_space_name[ntv2_kona_color_space_yuv444] = "yuv 444";
+	color_space_name[ntv2_kona_color_space_yuv420] = "yuv 420";
+	color_space_name[ntv2_kona_color_space_none] = "none";
+
+	for (i = 0; i < NTV2_MAX_COLOR_DEPTHS; i++) {
+		color_depth_name[i] = "undefined";
+	}
+	color_depth_name[ntv2_kona_color_depth_8bit] = "8 bit";
+	color_depth_name[ntv2_kona_color_depth_10bit] = "10 bit";
+	color_depth_name[ntv2_kona_color_depth_12bit] = "12 bit";
+	color_depth_name[ntv2_kona_color_depth_none] = "none";
+	
 	register_data_init = true;
 }
 
@@ -841,6 +860,20 @@ const char* ntv2_frame_rate_name(u32 rate)
 	if (rate >= NTV2_MAX_FRAME_RATES)
 		return "*bad frame rate*";
 	return frame_rate_name[rate];
+}
+
+const char* ntv2_color_space_name(u32 color)
+{
+	if (color >= NTV2_MAX_COLOR_SPACES)
+		return "*bad color space*";
+	return color_space_name[color];
+}
+
+const char* ntv2_color_depth_name(u32 color)
+{
+	if (color >= NTV2_MAX_COLOR_DEPTHS)
+		return "*bad color depth*";
+	return color_depth_name[color];
 }
 
 u32 ntv2_video_standard_to_hdmiin(u32 video_standard)

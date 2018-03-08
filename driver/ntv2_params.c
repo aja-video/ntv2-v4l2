@@ -44,7 +44,8 @@ void ntv2_module_initialize(void)
 	ntv2_mod->debug_mask = 
 		NTV2_DEBUG_INFO |
 		NTV2_DEBUG_ERROR |
-		NTV2_DEBUG_INPUT_STATE | NTV2_DEBUG_HDMIIN_STATE;
+		NTV2_DEBUG_INPUT_STATE | NTV2_DEBUG_HDMIIN_STATE |
+		NTV2_DEBUG_HDMIIN4_STATE | NTV2_DEBUG_HDMIIN4_DETECT;
 
 	INIT_LIST_HEAD(&ntv2_mod->device_list);
 	spin_lock_init(&ntv2_mod->device_lock);

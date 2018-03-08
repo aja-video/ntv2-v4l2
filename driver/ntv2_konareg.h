@@ -119,6 +119,19 @@ NTV2_CON(ntv2_kona_video_standard_3840_hfr,					10);
 NTV2_CON(ntv2_kona_video_standard_4096_hfr,					11);
 NTV2_CON(ntv2_kona_video_standard_none,						12);
 
+/* color space */
+NTV2_CON(ntv2_kona_color_space_yuv422,						0);
+NTV2_CON(ntv2_kona_color_space_rgb444,						1);
+NTV2_CON(ntv2_kona_color_space_yuv444,						2);
+NTV2_CON(ntv2_kona_color_space_yuv420,						3);
+NTV2_CON(ntv2_kona_color_space_none,						4);
+
+/* color depth */
+NTV2_CON(ntv2_kona_color_depth_8bit,						0);
+NTV2_CON(ntv2_kona_color_depth_10bit,						1);
+NTV2_CON(ntv2_kona_color_depth_12bit,						2);
+NTV2_CON(ntv2_kona_color_depth_none,						3);
+
 /* register synchronization */
 NTV2_CON(ntv2_kona_reg_sync_field,							0);
 NTV2_CON(ntv2_kona_reg_sync_frame,							1);
@@ -1459,6 +1472,8 @@ const char* ntv2_video_standard_name(u32 standard);
 const char* ntv2_video_geometry_name(u32 geometry);
 const char* ntv2_input_geometry_name(u32 geometry);
 const char* ntv2_frame_rate_name(u32 rate);
+const char* ntv2_color_space_name(u32 rate);
+const char* ntv2_color_depth_name(u32 rate);
 
 u32 ntv2_audio_frame_samples(u32 frame_rate, u32 cadence);
 
