@@ -161,9 +161,10 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 
 	/* release the resources */
 	ntv2_device_irq_release(ntv2_dev);
-	ntv2_nwldma_close(ntv2_dev->dma_engine);
+//	ntv2_nwldma_close(ntv2_dev->dma_engine);
 	ntv2_device_dma_release(ntv2_dev);
-	ntv2_register_close(ntv2_dev->nwl_reg);
+//	ntv2_register_close(ntv2_dev->nwl_reg);
+	ntv2_register_close(ntv2_dev->xlx_reg);
 	ntv2_register_close(ntv2_dev->vid_reg);
 	ntv2_device_pci_release(ntv2_dev);
 	ntv2_features_close(ntv2_dev->features);
@@ -203,33 +204,53 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 		return result;
 
 	/* initialize register access */
-	ntv2_dev->nwl_reg = ntv2_register_open((struct ntv2_object*)ntv2_dev, "nwr", 0);
-	if (ntv2_dev->nwl_reg == NULL)
-		return -ENOMEM;
+	if (ntv2_dev->nwl_region) {
+		ntv2_dev->nwl_reg = ntv2_register_open((struct ntv2_object*)ntv2_dev, "nwr", 0);
+		if (ntv2_dev->nwl_reg == NULL)
+			return -ENOMEM;
 
-	result = ntv2_register_configure(ntv2_dev->nwl_reg,
-									 ntv2_dev->nwl_base,
-									 ntv2_dev->nwl_size);
-	if (result != 0)
-		return result;
+		result = ntv2_register_configure(ntv2_dev->nwl_reg,
+										 ntv2_dev->nwl_base,
+										 ntv2_dev->nwl_size);
+		if (result != 0)
+			return result;
 
-	result = ntv2_register_enable(ntv2_dev->nwl_reg);
-	if (result != 0)
-		return result;
+		result = ntv2_register_enable(ntv2_dev->nwl_reg);
+		if (result != 0)
+			return result;
+	}
 
-	ntv2_dev->vid_reg = ntv2_register_open((struct ntv2_object*)ntv2_dev, "avr", 0);
-	if (ntv2_dev->vid_reg == NULL)
-		return -ENOMEM;
+	if (ntv2_dev->xlx_region) {
+		ntv2_dev->xlx_reg = ntv2_register_open((struct ntv2_object*)ntv2_dev, "xlr", 0);
+		if (ntv2_dev->xlx_reg == NULL)
+			return -ENOMEM;
 
-	result = ntv2_register_configure(ntv2_dev->vid_reg, 
-									 ntv2_dev->vid_base,
-									 ntv2_dev->vid_size);
-	if (result != 0)
-		return result;
+		result = ntv2_register_configure(ntv2_dev->xlx_reg,
+										 ntv2_dev->xlx_base,
+										 ntv2_dev->xlx_size);
+		if (result != 0)
+			return result;
 
-	result = ntv2_register_enable(ntv2_dev->vid_reg);
-	if (result != 0)
-		return result;
+		result = ntv2_register_enable(ntv2_dev->xlx_reg);
+		if (result != 0)
+			return result;
+	}
+
+	if (ntv2_dev->vid_region) {
+		ntv2_dev->vid_reg = ntv2_register_open((struct ntv2_object*)ntv2_dev, "avr", 0);
+		if (ntv2_dev->vid_reg == NULL)
+			return -ENOMEM;
+
+		result = ntv2_register_configure(ntv2_dev->vid_reg, 
+										 ntv2_dev->vid_base,
+										 ntv2_dev->vid_size);
+		if (result != 0)
+			return result;
+
+		result = ntv2_register_enable(ntv2_dev->vid_reg);
+		if (result != 0)
+			return result;
+	}
 
 	/* read device id */
 	device_id = ntv2_reg_read(ntv2_dev->vid_reg, ntv2_kona_reg_device_id, 0);
@@ -262,7 +283,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	result = ntv2_device_irq_configure(ntv2_dev);
 	if (result != 0)
 		return result;
-
+#if 0
 	/* initialize ntv2 dma engines */
 	ntv2_dev->dma_engine = ntv2_nwldma_open((struct ntv2_object*)ntv2_dev, "nwd", 4);
 	if (ntv2_dev->dma_engine == NULL)
@@ -275,7 +296,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	result = ntv2_nwldma_enable(ntv2_dev->dma_engine);
 	if (result != 0)
 		return result;
-
+#endif
 	/* initialize ntv2 input monitor */
 	ntv2_dev->inp_mon = ntv2_input_open((struct ntv2_object*)ntv2_dev, "inp", 0);
 	if (ntv2_dev->inp_mon == NULL)
@@ -289,7 +310,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 
 	/* enable input detection */
 	ntv2_input_enable(ntv2_dev->inp_mon);
-
+#if 0
 	/* initialize character device */
 	ntv2_dev->chr_dev = ntv2_chrdev_open((struct ntv2_object*)ntv2_dev, "chr", 0);
 	if (ntv2_dev->chr_dev == NULL)
@@ -437,7 +458,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 
 	/* enable interrupts */
 	ntv2_device_irq_enable(ntv2_dev);
-
+#endif
 	return 0;
 }
 
@@ -478,10 +499,11 @@ void ntv2_device_suspend(struct ntv2_device *ntv2_dev)
 	/* disable hardware stuff */
 	ntv2_chrdev_disable(ntv2_dev->chr_dev);
 	ntv2_input_disable(ntv2_dev->inp_mon);
-	ntv2_nwldma_disable(ntv2_dev->dma_engine);
+//	ntv2_nwldma_disable(ntv2_dev->dma_engine);
 	ntv2_device_irq_disable(ntv2_dev);
 	ntv2_register_disable(ntv2_dev->vid_reg);
-	ntv2_register_disable(ntv2_dev->nwl_reg);
+//	ntv2_register_disable(ntv2_dev->nwl_reg);
+	ntv2_register_disable(ntv2_dev->xlx_reg);
 }
 
 void ntv2_device_resume(struct ntv2_device *ntv2_dev)
@@ -490,10 +512,11 @@ void ntv2_device_resume(struct ntv2_device *ntv2_dev)
 		return;
 
 	/* enable hardware */
-	ntv2_register_enable(ntv2_dev->nwl_reg);
+//	ntv2_register_enable(ntv2_dev->nwl_reg);
+	ntv2_register_enable(ntv2_dev->xlx_reg);
 	ntv2_register_enable(ntv2_dev->vid_reg);
 	ntv2_device_irq_enable(ntv2_dev);
-	ntv2_nwldma_enable(ntv2_dev->dma_engine);
+//	ntv2_nwldma_enable(ntv2_dev->dma_engine);
 	ntv2_input_enable(ntv2_dev->inp_mon);
 	ntv2_chrdev_enable(ntv2_dev->chr_dev);
 
@@ -507,60 +530,130 @@ void ntv2_device_resume(struct ntv2_device *ntv2_dev)
  */
 static int ntv2_device_pci_configure(struct ntv2_device *ntv2_dev, struct pci_dev *pdev)
 {
-	int result;
+	bool nwl_region = false;
+	bool xlx_region = false;
+	bool vid_region = false;
+	int nwl_bar = 0;
+	int xlx_bar = 0;
+	int vid_bar = 0;
+	int result = -EPERM;
 
 	NTV2_MSG_DEVICE_INFO("%s: configure pci resources\n", ntv2_dev->name);
 
 	ntv2_dev->pci_dev = pdev;
 
-	/* request nwl pci bar */
-	result = pci_request_region(pdev, NTV2_PCI_BAR_NWL, ntv2_dev->name);
-	if (result < 0)	{
-		NTV2_MSG_DEVICE_ERROR("%s: request nwl bar failed code %d\n",
-							  ntv2_dev->name, result);
-		return result;
+	/* determine barness */
+	switch (pdev->device)
+	{
+	case NTV2_PCI_DEVID_KONA4:
+	case NTV2_PCI_DEVID_CORVID88:
+	case NTV2_PCI_DEVID_CORVID44:
+	case NTV2_PCI_DEVID_CORVIDHDBT:
+		nwl_region = true;
+		nwl_bar = 0;
+		vid_region = true;
+		vid_bar = 1;
+		break;
+	case NTV2_PCI_DEVID_KONAHDMI:
+		vid_region = true;
+		vid_bar = 0;
+		xlx_region = true;
+		xlx_bar = 1;
+		break;
+	default:
+		NTV2_MSG_ERROR("%s: *error* unrecognized pci device %04x\n", ntv2_dev->name, pdev->device);
+		return -ENOMEM;
 	}
-	ntv2_dev->nwl_region = true;
+
+	/* request nwl pci bar */
+	if (nwl_region) {
+		result = pci_request_region(pdev, nwl_bar, ntv2_dev->name);
+		if (result < 0)	{
+			NTV2_MSG_DEVICE_ERROR("%s: request nwl bar failed code %d\n",
+								  ntv2_dev->name, result);
+			return result;
+		}
+		ntv2_dev->nwl_region = true;
+		ntv2_dev->nwl_bar = nwl_bar;
+	}
 
 	/* request video pci bar */
-	result = pci_request_region(pdev, NTV2_PCI_BAR_VIDEO, ntv2_dev->name);
-	if (result < 0)	{
-		NTV2_MSG_DEVICE_ERROR("%s: request video bar failed code %d\n",
-							  ntv2_dev->name, result);
-		return result;
+	if (vid_region) {
+		result = pci_request_region(pdev, vid_bar, ntv2_dev->name);
+		if (result < 0)	{
+			NTV2_MSG_DEVICE_ERROR("%s: request video bar failed code %d\n",
+								  ntv2_dev->name, result);
+			return result;
+		}
+		ntv2_dev->vid_region = true;
+		ntv2_dev->vid_bar = vid_bar;
 	}
-	ntv2_dev->vid_region = true;
+	
+	/* request xlx pci bar */
+	if (xlx_region) {
+		result = pci_request_region(pdev, xlx_bar, ntv2_dev->name);
+		if (result < 0)	{
+			NTV2_MSG_DEVICE_ERROR("%s: request xlx bar failed code %d\n",
+								  ntv2_dev->name, result);
+			return result;
+		}
+		ntv2_dev->xlx_region = true;
+		ntv2_dev->xlx_bar = xlx_bar;
+	}
 
 	/* map nwl bar */
-	ntv2_dev->nwl_base = ioremap_nocache(pci_resource_start(pdev, NTV2_PCI_BAR_NWL),
-										 pci_resource_len(pdev, NTV2_PCI_BAR_NWL));
-	if (ntv2_dev->nwl_base == 0) {
-		NTV2_MSG_ERROR("%s: *error* nwl ioremap_nocache failed\n", ntv2_dev->name);
-		return -ENOMEM;
-	}
-	ntv2_dev->nwl_size = (u32)pci_resource_len(pdev, NTV2_PCI_BAR_NWL);
+	if (nwl_region) {
+		ntv2_dev->nwl_base = ioremap_nocache(pci_resource_start(pdev, nwl_bar),
+											 pci_resource_len(pdev, nwl_bar));
+		if (ntv2_dev->nwl_base == 0) {
+			NTV2_MSG_ERROR("%s: *error* nwl ioremap_nocache failed\n", ntv2_dev->name);
+			return -ENOMEM;
+		}
+		ntv2_dev->nwl_size = (u32)pci_resource_len(pdev, nwl_bar);
 
-	/* map video bar */
-	ntv2_dev->vid_base = ioremap_nocache(pci_resource_start(pdev, NTV2_PCI_BAR_VIDEO),
-										 pci_resource_len(pdev, NTV2_PCI_BAR_VIDEO));
-	if (ntv2_dev->vid_base == 0) {
-		NTV2_MSG_ERROR("%s: *error* video ioremap_nocache failed\n", ntv2_dev->name);
-		return -ENOMEM;
-	}
-	ntv2_dev->vid_size = pci_resource_len(pdev, NTV2_PCI_BAR_VIDEO);
-
-	NTV2_MSG_DEVICE_INFO("%s: map nwl pci bar %d  phys 0x%08x  address 0x%px  size 0x%08x\n",
+		NTV2_MSG_DEVICE_INFO("%s: map nwl pci bar %d  phys 0x%08x  address 0x%px  size 0x%08x\n",
 						 ntv2_dev->name,
-						 NTV2_PCI_BAR_NWL,
-						 (u32)pci_resource_start(pdev, NTV2_PCI_BAR_NWL),
+						 nwl_bar,
+						 (u32)pci_resource_start(pdev, nwl_bar),
 						 ntv2_dev->nwl_base, 
 						 ntv2_dev->nwl_size);
-	NTV2_MSG_DEVICE_INFO("%s: map vid pci bar %d  phys 0x%08x  address 0x%px  size 0x%08x\n",
+	}
+
+	/* map video bar */
+	if (vid_region) {
+		ntv2_dev->vid_base = ioremap_nocache(pci_resource_start(pdev, vid_bar),
+											 pci_resource_len(pdev, vid_bar));
+		if (ntv2_dev->vid_base == 0) {
+			NTV2_MSG_ERROR("%s: *error* video ioremap_nocache failed\n", ntv2_dev->name);
+			return -ENOMEM;
+		}
+		ntv2_dev->vid_size = pci_resource_len(pdev, vid_bar);
+
+		NTV2_MSG_DEVICE_INFO("%s: map vid pci bar %d  phys 0x%08x  address 0x%px  size 0x%08x\n",
 						 ntv2_dev->name,
-						 NTV2_PCI_BAR_VIDEO,
-						 (u32)pci_resource_start(pdev, NTV2_PCI_BAR_VIDEO),
+						 vid_bar,
+						 (u32)pci_resource_start(pdev, vid_bar),
 						 ntv2_dev->vid_base, 
 						 ntv2_dev->vid_size);
+	}
+	
+	/* map xlx bar */
+	if (xlx_region) {
+		ntv2_dev->xlx_base = ioremap_nocache(pci_resource_start(pdev, xlx_bar),
+											 pci_resource_len(pdev, xlx_bar));
+		if (ntv2_dev->xlx_base == 0) {
+			NTV2_MSG_ERROR("%s: *error* xlx ioremap_nocache failed\n", ntv2_dev->name);
+			return -ENOMEM;
+		}
+		ntv2_dev->xlx_size = (u32)pci_resource_len(pdev, xlx_bar);
+
+		NTV2_MSG_DEVICE_INFO("%s: map xlx pci bar %d  phys 0x%08x  address 0x%px  size 0x%08x\n",
+						 ntv2_dev->name,
+						 xlx_bar,
+						 (u32)pci_resource_start(pdev, xlx_bar),
+						 ntv2_dev->xlx_base, 
+						 ntv2_dev->xlx_size);
+	}
 
 	return 0;
 }
@@ -576,7 +669,7 @@ static void ntv2_device_pci_release(struct ntv2_device *ntv2_dev)
 
 	if (ntv2_dev->nwl_base != NULL) {
 		NTV2_MSG_DEVICE_INFO("%s: unmap nwl bar %d address 0x%px\n",
-							 ntv2_dev->name, NTV2_PCI_BAR_NWL, ntv2_dev->nwl_base);
+							 ntv2_dev->name, ntv2_dev->nwl_bar, ntv2_dev->nwl_base);
 		iounmap(ntv2_dev->nwl_base);
 		ntv2_dev->nwl_base = NULL;
 		ntv2_dev->nwl_size = 0;
@@ -584,22 +677,36 @@ static void ntv2_device_pci_release(struct ntv2_device *ntv2_dev)
 
 	if (ntv2_dev->vid_base != NULL) {
 		NTV2_MSG_DEVICE_INFO("%s: unmap vid bar %d address 0x%px\n",
-							 ntv2_dev->name, NTV2_PCI_BAR_VIDEO, ntv2_dev->vid_base);
+							 ntv2_dev->name, ntv2_dev->vid_bar, ntv2_dev->vid_base);
 		iounmap(ntv2_dev->vid_base);
 		ntv2_dev->vid_base = NULL;
 		ntv2_dev->vid_size = 0;
 	}
 
+	if (ntv2_dev->xlx_base != NULL) {
+		NTV2_MSG_DEVICE_INFO("%s: unmap xlx bar %d address 0x%px\n",
+							 ntv2_dev->name, ntv2_dev->xlx_bar, ntv2_dev->xlx_base);
+		iounmap(ntv2_dev->xlx_base);
+		ntv2_dev->xlx_base = NULL;
+		ntv2_dev->xlx_size = 0;
+	}
+
 	if (ntv2_dev->nwl_region) {
-		release_mem_region(pci_resource_start(pdev, NTV2_PCI_BAR_NWL),
-						   pci_resource_len(pdev, NTV2_PCI_BAR_NWL));
+		release_mem_region(pci_resource_start(pdev, ntv2_dev->nwl_bar),
+						   pci_resource_len(pdev, ntv2_dev->nwl_bar));
 		ntv2_dev->nwl_region = false;
 	}
 
 	if (ntv2_dev->vid_region) {
-		release_mem_region(pci_resource_start(pdev, NTV2_PCI_BAR_VIDEO),
-						   pci_resource_len(pdev, NTV2_PCI_BAR_VIDEO));
+		release_mem_region(pci_resource_start(pdev, ntv2_dev->vid_bar),
+						   pci_resource_len(pdev, ntv2_dev->vid_bar));
 		ntv2_dev->vid_region = false;
+	}
+
+	if (ntv2_dev->xlx_region) {
+		release_mem_region(pci_resource_start(pdev, ntv2_dev->xlx_bar),
+						   pci_resource_len(pdev, ntv2_dev->xlx_bar));
+		ntv2_dev->xlx_region = false;
 	}
 
 	return;
@@ -765,9 +872,9 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 	ntv2_video_read_interrupt_status(ntv2_dev->vid_reg, &irq_status);
 
 	/* process dma interrupt */
-	res = ntv2_nwldma_interrupt(ntv2_dev->dma_engine);
-	if (res == IRQ_HANDLED)
-		result = IRQ_HANDLED;
+//	res = ntv2_nwldma_interrupt(ntv2_dev->dma_engine);
+//	if (res == IRQ_HANDLED)
+//		result = IRQ_HANDLED;
 
 	/* process video interrupts */
 	list_for_each(ptr, &ntv2_dev->channel_list) {
@@ -790,23 +897,23 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 
 static void ntv2_device_init_hardware(struct ntv2_device *ntv2_dev)
 {
-	u32 val;
+//	u32 val;
 	int num;
 	int i;
 
 	NTV2_MSG_DEVICE_INFO("%s: initialize ntv2 hardware\n", ntv2_dev->name);
 
 	/* disable pci interrupts */
-	ntv2_reg_write(ntv2_dev->nwl_reg, ntv2_nwldma_reg_common_control_status, 0, 0);
+//	ntv2_reg_write(ntv2_dev->nwl_reg, ntv2_nwldma_reg_common_control_status, 0, 0);
 
 	/* disable nwl interrupts */
-	num = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
-	for (i = 0; i < num; i++) {
-		val = ntv2_reg_read(ntv2_dev->nwl_reg, ntv2_nwldma_reg_capabilities, i);
-		if ((val & NTV2_FLD_MASK(ntv2_nwldma_fld_present)) != 0) {
-			ntv2_reg_write(ntv2_dev->nwl_reg, ntv2_nwldma_reg_engine_control_status, i, 0);
-		}
-	}
+//	num = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
+//	for (i = 0; i < num; i++) {
+//		val = ntv2_reg_read(ntv2_dev->nwl_reg, ntv2_nwldma_reg_capabilities, i);
+//		if ((val & NTV2_FLD_MASK(ntv2_nwldma_fld_present)) != 0) {
+//			ntv2_reg_write(ntv2_dev->nwl_reg, ntv2_nwldma_reg_engine_control_status, i, 0);
+//		}
+//	}
 
 	/* disable fpga interrupts */
 	ntv2_reg_write(ntv2_dev->vid_reg, ntv2_kona_reg_interrupt_control, 0, 0);

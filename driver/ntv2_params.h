@@ -301,14 +301,21 @@ struct ntv2_device {
 
 	struct pci_dev				*pci_dev;
 	bool						nwl_region;
+	bool						xlx_region;
 	bool						vid_region;
+	int							nwl_bar;
+	int							xlx_bar;
+	int							vid_bar;
 	void __iomem 				*nwl_base;
+	void __iomem 				*xlx_base;
 	void __iomem 				*vid_base;
 	u32							nwl_size;
+	u32							xlx_size;
 	u32							vid_size;
 	bool						irq_msi;
 	irq_handler_t				irq_handler;
 	struct ntv2_register		*nwl_reg;
+	struct ntv2_register		*xlx_reg;
 	struct ntv2_register		*vid_reg;
 	struct ntv2_nwldma			*dma_engine;
 	struct ntv2_features		*features;

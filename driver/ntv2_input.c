@@ -125,7 +125,7 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 		if (input_config->type == ntv2_input_type_hdmi) {
 			if (input_config->version == 0) {
 				in0 = ntv2_inp->num_hdmi0_inputs;
-				ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, "hin", in0); 
+				ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, "hin0", input_config->input_index); 
 				if (ntv2_inp->hdmi0_input[in0] == NULL)
 					return -ENOMEM;
 				result = ntv2_hdmiin_configure(ntv2_inp->hdmi0_input[in0],
@@ -137,7 +137,7 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 			}
 			if (input_config->version == 4) {
 				in4 = ntv2_inp->num_hdmi4_inputs;
-				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, "hin", in4); 
+				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, "hin4", input_config->input_index); 
 				if (ntv2_inp->hdmi4_input[in4] == NULL)
 					return -ENOMEM;
 				result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
