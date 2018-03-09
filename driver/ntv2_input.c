@@ -21,6 +21,7 @@
 #include "ntv2_features.h"
 #include "ntv2_konareg.h"
 #include "ntv2_hdmiin.h"
+#include "ntv2_hdmiin4.h"
 
 #define NTV2_INPUT_LOCK_COUNT			3
 #define NTV2_INPUT_UNLOCK_COUNT			2
@@ -35,6 +36,11 @@ static int ntv2_sdi_dual_stream_to_format(struct ntv2_sdi_input_status *status,
 										  struct ntv2_input_format *format);
 static int ntv2_sdi_quad_stream_to_format(struct ntv2_sdi_input_status *status,
 										  struct ntv2_input_format *format);
+static int ntv2_hdmi_stream_to_sqd_format(struct ntv2_input_config *config,
+										  struct ntv2_input_format *format);
+static int ntv2_hdmi_stream_to_tsi_format(struct ntv2_input_config *config,
+										  struct ntv2_input_format *format);
+static bool ntv2_valid_input_pixel_rate(u32 config_flags, u32 format_flags);
 
 struct ntv2_input *ntv2_input_open(struct ntv2_object *ntv2_obj,
 								   const char *name, int index)
@@ -75,8 +81,11 @@ void ntv2_input_close(struct ntv2_input *ntv2_inp)
 
 	ntv2_input_disable(ntv2_inp);
 
-	for (i = 0; i < ntv2_inp->num_hdmi_inputs; i++) {
-		ntv2_hdmiin_close(ntv2_inp->hdmi_inputs[i]);
+	for (i = 0; i < ntv2_inp->num_hdmi0_inputs; i++) {
+		ntv2_hdmiin_close(ntv2_inp->hdmi0_input[i]);
+	}
+	for (i = 0; i < ntv2_inp->num_hdmi4_inputs; i++) {
+		ntv2_hdmiin4_close(ntv2_inp->hdmi4_input[i]);
 	}
 
 	memset(ntv2_inp, 0, sizeof(struct ntv2_input));
@@ -87,6 +96,9 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 						 struct ntv2_features *features,
 						 struct ntv2_register *vid_reg)
 {
+	struct ntv2_input_config *input_config;
+	int in0;
+	int in4;
 	int i;
 	int result;
 
@@ -100,16 +112,42 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 	ntv2_inp->num_sdi_inputs = features->num_sdi_inputs;
 	ntv2_inp->num_hdmi_inputs = features->num_hdmi_inputs;
 	ntv2_inp->num_aes_inputs = features->num_aes_inputs;
+	ntv2_inp->num_hdmi0_inputs = 0;
+	ntv2_inp->num_hdmi4_inputs = 0;
 
-	for (i = 0; i < ntv2_inp->num_hdmi_inputs; i++) {
-		ntv2_inp->hdmi_inputs[i] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, "hin", i); 
-		if (ntv2_inp->hdmi_inputs[i] == NULL)
-			return -ENOMEM;
-		result = ntv2_hdmiin_configure(ntv2_inp->hdmi_inputs[i],
-									   ntv2_inp->features,
-									   ntv2_inp->vid_reg);
-		if (result < 0)
-			return result;
+	if (ntv2_inp->num_sdi_inputs > NTV2_MAX_SDI_INPUTS) return -EPERM;
+	if (ntv2_inp->num_hdmi_inputs > NTV2_MAX_HDMI_INPUTS)  return -EPERM;
+	if (ntv2_inp->num_aes_inputs > 1) return -EPERM;
+	
+	for (i = 0; i < NTV2_MAX_INPUT_CONFIGS; i++) {
+		input_config = ntv2_features_get_input_config(features, i, 0);
+		if (input_config == NULL) continue;
+		if (input_config->type == ntv2_input_type_hdmi) {
+			if (input_config->version == 0) {
+				in0 = ntv2_inp->num_hdmi0_inputs;
+				ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, "hin", in0); 
+				if (ntv2_inp->hdmi0_input[in0] == NULL)
+					return -ENOMEM;
+				result = ntv2_hdmiin_configure(ntv2_inp->hdmi0_input[in0],
+											   ntv2_inp->features,
+											   ntv2_inp->vid_reg);
+				if (result < 0)
+					return result;
+				ntv2_inp->num_hdmi0_inputs++;
+			}
+			if (input_config->version == 4) {
+				in4 = ntv2_inp->num_hdmi4_inputs;
+				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, "hin", in4); 
+				if (ntv2_inp->hdmi4_input[in4] == NULL)
+					return -ENOMEM;
+				result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
+												ntv2_inp->features,
+												ntv2_inp->vid_reg);
+				if (result < 0)
+					return result;
+				ntv2_inp->num_hdmi4_inputs++;
+			}
+		}
 	}
 
 	return 0;
@@ -137,8 +175,11 @@ int ntv2_input_enable(struct ntv2_input *ntv2_inp)
 			  usecs_to_jiffies(NTV2_INPUT_MONITOR_INTERVAL));
 
 	/* enable the hdmi input monitors */
-	for (i = 0; i < ntv2_inp->num_hdmi_inputs; i++) {
-		ntv2_hdmiin_enable(ntv2_inp->hdmi_inputs[i]);
+	for (i = 0; i < ntv2_inp->num_hdmi0_inputs; i++) {
+		ntv2_hdmiin_enable(ntv2_inp->hdmi0_input[i]);
+	}
+	for (i = 0; i < ntv2_inp->num_hdmi4_inputs; i++) {
+		ntv2_hdmiin4_enable(ntv2_inp->hdmi4_input[i]);
 	}
 
 	return 0;
@@ -158,8 +199,11 @@ int ntv2_input_disable(struct ntv2_input *ntv2_inp)
 	NTV2_MSG_INPUT_STATE("%s: input monitor task disable\n", ntv2_inp->name);
 
 	/* disable the hdmi input monitors */
-	for (i = 0; i < ntv2_inp->num_hdmi_inputs; i++) {
-		ntv2_hdmiin_disable(ntv2_inp->hdmi_inputs[i]);
+	for (i = 0; i < ntv2_inp->num_hdmi0_inputs; i++) {
+		ntv2_hdmiin_disable(ntv2_inp->hdmi0_input[i]);
+	}
+	for (i = 0; i < ntv2_inp->num_hdmi4_inputs; i++) {
+		ntv2_hdmiin4_disable(ntv2_inp->hdmi4_input[i]);
 	}
 
 	/* stop the device monitor */
@@ -179,6 +223,7 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 {
 	struct ntv2_sdi_input_status status[4];
 	struct ntv2_hdmiin_format hdmi_format;
+	struct ntv2_hdmiin4_format hdmi4_format;
 	unsigned long flags;
 	int result = -EINVAL;
 	int i;
@@ -229,34 +274,40 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 	}
 
 	if (config->type == ntv2_input_type_hdmi) {
+		if (config->version == 0) {
+			/* validate config parameters */
+			if ((config->input_index >= ntv2_inp->num_hdmi0_inputs) ||
+				(config->num_inputs != 1))
+				goto done;
 
-		/* validate config parameters */
-		if ((config->input_index >= ntv2_inp->num_hdmi_inputs) ||
-			(config->num_inputs != 1))
-			goto done;
+			/* get current hdmi input format */
+			ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
 
-		/* get current hdmi input format */
-		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi_inputs[config->input_index], &hdmi_format);
+			format->type = config->type;
+			format->video_standard = hdmi_format.video_standard;
+			format->frame_rate = hdmi_format.frame_rate;
+			format->frame_flags = hdmi_format.frame_flags;
+			format->pixel_flags = hdmi_format.pixel_flags;
 
-		format->type = config->type;
-		format->video_standard = hdmi_format.video_standard;
-		format->frame_rate = hdmi_format.frame_rate;
-		format->frame_flags = hdmi_format.frame_flags;
-		format->pixel_flags = hdmi_format.pixel_flags;
-
-		/* fpga converts 4k hdmi to square division */
-		if (format->video_standard == ntv2_kona_video_standard_3840x2160p) {
-			format->video_standard = ntv2_kona_video_standard_1080p;
-			format->num_streams = 4;
-			format->frame_flags |= ntv2_kona_frame_square_division;
-		} else if (format->video_standard == ntv2_kona_video_standard_4096x2160p) {
-			format->video_standard = ntv2_kona_video_standard_2048x1080p;
-			format->num_streams = 4;
-			format->frame_flags |= ntv2_kona_frame_square_division;
-		} else {
-			format->num_streams = 1;
+			result = ntv2_hdmi_stream_to_sqd_format(config, format);
 		}
-		result = 0;
+		if (config->version == 4) {
+			/* validate config parameters */
+			if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
+				(config->num_inputs != 1))
+				goto done;
+
+			/* get current hdmi input format */
+			ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+
+			format->type = config->type;
+			format->video_standard = hdmi4_format.video_standard;
+			format->frame_rate = hdmi4_format.frame_rate;
+			format->frame_flags = hdmi4_format.frame_flags;
+			format->pixel_flags = hdmi4_format.pixel_flags;
+
+			result = ntv2_hdmi_stream_to_tsi_format(config, format);
+		}
 	}
 
 done:
@@ -273,6 +324,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 {
 	struct ntv2_sdi_input_status status[4];
 	struct ntv2_hdmiin_format hdmi_format;
+	struct ntv2_hdmiin4_format hdmi4_format;
 	struct ntv2_aes_input_status aes_status;
 	unsigned long flags;
 	int result = -EINVAL;
@@ -324,19 +376,34 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 	}
 
 	if (config->type == ntv2_input_type_hdmi) {
+		if (config->version == 0) {
+			/* validate config parameters */
+			if ((config->input_index >= ntv2_inp->num_hdmi0_inputs) ||
+				(config->num_inputs != 1))
+				goto done;
 
-		/* validate config parameters */
-		if ((config->input_index >= ntv2_inp->num_hdmi_inputs) ||
-			(config->num_inputs != 1))
-			goto done;
+			/* get current hdmi input format */
+			ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
 
-		/* get current hdmi input format */
-		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi_inputs[config->input_index], &hdmi_format);
+			/* set audio detection bits */
+			format->audio_detect = hdmi_format.audio_detect;
 
-		/* set audio detection bits */
-		format->audio_detect = hdmi_format.audio_detect;
+			result = 0;
+		}
+		if (config->version == 4) {
+			/* validate config parameters */
+			if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
+				(config->num_inputs != 1))
+				goto done;
 
-		result = 0;
+			/* get current hdmi input format */
+			ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+
+			/* set audio detection bits */
+			format->audio_detect = hdmi4_format.audio_detect;
+
+			result = 0;
+		}
 	}
 
 	if (config->type == ntv2_input_type_aes) {
@@ -710,4 +777,47 @@ bad_status:
 	memset(inpf, 0, sizeof(struct ntv2_input_format));
 
 	return -EINVAL;
+}
+
+static int ntv2_hdmi_stream_to_sqd_format(struct ntv2_input_config *config,
+										  struct ntv2_input_format *format)
+{
+	/* test for valid pixel rate */
+	if (!ntv2_valid_input_pixel_rate(config->frame_flags, format->frame_flags))
+		return -EINVAL;
+
+	/* fpga converts 4k hdmi to square division */
+	if (format->video_standard == ntv2_kona_video_standard_3840x2160p) {
+		format->video_standard = ntv2_kona_video_standard_1080p;
+		format->num_streams = 4;
+		format->frame_flags |= ntv2_kona_frame_square_division;
+	} else if (format->video_standard == ntv2_kona_video_standard_4096x2160p) {
+		format->video_standard = ntv2_kona_video_standard_2048x1080p;
+		format->num_streams = 4;
+		format->frame_flags |= ntv2_kona_frame_square_division;
+	} else {
+		format->num_streams = 1;
+	}
+
+	return 0;
+}
+
+static int ntv2_hdmi_stream_to_tsi_format(struct ntv2_input_config *config,
+										  struct ntv2_input_format *format)
+{
+	return -EINVAL;
+}
+
+static bool ntv2_valid_input_pixel_rate(u32 config_flags, u32 format_flags)
+{
+	u32 mask = ntv2_kona_frame_sd |
+		ntv2_kona_frame_hd |
+		ntv2_kona_frame_3g |
+		ntv2_kona_frame_uhd297 |
+		ntv2_kona_frame_uhd594;
+	
+	if ((config_flags & format_flags & mask) == 0)
+		return false;
+
+	return true;
 }

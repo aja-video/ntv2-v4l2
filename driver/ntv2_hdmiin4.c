@@ -626,6 +626,7 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
 	struct ntv2_hdmi_clock_data* clock_data;
 	struct ntv2_hdmi_format_data* format_data;
+	unsigned long flags;
 	u32 value;
 	u32 mask;
 	u32 line_rate;
@@ -867,6 +868,14 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 		ntv2_hin->color_depth = color_depth;
 	}
 
+	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
+	ntv2_hin->input_format.video_standard = ntv2_kona_video_standard_none;
+	ntv2_hin->input_format.frame_rate = ntv2_kona_frame_rate_none;
+	ntv2_hin->input_format.frame_flags = 0;
+	ntv2_hin->input_format.pixel_flags = 0;
+	ntv2_hin->input_format.audio_detect = 0;
+	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
+
 	return true;
 }
 
@@ -905,6 +914,7 @@ static bool config_audio_control(struct ntv2_hdmiin4 *ntv2_hin)
 static void set_no_video(struct ntv2_hdmiin4 *ntv2_hin)
 {
 	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
+	unsigned long flags;
 	u32 value;
 
 	/* clear fpga hdmi status */
@@ -930,6 +940,14 @@ static void set_no_video(struct ntv2_hdmiin4 *ntv2_hin)
 	ntv2_hin->frame_rate		= ntv2_kona_frame_rate_none;
 	ntv2_hin->color_space		= ntv2_kona_color_space_none;
 	ntv2_hin->color_depth		= ntv2_kona_color_depth_none;
+
+	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
+	ntv2_hin->input_format.video_standard = ntv2_kona_video_standard_none;
+	ntv2_hin->input_format.frame_rate = ntv2_kona_frame_rate_none;
+	ntv2_hin->input_format.frame_flags = 0;
+	ntv2_hin->input_format.pixel_flags = 0;
+	ntv2_hin->input_format.audio_detect = 0;
+	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
 }
 
 static struct ntv2_hdmi_format_data* find_format_data(u32 h_sync_start,

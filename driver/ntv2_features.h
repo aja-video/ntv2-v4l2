@@ -48,6 +48,7 @@ struct ntv2_input_config {
 	enum ntv2_input_type		type;
 	u32							version;
 	struct v4l2_dv_timings_cap	v4l2_timings_cap;
+	u32							frame_flags;
 	int							input_index;
 	u32							num_inputs;
 };

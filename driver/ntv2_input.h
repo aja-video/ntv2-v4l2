@@ -27,6 +27,7 @@ struct ntv2_register;
 struct ntv2_input_config;
 struct ntv2_source_config;
 struct ntv2_hdmiin;
+struct ntv2_hdmiin4;
 
 struct ntv2_sdi_input_state {
 	struct ntv2_sdi_input_status	lock_status;
@@ -48,12 +49,17 @@ struct ntv2_input {
 	struct timer_list 				monitor_timer;
 	spinlock_t 						state_lock;
 	enum ntv2_task_state			monitor_state;
+
 	u32								num_sdi_inputs;
 	u32								num_hdmi_inputs;
 	u32								num_aes_inputs;
 
+	u32								num_hdmi0_inputs;
+	u32								num_hdmi4_inputs;
+	
 	struct ntv2_sdi_input_state		sdi_input_state[NTV2_MAX_SDI_INPUTS];
-	struct ntv2_hdmiin				*hdmi_inputs[NTV2_MAX_HDMI_INPUTS];
+	struct ntv2_hdmiin				*hdmi0_input[NTV2_MAX_HDMI_INPUTS];
+	struct ntv2_hdmiin4				*hdmi4_input[NTV2_MAX_HDMI_INPUTS];
 };
 
 struct ntv2_input *ntv2_input_open(struct ntv2_object *ntv2_obj,

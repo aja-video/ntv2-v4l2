@@ -1032,6 +1032,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
 
@@ -1041,6 +1042,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 1;
 	nic->num_inputs = 1;
 
@@ -1050,6 +1052,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 2;
 	nic->num_inputs = 1;
 
@@ -1059,6 +1062,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 3;
 	nic->num_inputs = 1;
 
@@ -1068,6 +1072,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 4;
 	nic->num_inputs = 1;
 
@@ -1077,6 +1082,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 5;
 	nic->num_inputs = 1;
 
@@ -1086,6 +1092,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 6;
 	nic->num_inputs = 1;
 
@@ -1105,6 +1112,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
 	nic->input_index = 0;
 	nic->num_inputs = 2;
 
@@ -1114,6 +1123,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
 	nic->input_index = 2;
 	nic->num_inputs = 2;
 
@@ -1123,6 +1134,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
 	nic->input_index = 4;
 	nic->num_inputs = 2;
 
@@ -1132,6 +1145,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
 	nic->input_index = 6;
 	nic->num_inputs = 2;
 
@@ -1142,6 +1157,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
 	nic->input_index = 0;
 	nic->num_inputs = 4;
 
@@ -1151,6 +1168,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
 	nic->input_index = 4;
 	nic->num_inputs = 4;
 
@@ -1161,6 +1180,8 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_hdmi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi14;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
 	nic->input_index = 0;
 	nic->num_inputs = 1;
 
@@ -1168,8 +1189,10 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 1";
 	nic->type = ntv2_input_type_hdmi;
-	nic->version = 1;
+	nic->version = 4;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
 	nic->input_index = 1;
 	nic->num_inputs = 1;
 
@@ -1177,8 +1200,10 @@ static void ntv2_features_initialize(void) {
 	memset(nic, 0, sizeof(struct ntv2_input_config));
 	nic->name = "HDMI 2";
 	nic->type = ntv2_input_type_hdmi;
-	nic->version = 1;
+	nic->version = 4;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
+		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
 	nic->input_index = 2;
 	nic->num_inputs = 1;
 
@@ -1188,6 +1213,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_hdmi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 1;
 	nic->num_inputs = 1;
 
@@ -1197,6 +1223,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_hdmi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
+	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
 	nic->input_index = 2;
 	nic->num_inputs = 1;
 
@@ -2159,17 +2186,21 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 
 static void ntv2_features_konahdmi(struct ntv2_features *features) 
 {
+	int i;
+
 	features->device_name = "Kona HDMI";
 	features->pcm_name = "Kona HDMI PCM";
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_hdmi_inputs = 4;
-	features->num_aes_inputs = 0;
 	features->frame_buffer_size = 0x20000000;
-	features->num_serial_ports = 0;
 
-	features->video_config[0] = &nvc_capture;
-	features->audio_config[0] = &nac_capture;
+	for (i = 0; i < features->num_video_channels; i++) {
+		features->video_config[i] = &nvc_capture;
+	}
+	for (i = 0; i < features->num_audio_channels; i++) {
+		features->audio_config[i] = &nac_capture;
+	}
 
 	features->input_config[0][0] = &nic_hdmi20_1;
 	features->input_config[1][0] = &nic_hdmi20_2;
