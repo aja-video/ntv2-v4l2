@@ -23,14 +23,14 @@
 #include "ntv2_common.h"
 
 #define NTV2_MAX_DMA_TASKS			64
-
+#if 0
 enum ntv2_nwldma_mode {
 	ntv2_nwldma_mode_unknown,
 	ntv2_nwldma_mode_s2c,
 	ntv2_nwldma_mode_c2s,
 	ntv2_nwldma_mode_size
 };
-
+#endif
 enum ntv2_nwldma_state {
 	ntv2_nwldma_state_unknown,
 	ntv2_nwldma_state_idle,
@@ -51,21 +51,23 @@ struct ntv2_nwldma_descriptor {
     u64	next_address;
 };
 
+#if 0
 typedef void (*ntv2_nwldma_callback)(unsigned long, int);
+#endif
 
 struct ntv2_dmatask {
 	int						index;
 	struct list_head		list;
 	struct ntv2_nwldma		*ntv2_nwl;
 
-	enum ntv2_nwldma_mode 	mode;
+	enum ntv2_transfer_mode mode;
 	struct scatterlist		*sg_list;
 	u32						sg_pages;
 	u32						sg_offset;
 	u32						card_address[2];
 	u32						card_size[2];
 
-	ntv2_nwldma_callback	callback_func;
+	ntv2_transfer_callback	callback_func;
 	unsigned long			callback_data;
 
 	bool	dma_start;
@@ -86,7 +88,7 @@ struct ntv2_nwldma {
 	struct timer_list 		engine_timer;
 	enum ntv2_nwldma_state	engine_state;
 
-	enum ntv2_nwldma_mode	mode;
+	enum ntv2_transfer_mode	mode;
 	spinlock_t 				state_lock;
 	enum ntv2_task_state	dma_state;
 	enum ntv2_task_state	task_state;
@@ -139,14 +141,7 @@ int ntv2_nwldma_enable(struct ntv2_nwldma *ntv2_nwl);
 int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl);
 
 int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
-						 enum ntv2_nwldma_mode mode,
-						 struct scatterlist *sg_list,
-						 u32 num_pages,
-						 u32 offset,
-						 u32 *address,
-						 u32 *size,
-						 ntv2_nwldma_callback callback_func,
-						 unsigned long callback_data);
+						 struct ntv2_transfer* ntv2_trn);
 
 int ntv2_nwldma_interrupt(struct ntv2_nwldma *ntv2_nwl);
 void ntv2_nwldma_abort(struct ntv2_nwldma *ntv2_nwl);

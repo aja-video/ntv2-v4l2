@@ -74,7 +74,7 @@ int ntv2_konai2c_configure(struct ntv2_konai2c *ntv2_i2c,
 	if (ntv2_i2c == NULL)
 		return -EPERM;
 
-	NTV2_MSG_NWLDMA_INFO("%s: configure konai2c io\n", ntv2_i2c->name);
+	NTV2_MSG_KONAI2C_INFO("%s: configure konai2c io\n", ntv2_i2c->name);
 
 	if (ntv2_reg == NULL) {
 		NTV2_MSG_KONAI2C_ERROR("%s: *error* bad configuration\n", ntv2_i2c->name);

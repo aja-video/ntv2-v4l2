@@ -115,13 +115,13 @@ int ntv2_nwldma_configure(struct ntv2_nwldma *ntv2_nwl, struct ntv2_register *nw
 	if ((ntv2_nwl == NULL) || (nwl_reg == NULL))
 		return -EPERM;
 
-	NTV2_MSG_NWLDMA_INFO("%s: configure nwl dma engine\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_INFO("%s: configure nwl dma engine\n", ntv2_nwl->name);
 
 	/* get base register offset */
 	max_engines = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
 	if (ntv2_nwl->index >= max_engines) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* dma engine index %d out of range\n",
-							  ntv2_nwl->name, ntv2_nwl->index);
+		NTV2_MSG_DMA_ERROR("%s: *error* dma engine index %d out of range\n",
+						   ntv2_nwl->name, ntv2_nwl->index);
 		return -EPERM;
 	}
 	ntv2_nwl->nwl_reg = nwl_reg;
@@ -131,18 +131,18 @@ int ntv2_nwldma_configure(struct ntv2_nwldma *ntv2_nwl, struct ntv2_register *nw
 
 	/* check if dma engine present */
 	if (NTV2_FLD_GET(ntv2_nwldma_fld_present, cap_data) == 0) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* dma engine not present", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* dma engine not present", ntv2_nwl->name);
 		return -EPERM;
 	}
 
 	/* determine dma direction */
 	if (NTV2_FLD_GET(ntv2_nwldma_fld_engine_direction, cap_data) ==
 		ntv2_nwldma_con_system_to_card) {
-		NTV2_MSG_NWLDMA_INFO("%s: configure system to card\n", ntv2_nwl->name);
-		ntv2_nwl->mode = ntv2_nwldma_mode_s2c;
+		NTV2_MSG_DMA_INFO("%s: configure system to card\n", ntv2_nwl->name);
+		ntv2_nwl->mode = ntv2_transfer_mode_s2c;
 	} else {
-		NTV2_MSG_NWLDMA_INFO("%s: configure card to system\n", ntv2_nwl->name);
-		ntv2_nwl->mode = ntv2_nwldma_mode_c2s;
+		NTV2_MSG_DMA_INFO("%s: configure card to system\n", ntv2_nwl->name);
+		ntv2_nwl->mode = ntv2_transfer_mode_c2s;
 	}
 
 	ntv2_nwl->engine_number = NTV2_FLD_GET(ntv2_nwldma_fld_engine_number, cap_data);
@@ -157,17 +157,17 @@ int ntv2_nwldma_configure(struct ntv2_nwldma *ntv2_nwl, struct ntv2_register *nw
 												ntv2_nwl->descriptor_memsize,
 												&ntv2_nwl->dma_descriptor);
 	if (ntv2_nwl->descriptor == NULL) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* descriptor memory allocation failed\n", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* descriptor memory allocation failed\n", ntv2_nwl->name);
 		return -ENOMEM;
 	}
 
-	NTV2_MSG_NWLDMA_INFO("%s: configure card address size 0x%08x  max transfer size 0x%08x\n",
-						 ntv2_nwl->name,
-						 ntv2_nwl->card_address_size,
-						 ntv2_nwl->max_transfer_size);
+	NTV2_MSG_DMA_INFO("%s: configure card address size 0x%08x  max transfer size 0x%08x\n",
+					  ntv2_nwl->name,
+					  ntv2_nwl->card_address_size,
+					  ntv2_nwl->max_transfer_size);
 
 	/* ready for dma transfer */
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
 	ntv2_nwl->engine_state = ntv2_nwldma_state_idle;
 	ntv2_nwl->dma_state = ntv2_task_state_disable;
 
@@ -186,7 +186,7 @@ int ntv2_nwldma_enable(struct ntv2_nwldma *ntv2_nwl)
 	if (ntv2_nwl->dma_state == ntv2_task_state_enable)
 		return 0;
 
-	NTV2_MSG_NWLDMA_STATE("%s: nwl dma task enable\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STATE("%s: nwl dma task enable\n", ntv2_nwl->name);
 
 	/* initialize task lists */
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
@@ -216,8 +216,8 @@ int ntv2_nwldma_enable(struct ntv2_nwldma *ntv2_nwl)
 					   (int)ntv2_task_state_enable,
 					   NTV2_NWLDMA_TRANSFER_TIMEOUT);
 	if (result != 0) {
-		NTV2_MSG_VIDEO_ERROR("%s: *error* timeout waiting for engine task start\n",
-							 ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* timeout waiting for engine task start\n",
+						   ntv2_nwl->name);
 		return result;
 	}
 
@@ -235,7 +235,7 @@ int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl)
 	if (ntv2_nwl->dma_state == ntv2_task_state_disable)
 		return 0;
 
-	NTV2_MSG_NWLDMA_STATE("%s: nwl dma task disable\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STATE("%s: nwl dma task disable\n", ntv2_nwl->name);
 
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	ntv2_nwl->dma_state = ntv2_task_state_disable;
@@ -249,7 +249,7 @@ int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl)
 					   (int)ntv2_task_state_disable,
 					   NTV2_NWLDMA_TRANSFER_TIMEOUT);
 	if (result != 0) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* timeout waiting for engine task stop\n", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* timeout waiting for engine task stop\n", ntv2_nwl->name);
 		return -ETIME;
 	}
 
@@ -261,7 +261,7 @@ int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl)
 					   (int)ntv2_nwldma_state_idle,
 					   NTV2_NWLDMA_TRANSFER_TIMEOUT);
 	if (result != 0) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* timeout waiting for dma engine idle\n", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* timeout waiting for dma engine idle\n", ntv2_nwl->name);
 		return -ETIME;
 	}
 
@@ -269,22 +269,16 @@ int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl)
 }
 
 int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
-						 enum ntv2_nwldma_mode mode,
-						 struct scatterlist *sg_list,
-						 u32 num_pages,
-						 u32 offset,
-						 u32 *address,
-						 u32 *size,
-						 ntv2_nwldma_callback callback_func,
-						 unsigned long callback_data)
+						 struct ntv2_transfer *ntv2_trn)
 {
 	struct ntv2_dmatask *task = NULL;
 	unsigned long flags;
 	int task_index = 9999;
 
-	if ((sg_list == NULL) ||
-		(num_pages == 0) ||
-		(size[0] == 0))
+	if ((ntv2_trn == NULL) ||
+		(ntv2_trn->sg_list == NULL) ||
+		(ntv2_trn->num_pages == 0) ||
+		(ntv2_trn->size[0] == 0))
 		return -EINVAL;
 
 	/* get the next task */
@@ -293,16 +287,16 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 		(!list_empty(&ntv2_nwl->dmatask_done_list))) {
 		task = list_first_entry(&ntv2_nwl->dmatask_done_list, struct ntv2_dmatask, list);
 	
-		task->mode = mode;
-		task->sg_list = sg_list;
-		task->sg_pages = num_pages;
-		task->sg_offset = offset;
-		task->card_address[0] = address[0];
-		task->card_address[1] = address[1];
-		task->card_size[0] = size[0];
-		task->card_size[1] = size[1];
-		task->callback_func = callback_func;
-		task->callback_data = callback_data;
+		task->mode = ntv2_trn->mode;
+		task->sg_list = ntv2_trn->sg_list;
+		task->sg_pages = ntv2_trn->num_pages;
+		task->sg_offset = ntv2_trn->offset;
+		task->card_address[0] = ntv2_trn->address[0];
+		task->card_address[1] = ntv2_trn->address[1];
+		task->card_size[0] = ntv2_trn->size[0];
+		task->card_size[1] = ntv2_trn->size[1];
+		task->callback_func = ntv2_trn->callback_func;
+		task->callback_data = ntv2_trn->callback_data;
 		task->dma_start = false;
 		task->dma_done = false;
 		task->dma_result = 0;
@@ -315,13 +309,13 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
 
 	if (task != NULL) {
-		NTV2_MSG_NWLDMA_STREAM("%s: dma task queue %d  addr0 0x%08x  size0 %d  addr1 0x%08x  size1 %d\n",
-							   ntv2_nwl->name, task_index,
-							   address[0], size[0],
-							   address[1], size[1]);
+		NTV2_MSG_DMA_STREAM("%s: dma task queue %d  addr0 0x%08x  size0 %d  addr1 0x%08x  size1 %d\n",
+							ntv2_nwl->name, task_index,
+							ntv2_trn->address[0], ntv2_trn->size[0],
+							ntv2_trn->address[1], ntv2_trn->size[1]);
 	} else {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* dma transfer could not be queued\n",
-							  ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* dma transfer could not be queued\n",
+						   ntv2_nwl->name);
 		return -EAGAIN;
 	}
 	
@@ -366,8 +360,8 @@ static void ntv2_nwldma_task(unsigned long data)
 
 		/* task done */
 		if (task->dma_done) {
-			NTV2_MSG_NWLDMA_STREAM("%s: dma task done %d\n",
-								   ntv2_nwl->name, task_index);
+			NTV2_MSG_DMA_STREAM("%s: dma task done %d\n",
+								ntv2_nwl->name, task_index);
 
 			if (task->callback_func != NULL)
 				(*task->callback_func)(task->callback_data, task->dma_result);
@@ -397,8 +391,8 @@ static void ntv2_nwldma_task(unsigned long data)
 		return;
 	}
 
-	NTV2_MSG_NWLDMA_ERROR("%s: *error* dma task process reached max frames\n",
-						  ntv2_nwl->name);
+	NTV2_MSG_DMA_ERROR("%s: *error* dma task process reached max frames\n",
+					   ntv2_nwl->name);
 }
 
 static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
@@ -427,8 +421,8 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 	ntv2_nwl = ntv2_task->ntv2_nwl;
 
 	if (ntv2_task->mode != ntv2_nwl->mode) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* transfer mode %d does not match engine mode %d\n",
-							  ntv2_nwl->name, ntv2_task->mode, ntv2_nwl->mode);
+		NTV2_MSG_DMA_ERROR("%s: *error* transfer mode %d does not match engine mode %d\n",
+						   ntv2_nwl->name, ntv2_task->mode, ntv2_nwl->mode);
 		ntv2_nwl->error_count++;
 		return -EINVAL;
 	}
@@ -443,7 +437,7 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 	if (state != ntv2_nwldma_state_idle)
 		return -EBUSY;
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: start\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: start\n", ntv2_nwl->name);
 
 	/* record the transfer start time */
 	ntv2_nwl->soft_transfer_time_start = ntv2_system_time();
@@ -454,15 +448,15 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 	/* get dma parameters */
 	ntv2_nwl->dma_task = ntv2_task;
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma transfer card addr[0] 0x%08x  size[0] %d addr[1] 0x%08x  size[1] %d\n",
-						   ntv2_nwl->name,
-						   ntv2_task->card_address[0],
-						   ntv2_task->card_size[0],
-						   ntv2_task->card_address[1],
-						   ntv2_task->card_size[1]);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma transfer card addr[0] 0x%08x  size[0] %d addr[1] 0x%08x  size[1] %d\n",
+						ntv2_nwl->name,
+						ntv2_task->card_address[0],
+						ntv2_task->card_size[0],
+						ntv2_task->card_address[1],
+						ntv2_task->card_size[1]);
 
 	if (ntv2_task->card_size[0] == 0) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* transfer size is zero\n", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* transfer size is zero\n", ntv2_nwl->name);
 		ntv2_nwldma_cleanup(ntv2_nwl);
 		ntv2_nwl->error_count++;
 		result = -EINVAL;
@@ -471,7 +465,7 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 
 	if ((ntv2_task->sg_list == NULL) ||
 		(ntv2_task->sg_pages == 0)) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* no scatter list\n", ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* no scatter list\n", ntv2_nwl->name);
 		ntv2_nwldma_cleanup(ntv2_nwl);
 		ntv2_nwl->error_count++;
 		result = -EINVAL;
@@ -479,10 +473,10 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 	}
 
 	if (ntv2_task->sg_pages >= ntv2_nwl->max_descriptors) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* too many descriptor entries %d > %d\n",
-							  ntv2_nwl->name,
-							  ntv2_task->sg_pages,
-							  ntv2_nwl->max_descriptors);
+		NTV2_MSG_DMA_ERROR("%s: *error* too many descriptor entries %d > %d\n",
+						   ntv2_nwl->name,
+						   ntv2_task->sg_pages,
+						   ntv2_nwl->max_descriptors);
 		ntv2_nwldma_cleanup(ntv2_nwl);
 		ntv2_nwl->error_count++;
 		result = -EINVAL;
@@ -496,15 +490,15 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 	/* make sure that engine is not running */
 	if (NTV2_FLD_GET(ntv2_nwldma_fld_chain_running, control) != 0)
 	{
-		NTV2_MSG_NWLDMA_ERROR("%s: *warn* dma running before start  control/status 0x%08x\n",
-							  ntv2_nwl->name, control);
+		NTV2_MSG_DMA_ERROR("%s: *warn* dma running before start  control/status 0x%08x\n",
+						   ntv2_nwl->name, control);
 		ntv2_nwldma_stop(ntv2_nwl);
 		control = ntv2_reg_read(ntv2_nwl->nwl_reg,
 								ntv2_nwldma_reg_engine_control_status, ntv2_nwl->index);
 		if (NTV2_FLD_GET(ntv2_nwldma_fld_chain_running, control) != 0)
 		{
-			NTV2_MSG_NWLDMA_ERROR("%s: *error* dma running before start  control/status 0x%08x\n",
-								  ntv2_nwl->name, control);
+			NTV2_MSG_DMA_ERROR("%s: *error* dma running before start  control/status 0x%08x\n",
+							   ntv2_nwl->name, control);
 			ntv2_nwldma_cleanup(ntv2_nwl);
 			ntv2_nwl->error_count++;
 			result = -EAGAIN;
@@ -566,16 +560,16 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 
 			/* log some descriptors */
 			if (i < 5) {
-				NTV2_MSG_NWLDMA_DESCRIPTOR("%s: con %08x cnt %08x sys %08x:%08x crd %08x:%08x nxt %08x:%08x\n",
-										   ntv2_nwl->name,
-										   desc->control,
-										   desc->byte_count,
-										   NTV2_U64_HIGH(desc->system_address),
-										   NTV2_U64_LOW(desc->system_address),
-										   NTV2_U64_HIGH(desc->card_address),
-										   NTV2_U64_LOW(desc->card_address),
-										   NTV2_U64_HIGH(desc->next_address),
-										   NTV2_U64_LOW(desc->next_address));
+				NTV2_MSG_DMA_DESCRIPTOR("%s: con %08x cnt %08x sys %08x:%08x crd %08x:%08x nxt %08x:%08x\n",
+										ntv2_nwl->name,
+										desc->control,
+										desc->byte_count,
+										NTV2_U64_HIGH(desc->system_address),
+										NTV2_U64_LOW(desc->system_address),
+										NTV2_U64_HIGH(desc->card_address),
+										NTV2_U64_LOW(desc->card_address),
+										NTV2_U64_HIGH(desc->next_address),
+										NTV2_U64_LOW(desc->next_address));
 			}
 			/* update card address and size */
 			card_address += byte_count;
@@ -603,15 +597,15 @@ static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
 		ntv2_nwl->descriptor_count = desc_count;
 		ntv2_nwl->descriptor_bytes = data_size;
 	} else {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* descriptor generation not complete\n",
-							  ntv2_nwl->name);
+		NTV2_MSG_DMA_ERROR("%s: *error* descriptor generation not complete\n",
+						   ntv2_nwl->name);
 		ntv2_nwldma_cleanup(ntv2_nwl);
 		ntv2_nwl->error_count++;
 		result = -EINVAL;
 		goto error_idle;
 	}
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: transfer\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: transfer\n", ntv2_nwl->name);
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	ntv2_nwl->engine_state = ntv2_nwldma_state_transfer;
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
@@ -708,13 +702,13 @@ static void ntv2_nwldma_dpc(unsigned long data)
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
 
 	if (state != ntv2_nwldma_state_transfer) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* nwl dma dpc in bad state %d\n",
-							  ntv2_nwl->name, state);
+		NTV2_MSG_DMA_ERROR("%s: *error* nwl dma dpc in bad state %d\n",
+						   ntv2_nwl->name, state);
 		ntv2_nwl->error_count++;
 		return;
 	}
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: done\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: done\n", ntv2_nwl->name);
 
 	/* count dpc */
 	ntv2_nwl->dpc_count++;
@@ -756,31 +750,31 @@ static void ntv2_nwldma_dpc(unsigned long data)
 			}
 
 			if (NTV2_DEBUG_ACTIVE(NTV2_DEBUG_INFO)) {
-				NTV2_MSG_NWLDMA_STATISTICS("%s: dma dir %3s  eng %1d  cnt  %6d  size %6d (kB)  desc %6d\n",
-										   ntv2_nwl->name,
-										   (ntv2_nwl->mode == ntv2_nwldma_mode_s2c)?"S2C":"C2S",
-										   ntv2_nwl->engine_number,
-										   (u32)(ntv2_nwl->stat_transfer_count),
-										   (u32)(stat_transfer_kbytes / ntv2_nwl->stat_transfer_count ),
-										   (u32)(ntv2_nwl->stat_descriptor_count / ntv2_nwl->stat_transfer_count));
+				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  cnt  %6d  size %6d (kB)  desc %6d\n",
+										ntv2_nwl->name,
+										(ntv2_nwl->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
+										ntv2_nwl->engine_number,
+										(u32)(ntv2_nwl->stat_transfer_count),
+										(u32)(stat_transfer_kbytes / ntv2_nwl->stat_transfer_count ),
+										(u32)(ntv2_nwl->stat_descriptor_count / ntv2_nwl->stat_transfer_count));
 
-				NTV2_MSG_NWLDMA_STATISTICS("%s: dma dir %3s  eng %1d  strn %6d  sdma %6d  hdma %6d (us)  perf %6d (MB/s)\n",
-										   ntv2_nwl->name,
-										   (ntv2_nwl->mode == ntv2_nwldma_mode_s2c)?"S2C":"C2S",
-										   ntv2_nwl->engine_number,
-										   (u32)(ntv2_nwl->soft_transfer_time / ntv2_nwl->stat_transfer_count),
-										   (u32)(ntv2_nwl->soft_dma_time / ntv2_nwl->stat_transfer_count),
-										   (u32)(stat_transfer_time_us / ntv2_nwl->stat_transfer_count ),
-										   (u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
+				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  strn %6d  sdma %6d  hdma %6d (us)  perf %6d (MB/s)\n",
+										ntv2_nwl->name,
+										(ntv2_nwl->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
+										ntv2_nwl->engine_number,
+										(u32)(ntv2_nwl->soft_transfer_time / ntv2_nwl->stat_transfer_count),
+										(u32)(ntv2_nwl->soft_dma_time / ntv2_nwl->stat_transfer_count),
+										(u32)(stat_transfer_time_us / ntv2_nwl->stat_transfer_count ),
+										(u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
 			} else {
-				NTV2_MSG_NWLDMA_STATISTICS("%s: dma dir %3s  eng %1d  cnt %6d  size %6d (kB)  time %6d (us)  perf %6d (MB/s)\n",
-										   ntv2_nwl->name,
-										   (ntv2_nwl->mode == ntv2_nwldma_mode_s2c)?"S2C":"C2S",
-										   ntv2_nwl->engine_number,
-										   (u32)(ntv2_nwl->stat_transfer_count),
-										   (u32)(stat_transfer_kbytes / ntv2_nwl->stat_transfer_count ),
-										   (u32)(ntv2_nwl->soft_transfer_time / ntv2_nwl->stat_transfer_count),
-										   (u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
+				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  cnt %6d  size %6d (kB)  time %6d (us)  perf %6d (MB/s)\n",
+										ntv2_nwl->name,
+										(ntv2_nwl->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
+										ntv2_nwl->engine_number,
+										(u32)(ntv2_nwl->stat_transfer_count),
+										(u32)(stat_transfer_kbytes / ntv2_nwl->stat_transfer_count ),
+										(u32)(ntv2_nwl->soft_transfer_time / ntv2_nwl->stat_transfer_count),
+										(u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
 			}
 
 			ntv2_nwl->stat_transfer_count = 0;
@@ -794,8 +788,8 @@ static void ntv2_nwldma_dpc(unsigned long data)
 	}
 	else
 	{
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* dma error control/status 0x%08x\n",
-							  ntv2_nwl->name, ntv2_nwl->dpc_control_status);
+		NTV2_MSG_DMA_ERROR("%s: *error* dma error control/status 0x%08x\n",
+						   ntv2_nwl->name, ntv2_nwl->dpc_control_status);
 		ntv2_nwldma_stop(ntv2_nwl);
 		ntv2_nwl->error_count++;
 		result = -EIO;
@@ -810,7 +804,7 @@ static void ntv2_nwldma_dpc(unsigned long data)
 	/* release dma resources */
 	ntv2_nwldma_cleanup(ntv2_nwl);
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	ntv2_nwl->engine_state = ntv2_nwldma_state_idle;
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
@@ -837,8 +831,8 @@ static void ntv2_nwldma_timeout(unsigned long data)
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
 
 	if (state != ntv2_nwldma_state_transfer) {
-		NTV2_MSG_NWLDMA_ERROR("%s: *error* nwl dma timeout in bad state %d\n",
-							  ntv2_nwl->name, state);
+		NTV2_MSG_DMA_ERROR("%s: *error* nwl dma timeout in bad state %d\n",
+						   ntv2_nwl->name, state);
 		ntv2_nwl->error_count++;
 		return;
 	}
@@ -847,8 +841,8 @@ static void ntv2_nwldma_timeout(unsigned long data)
 	control = ntv2_reg_read(ntv2_nwl->nwl_reg,
 							ntv2_nwldma_reg_engine_control_status, ntv2_nwl->index);
 
-	NTV2_MSG_NWLDMA_ERROR("%s: *error* dma engine state: timeout  control/status 0x%08x\n",
-						  ntv2_nwl->name, control);
+	NTV2_MSG_DMA_ERROR("%s: *error* dma engine state: timeout  control/status 0x%08x\n",
+					   ntv2_nwl->name, control);
 
 	/* stop transfer */
 	ntv2_nwldma_stop(ntv2_nwl);
@@ -862,7 +856,7 @@ static void ntv2_nwldma_timeout(unsigned long data)
 	/* release dma resources */
 	ntv2_nwldma_cleanup(ntv2_nwl);
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	ntv2_nwl->engine_state = ntv2_nwldma_state_idle;
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
@@ -889,7 +883,7 @@ void ntv2_nwldma_abort(struct ntv2_nwldma *ntv2_nwl)
 	if (state != ntv2_nwldma_state_transfer)
 		return;
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: abort\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: abort\n", ntv2_nwl->name);
 
 	/* stop transfer */
 	ntv2_nwldma_stop(ntv2_nwl);
@@ -903,7 +897,7 @@ void ntv2_nwldma_abort(struct ntv2_nwldma *ntv2_nwl)
 	/* release dma resources */
 	ntv2_nwldma_cleanup(ntv2_nwl);
 
-	NTV2_MSG_NWLDMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
+	NTV2_MSG_DMA_STREAM("%s: nwl dma engine state: idle\n", ntv2_nwl->name);
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	ntv2_nwl->engine_state = ntv2_nwldma_state_idle;
 	spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);

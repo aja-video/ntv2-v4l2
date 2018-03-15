@@ -68,13 +68,14 @@
 #define NTV2_REG(reg, ...) \
 	const u32 reg[] = { NTV2_REG_ARGS(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1), __VA_ARGS__ }
 #define NTV2_FLD(field, size, shift) const u32 field = (((size) << 16) | (shift))
-#define NTV2_CON(con, value) const u32 con = (value)
+//#define NTV2_CON(con, value) const u32 con = (value)
 #else
 #define NTV2_REG(reg, ...) extern const u32 reg[]
 #define NTV2_FLD(field, size, shift) extern const u32 field
 //#define NTV2_CON(con, value) extern const u32 con
-#define NTV2_CON(con, value) enum { con = (value) }
 #endif
+
+#define NTV2_CON(con, value) enum { con = (value) }
 
 #define NTV2_REG_COUNT(reg) (reg[0])
 #define NTV2_REG_NUM(reg, index) (((index) < NTV2_REG_COUNT(reg))? reg[(index) + 1] : 0)
@@ -97,16 +98,16 @@
 /* debug print macros */
 #define NTV2_DEBUG_INFO					0x00000001
 #define NTV2_DEBUG_ERROR				0x00000002
-#define NTV2_DEBUG_CHANNEL_STATISTICS	0x00000004
+#define NTV2_DEBUG_PCI_STATE			0x00000010
+#define NTV2_DEBUG_CHANNEL_STATISTICS	0x00000020
 #define NTV2_DEBUG_INPUT_STATE			0x00000100
 #define NTV2_DEBUG_VIDEO_STATE			0x00000200
 #define NTV2_DEBUG_AUDIO_STATE			0x00000400
 #define NTV2_DEBUG_CHANNEL_STATE		0x00000800
 #define NTV2_DEBUG_HDMIIN_STATE			0x00001000
-#define NTV2_DEBUG_SERIAL_STATE			0x00002000
-#define NTV2_DEBUG_CHRDEV_STATE			0x00004000
-#define NTV2_DEBUG_HDMIIN4_STATE		0x00010000
-#define NTV2_DEBUG_HDMIIN4_DETECT		0x00020000
+#define NTV2_DEBUG_HDMIIN_DETECT		0x00002000
+#define NTV2_DEBUG_SERIAL_STATE			0x00004000
+#define NTV2_DEBUG_CHRDEV_STATE			0x00008000
 #define NTV2_DEBUG_VIDEO_STREAM			0x00100000
 #define NTV2_DEBUG_AUDIO_STREAM			0x00200000
 #define NTV2_DEBUG_CHANNEL_STREAM		0x00400000
@@ -115,10 +116,10 @@
 #define NTV2_DEBUG_REGISTER_WRITE		0x02000000
 #define NTV2_DEBUG_KONAI2C_READ			0x04000000
 #define NTV2_DEBUG_KONAI2C_WRITE		0x08000000
-#define NTV2_DEBUG_NWLDMA_STATE			0x10000000
-#define NTV2_DEBUG_NWLDMA_STREAM		0x20000000
-#define NTV2_DEBUG_NWLDMA_DESCRIPTOR	0x40000000
-#define NTV2_DEBUG_NWLDMA_STATISTICS	0x80000000
+#define NTV2_DEBUG_DMA_STATE			0x10000000
+#define NTV2_DEBUG_DMA_STREAM			0x20000000
+#define NTV2_DEBUG_DMA_DESCRIPTOR		0x40000000
+#define NTV2_DEBUG_DMA_STATISTICS		0x80000000
 
 #define NTV2_DEBUG_ACTIVE(msg_mask) \
 	((ntv2_module_info()->debug_mask & msg_mask) != 0)
@@ -128,18 +129,21 @@
 
 #define NTV2_MSG_INFO(string, ...)					NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_ERROR(string, ...)					NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_PCI_INFO(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
+#define NTV2_MSG_PCI_ERROR(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_PCI_STATE(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_PCI_STATE, string, __VA_ARGS__)
 #define NTV2_MSG_DEVICE_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_DEVICE_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_REGISTER_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_REGISTER_ERROR(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_REGISTER_READ(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_REGISTER_READ, string, __VA_ARGS__)
 #define NTV2_MSG_REGISTER_WRITE(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_REGISTER_WRITE, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_ERROR(string, ...)	   		NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_NWLDMA_STATE, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_STREAM(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_NWLDMA_STREAM, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_DESCRIPTOR(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_NWLDMA_DESCRIPTOR, string, __VA_ARGS__)
-#define NTV2_MSG_NWLDMA_STATISTICS(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_NWLDMA_STATISTICS, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_INFO(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_ERROR(string, ...)	   			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_STATE(string, ...)				NTV2_MSG_PRINT(NTV2_DEBUG_DMA_STATE, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_STREAM(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_DMA_STREAM, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_DESCRIPTOR(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_DMA_DESCRIPTOR, string, __VA_ARGS__)
+#define NTV2_MSG_DMA_STATISTICS(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_DMA_STATISTICS, string, __VA_ARGS__)
 #define NTV2_MSG_INPUT_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_INPUT_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_INPUT_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INPUT_STATE, string, __VA_ARGS__)
@@ -163,10 +167,7 @@
 #define NTV2_MSG_HDMIIN_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_HDMIIN_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN_STATE, string, __VA_ARGS__)
-#define NTV2_MSG_HDMIIN4_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
-#define NTV2_MSG_HDMIIN4_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
-#define NTV2_MSG_HDMIIN4_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN4_STATE, string, __VA_ARGS__)
-#define NTV2_MSG_HDMIIN4_DETECT(string, ...)		NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN4_DETECT, string, __VA_ARGS__)
+#define NTV2_MSG_HDMIIN_DETECT(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_HDMIIN_DETECT, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_INFO(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_INFO, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_ERROR(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_ERROR, string, __VA_ARGS__)
 #define NTV2_MSG_SERIAL_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_SERIAL_STATE, string, __VA_ARGS__)
@@ -214,6 +215,13 @@ enum ntv2_task_state {
 	ntv2_task_state_enable,
 	ntv2_task_state_disable,
 	ntv2_task_state_size
+};
+
+enum ntv2_transfer_mode {
+	ntv2_transfer_mode_unknown,
+	ntv2_transfer_mode_s2c,
+	ntv2_transfer_mode_c2s,
+	ntv2_transfer_mode_size
 };
 
 #ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
@@ -296,6 +304,19 @@ struct ntv2_aes_input_status {
 struct ntv2_interrupt_status {
 	u32							interrupt_status[2];
 	v4l2_time_t					v4l2_time;
+};
+
+typedef void (*ntv2_transfer_callback)(unsigned long, int);
+
+struct ntv2_transfer {
+	enum ntv2_transfer_mode		mode;
+	struct scatterlist 			*sg_list;
+	u32 						num_pages;
+	u32 						offset;
+	u32 						address[2];
+	u32 						size[2];
+	ntv2_transfer_callback 		callback_func;
+	unsigned long 				callback_data;
 };
 
 struct ntv2_device {

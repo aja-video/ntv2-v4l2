@@ -352,7 +352,7 @@ static int ntv2_hdmiin4_monitor(void* data)
 	if (ntv2_hin == NULL)
 		return 0;
 
-	NTV2_MSG_HDMIIN4_STATE("%s: hdmi input monitor task start\n", ntv2_hin->name);
+	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task start\n", ntv2_hin->name);
 
 	ntv2_hdmiin4_initialize(ntv2_hin);
 
@@ -368,18 +368,18 @@ static int ntv2_hdmiin4_monitor(void* data)
 			}
 
 			if (!lock) {
-				NTV2_MSG_HDMIIN4_STATE("%s: input is locked\n", ntv2_hin->name);
+				NTV2_MSG_HDMIIN_STATE("%s: input is locked\n", ntv2_hin->name);
 				lock = true;
 				plugWait = 0;
 			}
 
 			if (has_video_input_changed(ntv2_hin) || has_audio_input_changed(ntv2_hin)) {
-				NTV2_MSG_HDMIIN4_STATE("%s: input change detected\n", ntv2_hin->name);
+				NTV2_MSG_HDMIIN_STATE("%s: input change detected\n", ntv2_hin->name);
 				new_input = true;
 			}
 
 			if (has_audio_control_changed(ntv2_hin)) {
-				NTV2_MSG_HDMIIN4_STATE("%s: audio control change detected\n", ntv2_hin->name);
+				NTV2_MSG_HDMIIN_STATE("%s: audio control change detected\n", ntv2_hin->name);
 				config_audio_control(ntv2_hin);
 			}
 
@@ -407,7 +407,7 @@ static int ntv2_hdmiin4_monitor(void* data)
 			}
 
 			if (lock) {
-				NTV2_MSG_HDMIIN4_STATE("%s: input is unlocked\n", ntv2_hin->name);
+				NTV2_MSG_HDMIIN_STATE("%s: input is unlocked\n", ntv2_hin->name);
 				lock = false;
 				plugWait = 0;
 			}
@@ -430,7 +430,7 @@ static int ntv2_hdmiin4_monitor(void* data)
 		msleep_interruptible(c_default_timeout);
 	}
 
-	NTV2_MSG_HDMIIN4_STATE("%s: hdmi input monitor task stop\n", ntv2_hin->name);
+	NTV2_MSG_HDMIIN_STATE("%s: hdmi input monitor task stop\n", ntv2_hin->name);
 
 	return 0;
 }
@@ -660,14 +660,14 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	// read hardware input state
 	line_rate = NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_videocontrol_linerate, ntv2_hin->video_control);
 
-	NTV2_MSG_HDMIIN4_DETECT("%s: clock  line %d  tmds %d\n", 
-							ntv2_hin->name, line_rate, ntv2_hin->tmds_rate);
+	NTV2_MSG_HDMIIN_DETECT("%s: clock  line %d  tmds %d\n", 
+						   ntv2_hin->name, line_rate, ntv2_hin->tmds_rate);
 
 	// find clock rate type base on hardware data
 	clock_data = find_clock_data(line_rate, ntv2_hin->tmds_rate);
 	if (clock_data == NULL)	{
 		if (ntv2_hin->format_clock_count < 1) {
-			NTV2_MSG_HDMIIN4_STATE("%s: unrecognized hardware clock data\n", ntv2_hin->name);
+			NTV2_MSG_HDMIIN_STATE("%s: unrecognized hardware clock data\n", ntv2_hin->name);
 		}
 		ntv2_hin->format_clock_count++;
 		set_no_video(ntv2_hin);
@@ -700,16 +700,16 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	v_total_f1 = NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_videodetect7_vtotalf1, ntv2_hin->video_detect7);
 	v_total_f2 = NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_videodetect7_vtotalf2, ntv2_hin->video_detect7);
 
-	NTV2_MSG_HDMIIN4_DETECT("%s: detect  cs %d  cd %d  dvi %d\n", 
-							ntv2_hin->name, color_space, color_depth, interface);
-	NTV2_MSG_HDMIIN4_DETECT("%s: detect  hss %d  hse %d  hds %d  ht %d\n", 
-							ntv2_hin->name, h_sync_start, h_sync_end, h_de_start, h_total);
-	NTV2_MSG_HDMIIN4_DETECT("%s: detect  vtr1 %d  vtr2 %d  vss1 %d  vse1 %d\n", 
-							ntv2_hin->name, v_trans_f1, v_trans_f2, v_sync_start_f1, v_sync_end_f1);
-	NTV2_MSG_HDMIIN4_DETECT("%s: detect  vds1 %d  vds2 %d  vss2 %d  vse2 %d\n", 
-							ntv2_hin->name, v_de_start_f1, v_de_start_f2, v_sync_start_f2, v_sync_end_f2);
-	NTV2_MSG_HDMIIN4_DETECT("%s: detect  vtot1 %d  vtot2 %d\n", 
-							ntv2_hin->name, v_total_f1, v_total_f2);
+	NTV2_MSG_HDMIIN_DETECT("%s: detect  cs %d  cd %d  dvi %d\n", 
+						   ntv2_hin->name, color_space, color_depth, interface);
+	NTV2_MSG_HDMIIN_DETECT("%s: detect  hss %d  hse %d  hds %d  ht %d\n", 
+						   ntv2_hin->name, h_sync_start, h_sync_end, h_de_start, h_total);
+	NTV2_MSG_HDMIIN_DETECT("%s: detect  vtr1 %d  vtr2 %d  vss1 %d  vse1 %d\n", 
+						   ntv2_hin->name, v_trans_f1, v_trans_f2, v_sync_start_f1, v_sync_end_f1);
+	NTV2_MSG_HDMIIN_DETECT("%s: detect  vds1 %d  vds2 %d  vss2 %d  vse2 %d\n", 
+						   ntv2_hin->name, v_de_start_f1, v_de_start_f2, v_sync_start_f2, v_sync_end_f2);
+	NTV2_MSG_HDMIIN_DETECT("%s: detect  vtot1 %d  vtot2 %d\n", 
+						   ntv2_hin->name, v_total_f1, v_total_f2);
 
 	// find the format based on the hardware registers
 	format_data = find_format_data(h_sync_start,
@@ -729,7 +729,7 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 								   clock_data->clock_type);
 	if (format_data == NULL) {
 		if (ntv2_hin->format_raster_count < 1) {
-			NTV2_MSG_HDMIIN4_STATE("%s: unrecognized hardware raster data\n", ntv2_hin->name);
+			NTV2_MSG_HDMIIN_STATE("%s: unrecognized hardware raster data\n", ntv2_hin->name);
 		}
 		ntv2_hin->format_raster_count++;
 		set_no_video(ntv2_hin);
@@ -852,13 +852,13 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 //		(ntv2_hin->color_space != color_space) ||
 //		(ntv2_hin->color_depth != color_depth)) 
 	{
-		NTV2_MSG_HDMIIN4_STATE("%s: new format  mode %s  std %s  rate %s  clr %s  dpth %s\n",
-							   ntv2_hin->name,
-							   hdmi_mode? "hdmi" : "dvi",
-							   ntv2_video_standard_name(video_standard),
-							   ntv2_frame_rate_name(frame_rate),
-							   ntv2_color_space_name(color_space),
-							   ntv2_color_depth_name(color_depth));
+		NTV2_MSG_HDMIIN_STATE("%s: new format  mode %s  std %s  rate %s  clr %s  dpth %s\n",
+							  ntv2_hin->name,
+							  hdmi_mode? "hdmi" : "dvi",
+							  ntv2_video_standard_name(video_standard),
+							  ntv2_frame_rate_name(frame_rate),
+							  ntv2_color_space_name(color_space),
+							  ntv2_color_depth_name(color_depth));
 
 		ntv2_hin->input_locked = input_locked;
 		ntv2_hin->hdmi_mode = hdmi_mode;
@@ -906,7 +906,7 @@ static bool config_audio_control(struct ntv2_hdmiin4 *ntv2_hin)
 
 	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmiin4_videocontrol, ntv2_hin->index, value, mask);
 
-	NTV2_MSG_HDMIIN4_STATE("%s: new control  audio swap %s\n", ntv2_hin->name, ntv2_hin->audio_swap? "enable":"disable");
+	NTV2_MSG_HDMIIN_STATE("%s: new control  audio swap %s\n", ntv2_hin->name, ntv2_hin->audio_swap? "enable":"disable");
 
 	return true;
 }

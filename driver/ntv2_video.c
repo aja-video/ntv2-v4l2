@@ -368,19 +368,15 @@ static bool ntv2_video_compare_input_format(struct ntv2_input_format *format_a,
 static void ntv2_video_transfer_task(unsigned long data)
 {
 	struct ntv2_video *ntv2_vid = (struct ntv2_video*)data;
-	struct sg_table *sgtable;
 	struct ntv2_input_config *config;
 	struct ntv2_input_format inpf;
+	struct ntv2_transfer trn;
 #ifdef NTV2_USE_V4L2_EVENT
 	const struct v4l2_event event = {
 		.type = V4L2_EVENT_SOURCE_CHANGE,
 		.u.src_change.changes = V4L2_EVENT_SRC_CH_RESOLUTION,
 	};
 #endif
-	u32 pages;
-	u32 address[2];
-	u32	size[2];
-	u32 offset;
 	unsigned long flags;
 	bool dodma = false;
 	int result;
@@ -436,31 +432,26 @@ static void ntv2_video_transfer_task(unsigned long data)
 
 	/* queue work to dma engine */
 	if (dodma) {
-		offset = 0;
+		trn.mode = ntv2_transfer_mode_c2s;
+		trn.offset = 0;
 		if ((ntv2_vid->video_format.v4l2_timings.bt.height == 480) &&
 			(ntv2_frame_geometry_height(ntv2_vid->video_format.frame_geometry) == 486)) {
-			offset = 3 * ntv2_features_line_pitch(&ntv2_vid->pixel_format,
-												  ntv2_frame_geometry_width(ntv2_vid->video_format.frame_geometry));
+			trn.offset = 3 * ntv2_features_line_pitch(&ntv2_vid->pixel_format,
+													  ntv2_frame_geometry_width(ntv2_vid->video_format.frame_geometry));
 		}
-		sgtable = ntv2_vid->dma_vb2buf->sgtable;
-		pages = ntv2_vid->dma_vb2buf->num_pages;
-		address[0] = ntv2_vid->dma_vidbuf->video.address + offset;
+		trn.sg_list = ntv2_vid->dma_vb2buf->sgtable->sgl;
+		trn.num_pages = ntv2_vid->dma_vb2buf->num_pages;
+		trn.address[0] = ntv2_vid->dma_vidbuf->video.address + trn.offset;
 #ifdef NTV2_USE_VB2_V4L2_BUFFER
-		size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf, 0);
+		trn.size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf, 0);
 #else
-		size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_buffer, 0);
+		trn.size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_buffer, 0);
 #endif
-		address[1] = 0;
-		size[1] = 0;
-		result = ntv2_nwldma_transfer(ntv2_vid->dma_engine,
-									  ntv2_nwldma_mode_c2s,
-									  sgtable->sgl,
-									  pages,
-									  0,
-									  address,
-									  size,
-									  ntv2_video_dma_callback,
-									  (unsigned long)ntv2_vid);
+		trn.address[1] = 0;
+		trn.size[1] = 0;
+		trn.callback_func = ntv2_video_dma_callback;
+		trn.callback_data = (unsigned long)ntv2_vid;
+		result = ntv2_nwldma_transfer(ntv2_vid->dma_engine, &trn);
 		if (result != 0) {
 			ntv2_vid->dma_done = true;
 			ntv2_vid->dma_result = result;

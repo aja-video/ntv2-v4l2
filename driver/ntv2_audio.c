@@ -438,6 +438,7 @@ static void ntv2_audio_capture_task(unsigned long data)
 {
 	struct ntv2_pcm_stream *stream = (struct ntv2_pcm_stream*)data;
 	struct ntv2_audio *ntv2_aud = stream->ntv2_aud;
+	struct ntv2_transfer trn;
 	unsigned long flags;
 	bool dodma = false;
 	int result;
@@ -479,15 +480,17 @@ static void ntv2_audio_capture_task(unsigned long data)
 			stream->dma_audbuf->audio.data_size[0] +
 			stream->dma_audbuf->audio.data_size[1];
 		if (stream->dma_size <= NTV2_PCM_DMA_BUFFER_SIZE) {
-			result = ntv2_nwldma_transfer(ntv2_aud->dma_engine,
-										  ntv2_nwldma_mode_c2s,
-										  stream->dma_sgtable.sgl,
-										  stream->dma_buffer_pages,
-										  0,
-										  stream->dma_audbuf->audio.address,
-										  stream->dma_audbuf->audio.data_size,
-										  ntv2_audio_dma_callback,
-										  (unsigned long)stream);
+			trn.mode = ntv2_transfer_mode_c2s;
+			trn.sg_list = stream->dma_sgtable.sgl;
+			trn.num_pages = stream->dma_buffer_pages;
+			trn.offset = 0;
+			trn.address[0] = stream->dma_audbuf->audio.address[0];
+			trn.address[1] = stream->dma_audbuf->audio.address[1];
+			trn.size[0] = stream->dma_audbuf->audio.data_size[0];
+			trn.size[1] = stream->dma_audbuf->audio.data_size[1];
+			trn.callback_func = ntv2_audio_dma_callback;
+			trn.callback_data = (unsigned long)stream;
+			result = ntv2_nwldma_transfer(ntv2_aud->dma_engine, & trn);
 			if (result != 0) {
 				stream->dma_done = true;
 				stream->dma_result = result;
