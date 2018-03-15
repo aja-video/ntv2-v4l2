@@ -55,6 +55,7 @@
 #define NTV2_MAX_INPUT_GEOMETRIES	8
 #define NTV2_MAX_COLOR_SPACES		8
 #define NTV2_MAX_COLOR_DEPTHS		8
+#define NTV2_MAX_DMA_ENGINES		4
 
 #define NTV2_MAX_UARTS				16
 #define NTV2_TTY_NAME				"ttyNTV"
@@ -182,6 +183,13 @@ struct ntv2_audio;
 struct ntv2_input;
 struct ntv2_chrdev;
 
+enum ntv2_pci_type {
+	ntv2_pci_type_unknown,
+	ntv2_pci_type_nwl,
+	ntv2_pci_type_xlx,
+	ntv2_pci_type_size
+};
+
 enum ntv2_stream_type {
 	ntv2_stream_type_unknown,
 	ntv2_stream_type_vidin,
@@ -300,22 +308,19 @@ struct ntv2_device {
 	bool						init;
 
 	struct pci_dev				*pci_dev;
-	bool						nwl_region;
-	bool						xlx_region;
+	enum ntv2_pci_type			pci_type;
+	bool						pci_region;
 	bool						vid_region;
-	int							nwl_bar;
-	int							xlx_bar;
+	int							pci_bar;
 	int							vid_bar;
-	void __iomem 				*nwl_base;
-	void __iomem 				*xlx_base;
+	void __iomem 				*pci_base;
 	void __iomem 				*vid_base;
-	u32							nwl_size;
-	u32							xlx_size;
+	u32							pci_size;
 	u32							vid_size;
+	
 	bool						irq_msi;
 	irq_handler_t				irq_handler;
-	struct ntv2_register		*nwl_reg;
-	struct ntv2_register		*xlx_reg;
+	struct ntv2_register		*pci_reg;
 	struct ntv2_register		*vid_reg;
 	struct ntv2_nwldma			*dma_engine;
 	struct ntv2_features		*features;
@@ -370,6 +375,7 @@ s64 ntv2_system_time(void);
 int ntv2_wait(int *event, int state, int timeout);
 
 const char* ntv2_stream_name(enum ntv2_stream_type type);
+const char* ntv2_pci_name(enum ntv2_pci_type type);
 
 int ntv2_alloc_scatterlist(struct sg_table *sgt, u8* vm_buffer, u32 vm_size);
 void ntv2_free_scatterlist(struct sg_table *sgt);

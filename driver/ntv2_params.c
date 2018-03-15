@@ -21,8 +21,12 @@
 
 static struct ntv2_module ntv2_mod_info;
 
-static const char* stream_name[ntv2_stream_type_size] = {
+static const char* stream_type_name[ntv2_stream_type_size] = {
 	"unknown", "video input", "video output", "audio input", "audio output"
+};
+
+static const char* pci_type_name[ntv2_pci_type_size] = {
+	"unknown", "nwl", "xlx"
 };
 
 
@@ -94,7 +98,17 @@ int ntv2_wait(int *event, int state, int timeout)
 
 const char* ntv2_stream_name(enum ntv2_stream_type type)
 {
-	return stream_name[type];
+	if (type >= ntv2_stream_type_size) return "bad stream type";
+	
+	return stream_type_name[type];
+}
+
+
+const char* ntv2_pci_name(enum ntv2_pci_type type)
+{
+	if (type >= ntv2_pci_type_size) return "bad pci type";
+
+	return pci_type_name[type];
 }
 
 
