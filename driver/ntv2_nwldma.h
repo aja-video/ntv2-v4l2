@@ -146,4 +146,7 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 int ntv2_nwldma_interrupt(struct ntv2_nwldma *ntv2_nwl);
 void ntv2_nwldma_abort(struct ntv2_nwldma *ntv2_nwl);
 
+void ntv2_nwldma_interrupt_enable(struct ntv2_register *nwl_reg);
+void ntv2_nwldma_interrupt_disable(struct ntv2_register *nwl_reg);
+
 #endif

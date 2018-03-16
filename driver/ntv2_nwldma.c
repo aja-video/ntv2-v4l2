@@ -941,3 +941,38 @@ static void ntv2_nwldma_stop(struct ntv2_nwldma *ntv2_nwl)
 				   NTV2_FLD_MASK(ntv2_nwldma_fld_interrupt_active));
 }
 
+void ntv2_nwldma_interrupt_enable(struct ntv2_register *nwl_reg)
+{
+	if (nwl_reg == NULL)
+		return;
+
+	/* enable nwl and user interrupts */
+	ntv2_reg_write(nwl_reg,
+				   ntv2_nwldma_reg_common_control_status, 0,
+				   NTV2_FLD_MASK(ntv2_nwldma_fld_dma_interrupt_enable) |
+				   NTV2_FLD_MASK(ntv2_nwldma_fld_user_interrupt_enable));
+}
+
+void ntv2_nwldma_interrupt_disable(struct ntv2_register *nwl_reg)
+{
+	int num;
+	int i;
+	u32 val;
+	
+	if (nwl_reg == NULL)
+		return;
+
+	/* disable nwl and user interrupts */
+	ntv2_reg_write(nwl_reg,
+				   ntv2_nwldma_reg_common_control_status, 0,
+				   0);
+
+	/* disable nwl dma interrupts */
+	num = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
+	for (i = 0; i < num; i++) {
+		val = ntv2_reg_read(nwl_reg, ntv2_nwldma_reg_capabilities, i);
+		if ((val & NTV2_FLD_MASK(ntv2_nwldma_fld_present)) != 0) {
+			ntv2_reg_write(nwl_reg, ntv2_nwldma_reg_engine_control_status, i, 0);
+		}
+	}
+}
