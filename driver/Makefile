@@ -30,6 +30,7 @@ DRIVERSRCS 		=	ntv2_driver.c \
 					ntv2_pcmops.c \
 					ntv2_channel.c \
 					ntv2_register.c \
+					ntv2_pci.c \
 					ntv2_nwldma.c \
 					ntv2_konareg.c \
 					ntv2_features.c \
@@ -55,6 +56,7 @@ DRIVERINCS		=	ntv2_common.h \
 					ntv2_pcmops.h \
 					ntv2_channel.h \
 					ntv2_register.h \
+					ntv2_pci.h \
 					ntv2_nwldma.h \
 					ntv2_nwlreg.h \
 					ntv2_konareg.h \

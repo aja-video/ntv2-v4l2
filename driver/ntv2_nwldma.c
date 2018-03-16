@@ -277,8 +277,8 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 
 	if ((ntv2_trn == NULL) ||
 		(ntv2_trn->sg_list == NULL) ||
-		(ntv2_trn->num_pages == 0) ||
-		(ntv2_trn->size[0] == 0))
+		(ntv2_trn->sg_pages == 0) ||
+		(ntv2_trn->card_size[0] == 0))
 		return -EINVAL;
 
 	/* get the next task */
@@ -289,12 +289,12 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 	
 		task->mode = ntv2_trn->mode;
 		task->sg_list = ntv2_trn->sg_list;
-		task->sg_pages = ntv2_trn->num_pages;
-		task->sg_offset = ntv2_trn->offset;
-		task->card_address[0] = ntv2_trn->address[0];
-		task->card_address[1] = ntv2_trn->address[1];
-		task->card_size[0] = ntv2_trn->size[0];
-		task->card_size[1] = ntv2_trn->size[1];
+		task->sg_pages = ntv2_trn->sg_pages;
+		task->sg_offset = ntv2_trn->sg_offset;
+		task->card_address[0] = ntv2_trn->card_address[0];
+		task->card_address[1] = ntv2_trn->card_address[1];
+		task->card_size[0] = ntv2_trn->card_size[0];
+		task->card_size[1] = ntv2_trn->card_size[1];
 		task->callback_func = ntv2_trn->callback_func;
 		task->callback_data = ntv2_trn->callback_data;
 		task->dma_start = false;
@@ -311,8 +311,8 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 	if (task != NULL) {
 		NTV2_MSG_DMA_STREAM("%s: dma task queue %d  addr0 0x%08x  size0 %d  addr1 0x%08x  size1 %d\n",
 							ntv2_nwl->name, task_index,
-							ntv2_trn->address[0], ntv2_trn->size[0],
-							ntv2_trn->address[1], ntv2_trn->size[1]);
+							ntv2_trn->card_address[0], ntv2_trn->card_size[0],
+							ntv2_trn->card_address[1], ntv2_trn->card_size[1]);
 	} else {
 		NTV2_MSG_DMA_ERROR("%s: *error* dma transfer could not be queued\n",
 						   ntv2_nwl->name);

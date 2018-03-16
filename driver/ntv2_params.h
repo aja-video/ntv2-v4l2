@@ -311,10 +311,10 @@ typedef void (*ntv2_transfer_callback)(unsigned long, int);
 struct ntv2_transfer {
 	enum ntv2_transfer_mode		mode;
 	struct scatterlist 			*sg_list;
-	u32 						num_pages;
-	u32 						offset;
-	u32 						address[2];
-	u32 						size[2];
+	u32 						sg_pages;
+	u32 						sg_offset;
+	u32 						card_address[2];
+	u32 						card_size[2];
 	ntv2_transfer_callback 		callback_func;
 	unsigned long 				callback_data;
 };

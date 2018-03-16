@@ -433,22 +433,22 @@ static void ntv2_video_transfer_task(unsigned long data)
 	/* queue work to dma engine */
 	if (dodma) {
 		trn.mode = ntv2_transfer_mode_c2s;
-		trn.offset = 0;
+		trn.sg_offset = 0;
 		if ((ntv2_vid->video_format.v4l2_timings.bt.height == 480) &&
 			(ntv2_frame_geometry_height(ntv2_vid->video_format.frame_geometry) == 486)) {
-			trn.offset = 3 * ntv2_features_line_pitch(&ntv2_vid->pixel_format,
-													  ntv2_frame_geometry_width(ntv2_vid->video_format.frame_geometry));
+			trn.sg_offset = 3 * ntv2_features_line_pitch(&ntv2_vid->pixel_format,
+														 ntv2_frame_geometry_width(ntv2_vid->video_format.frame_geometry));
 		}
 		trn.sg_list = ntv2_vid->dma_vb2buf->sgtable->sgl;
-		trn.num_pages = ntv2_vid->dma_vb2buf->num_pages;
-		trn.address[0] = ntv2_vid->dma_vidbuf->video.address + trn.offset;
+		trn.sg_pages = ntv2_vid->dma_vb2buf->num_pages;
+		trn.card_address[0] = ntv2_vid->dma_vidbuf->video.address + trn.sg_offset;
 #ifdef NTV2_USE_VB2_V4L2_BUFFER
-		trn.size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf, 0);
+		trn.card_size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf, 0);
 #else
-		trn.size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_buffer, 0);
+		trn.card_size[0] = vb2_plane_size(&ntv2_vid->dma_vb2buf->vb2_buffer, 0);
 #endif
-		trn.address[1] = 0;
-		trn.size[1] = 0;
+		trn.card_address[1] = 0;
+		trn.card_size[1] = 0;
 		trn.callback_func = ntv2_video_dma_callback;
 		trn.callback_data = (unsigned long)ntv2_vid;
 		result = ntv2_nwldma_transfer(ntv2_vid->dma_engine, &trn);

@@ -189,9 +189,8 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	int num_serial;
 	int index;
 	int result;
-#ifndef TEST_HDMI	
 	int i;
-#endif
+
 	if ((ntv2_dev == NULL) || (pdev == NULL))
 		return -EPERM;
 
@@ -267,7 +266,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	result = ntv2_device_irq_configure(ntv2_dev);
 	if (result != 0)
 		return result;
-#ifndef TEST_HDMI
+
 	/* initialize ntv2 dma engines */
 	ntv2_dev->dma_engine = ntv2_nwldma_open((struct ntv2_object*)ntv2_dev, "nwd", 4);
 	if (ntv2_dev->dma_engine == NULL)
@@ -280,7 +279,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	result = ntv2_nwldma_enable(ntv2_dev->dma_engine);
 	if (result != 0)
 		return result;
-#endif
+
 	/* initialize ntv2 input monitor */
 	ntv2_dev->inp_mon = ntv2_input_open((struct ntv2_object*)ntv2_dev, "inp", 0);
 	if (ntv2_dev->inp_mon == NULL)
@@ -294,7 +293,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 
 	/* enable input detection */
 	ntv2_input_enable(ntv2_dev->inp_mon);
-#ifndef TEST_HDMI
+
 	/* initialize character device */
 	ntv2_dev->chr_dev = ntv2_chrdev_open((struct ntv2_object*)ntv2_dev, "chr", 0);
 	if (ntv2_dev->chr_dev == NULL)
@@ -442,7 +441,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 
 	/* enable interrupts */
 	ntv2_device_irq_enable(ntv2_dev);
-#endif
+
 	return 0;
 }
 
