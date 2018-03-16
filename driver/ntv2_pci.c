@@ -22,7 +22,9 @@
 #include "ntv2_nwldma.h"
 #include "ntv2_nwlreg.h"
 
-static struct ntv2_nwldma* ntv2_pci_nwl(struct ntv2_pci *ntv2_pci, int index);
+static void ntv2_pci_nwl_enable(struct ntv2_pci *ntv2_pci);
+static void ntv2_pci_nwl_disable(struct ntv2_pci *ntv2_pci);
+static struct ntv2_nwldma* ntv2_pci_nwl_config(struct ntv2_pci *ntv2_pci, int index);
 
 
 struct ntv2_pci *ntv2_pci_open(struct ntv2_object *ntv2_obj,
@@ -46,6 +48,8 @@ struct ntv2_pci *ntv2_pci_open(struct ntv2_object *ntv2_obj,
 
 	spin_lock_init(&ntv2_pci->state_lock);
 
+	NTV2_MSG_PCI_INFO("%s: open ntv2_pci\n", ntv2_pci->name);
+
 	return ntv2_pci;
 }
 
@@ -55,6 +59,8 @@ void ntv2_pci_close(struct ntv2_pci *ntv2_pci)
 
 	if (ntv2_pci == NULL)
 		return;
+
+	NTV2_MSG_PCI_INFO("%s: close ntv2_pci\n", ntv2_pci->name);
 
 	/* close all dma engines */
 	switch (ntv2_pci->pci_type)
@@ -83,6 +89,8 @@ int ntv2_pci_configure(struct ntv2_pci *ntv2_pci,
 	if ((ntv2_pci == NULL) || (pci_reg == NULL))
 		return -EPERM;
 
+	NTV2_MSG_PCI_INFO("%s: configure pci interrupts and dma engines\n", ntv2_pci->name);
+
 	ntv2_pci->pci_type = pci_type;
 	ntv2_pci->pci_reg = pci_reg;
 
@@ -90,7 +98,8 @@ int ntv2_pci_configure(struct ntv2_pci *ntv2_pci,
 	switch (ntv2_pci->pci_type)
 	{
 	case ntv2_pci_type_nwl:
-		ntv2_pci->nwl_engine[0] = ntv2_pci_nwl(ntv2_pci, 4);
+		ntv2_pci_nwl_disable(ntv2_pci);
+		ntv2_pci->nwl_engine[0] = ntv2_pci_nwl_config(ntv2_pci, 4);
 		if (ntv2_pci->nwl_engine[0] == NULL)
 			return -EPERM;
 		break;
@@ -105,6 +114,7 @@ int ntv2_pci_configure(struct ntv2_pci *ntv2_pci,
 int ntv2_pci_enable(struct ntv2_pci *ntv2_pci)
 {
 	unsigned long flags;
+	int i;
 
 	if ((ntv2_pci == NULL) || (ntv2_pci->pci_reg == NULL))
 		return -EPERM;
@@ -117,14 +127,17 @@ int ntv2_pci_enable(struct ntv2_pci *ntv2_pci)
 	spin_lock_irqsave(&ntv2_pci->state_lock, flags);
 	ntv2_pci->pci_state = ntv2_task_state_enable;
 
-	/* enable dma and user interrupts */
+	/* enable dma engines and interrupts */
 	switch (ntv2_pci->pci_type)
 	{
 	case ntv2_pci_type_nwl:
-		ntv2_reg_write(ntv2_pci->pci_reg,
-					   ntv2_nwldma_reg_common_control_status, 0,
-					   NTV2_FLD_MASK(ntv2_nwldma_fld_dma_interrupt_enable) |
-					   NTV2_FLD_MASK(ntv2_nwldma_fld_user_interrupt_enable));
+		ntv2_pci_nwl_enable(ntv2_pci);
+		for (i = 0; i < NTV2_MAX_DMA_ENGINES; i++)
+		{
+			if (ntv2_pci->nwl_engine[i] != NULL) {
+				ntv2_nwldma_enable(ntv2_pci->nwl_engine[i]);
+			}
+		}
 		break;
 	case ntv2_pci_type_xlx:
 	default:
@@ -139,6 +152,7 @@ int ntv2_pci_enable(struct ntv2_pci *ntv2_pci)
 int ntv2_pci_disable(struct ntv2_pci *ntv2_pci)
 {
 	unsigned long flags;
+	int i;
 
 	if ((ntv2_pci == NULL) || (ntv2_pci->pci_reg == NULL))
 		return -EPERM;
@@ -150,13 +164,17 @@ int ntv2_pci_disable(struct ntv2_pci *ntv2_pci)
 
 	spin_lock_irqsave(&ntv2_pci->state_lock, flags);
 
-	/* disable dma and user interrupts */
+	/* disable dma engines and interrupts */
 	switch (ntv2_pci->pci_type)
 	{
 	case ntv2_pci_type_nwl:
-		ntv2_reg_write(ntv2_pci->pci_reg,
-					   ntv2_nwldma_reg_common_control_status, 0,
-					   0);
+		for (i = 0; i < NTV2_MAX_DMA_ENGINES; i++)
+		{
+			if (ntv2_pci->nwl_engine[i] != NULL) {
+				ntv2_nwldma_disable(ntv2_pci->nwl_engine[i]);
+			}
+		}
+		ntv2_pci_nwl_disable(ntv2_pci);
 		break;
 	case ntv2_pci_type_xlx:
 	default:
@@ -173,13 +191,18 @@ int ntv2_pci_disable(struct ntv2_pci *ntv2_pci)
 int ntv2_pci_transfer(struct ntv2_pci *ntv2_pci,
 					  struct ntv2_transfer *ntv2_trn)
 {
+	unsigned long flags;
 	int result = -EPERM;
 
 	if (ntv2_pci == NULL)
 		return -EPERM;
 
-	if (ntv2_pci->pci_state == ntv2_task_state_disable)
+	spin_lock_irqsave(&ntv2_pci->state_lock, flags);
+
+	if (ntv2_pci->pci_state == ntv2_task_state_disable) {
+		spin_unlock_irqrestore(&ntv2_pci->state_lock, flags);
 		return 0;
+	}
 
 	/* pass transfer to proper dma engine */
 	switch (ntv2_pci->pci_type)
@@ -193,6 +216,8 @@ int ntv2_pci_transfer(struct ntv2_pci *ntv2_pci,
 		break;
 	}
 	
+	spin_unlock_irqrestore(&ntv2_pci->state_lock, flags);
+
 	return result;
 }
 
@@ -226,14 +251,42 @@ int ntv2_pci_interrupt(struct ntv2_pci *ntv2_pci)
 	return result;
 }
 
-static struct ntv2_nwldma* ntv2_pci_nwl(struct ntv2_pci *ntv2_pci, int index)
+static void ntv2_pci_nwl_enable(struct ntv2_pci *ntv2_pci)
+{
+	/* enable nwl and user interrupts */
+	ntv2_reg_write(ntv2_pci->pci_reg,
+				   ntv2_nwldma_reg_common_control_status, 0,
+				   NTV2_FLD_MASK(ntv2_nwldma_fld_dma_interrupt_enable) |
+				   NTV2_FLD_MASK(ntv2_nwldma_fld_user_interrupt_enable));
+}
+
+static void ntv2_pci_nwl_disable(struct ntv2_pci *ntv2_pci)
+{
+	int num;
+	int i;
+	u32 val;
+	
+	/* disable nwl and user interrupts */
+	ntv2_reg_write(ntv2_pci->pci_reg,
+				   ntv2_nwldma_reg_common_control_status, 0,
+				   0);
+
+	/* disable nwl dma interrupts */
+	num = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
+	for (i = 0; i < num; i++) {
+		val = ntv2_reg_read(ntv2_pci->pci_reg, ntv2_nwldma_reg_capabilities, i);
+		if ((val & NTV2_FLD_MASK(ntv2_nwldma_fld_present)) != 0) {
+			ntv2_reg_write(ntv2_pci->pci_reg, ntv2_nwldma_reg_engine_control_status, i, 0);
+		}
+	}
+}
+
+static struct ntv2_nwldma* ntv2_pci_nwl_config(struct ntv2_pci *ntv2_pci, int index)
 {
 	struct ntv2_nwldma *ntv2_nwl;
 	int result;
 	
-	if (ntv2_pci == NULL)
-		return IRQ_NONE;
-
+	/* open and configure nwl dma engine */
 	ntv2_nwl = ntv2_nwldma_open((struct ntv2_object*)ntv2_pci, "nwd", index);
 	if (ntv2_nwl == NULL)
 			return NULL;

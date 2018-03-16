@@ -23,6 +23,7 @@
 #include "ntv2_common.h"
 
 struct ntv2_features;
+struct ntv2_pci;
 
 struct ntv2_vb2buf {
 #ifdef NTV2_USE_VB2_V4L2_BUFFER
@@ -49,7 +50,7 @@ struct ntv2_video {
 	struct ntv2_features 		*features;
 	struct ntv2_channel 		*ntv2_chn;
 	struct ntv2_input			*ntv2_inp;
-	struct ntv2_nwldma			*dma_engine;
+	struct ntv2_pci				*ntv2_pci;
 	bool						init;
 
 	struct ntv2_channel_stream	*vid_str;
@@ -102,7 +103,7 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 						 struct ntv2_features *features,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_input *ntv2_inp,
-						 struct ntv2_nwldma *ntv2_nwl);
+						 struct ntv2_pci *ntv2_pci);
 
 int ntv2_video_enable(struct ntv2_video *ntv2_vid);
 int ntv2_video_disable(struct ntv2_video *ntv2_vid);

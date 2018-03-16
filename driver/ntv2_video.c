@@ -22,7 +22,7 @@
 #include "ntv2_vb2ops.h"
 #include "ntv2_v4l2ops.h"
 #include "ntv2_channel.h"
-#include "ntv2_nwldma.h"
+#include "ntv2_pci.h"
 #include "ntv2_input.h"
 #include "ntv2_konareg.h"
 
@@ -114,7 +114,7 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 						 struct ntv2_features *features,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_input *ntv2_inp,
-						 struct ntv2_nwldma *ntv2_nwl)
+						 struct ntv2_pci *ntv2_pci)
 {
 	struct video_device *video_dev;
 	int result;
@@ -123,7 +123,7 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 		(features == NULL) ||
 		(ntv2_chn == NULL) ||
 		(ntv2_inp == NULL) ||
-		(ntv2_nwl == NULL))
+		(ntv2_pci == NULL))
 		return -EPERM;
 
 	NTV2_MSG_VIDEO_INFO("%s: configure video device\n", ntv2_vid->name);
@@ -131,7 +131,7 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 	ntv2_vid->features = features;
 	ntv2_vid->ntv2_chn = ntv2_chn;
 	ntv2_vid->ntv2_inp = ntv2_inp;
-	ntv2_vid->dma_engine = ntv2_nwl;
+	ntv2_vid->ntv2_pci = ntv2_pci;
 
 	ntv2_vid->vid_str = ntv2_channel_stream(ntv2_chn, ntv2_stream_type_vidin);
 	ntv2_vid->aud_str = ntv2_channel_stream(ntv2_chn, ntv2_stream_type_audin);
@@ -213,7 +213,7 @@ int ntv2_video_enable(struct ntv2_video *ntv2_vid)
 
 	if ((ntv2_vid == NULL) ||
 		(ntv2_vid->ntv2_chn == NULL) ||
-		(ntv2_vid->dma_engine == NULL))
+		(ntv2_vid->ntv2_pci == NULL))
 		return -EPERM;
 
 	if (ntv2_vid->transfer_state == ntv2_task_state_enable)
@@ -379,7 +379,7 @@ static void ntv2_video_transfer_task(unsigned long data)
 #endif
 	unsigned long flags;
 	bool dodma = false;
-	int result;
+	int result = 0;
 
 	spin_lock_irqsave(&ntv2_vid->state_lock, flags);
 	if (!ntv2_vid->dma_start)
@@ -451,7 +451,7 @@ static void ntv2_video_transfer_task(unsigned long data)
 		trn.card_size[1] = 0;
 		trn.callback_func = ntv2_video_dma_callback;
 		trn.callback_data = (unsigned long)ntv2_vid;
-		result = ntv2_nwldma_transfer(ntv2_vid->dma_engine, &trn);
+		result = ntv2_pci_transfer(ntv2_vid->ntv2_pci, &trn);
 		if (result != 0) {
 			ntv2_vid->dma_done = true;
 			ntv2_vid->dma_result = result;

@@ -177,7 +177,7 @@
 #define NTV2_MSG_CHRDEV_STATE(string, ...)			NTV2_MSG_PRINT(NTV2_DEBUG_CHRDEV_STATE, string, __VA_ARGS__)
 
 struct ntv2_register;
-struct ntv2_nwldma;
+struct ntv2_pci;
 struct ntv2_channel;
 struct ntv2_video;
 struct ntv2_audio;
@@ -343,7 +343,7 @@ struct ntv2_device {
 	irq_handler_t				irq_handler;
 	struct ntv2_register		*pci_reg;
 	struct ntv2_register		*vid_reg;
-	struct ntv2_nwldma			*dma_engine;
+	struct ntv2_pci				*pci_dma;
 	struct ntv2_features		*features;
 	struct ntv2_input			*inp_mon;
 	struct ntv2_chrdev			*chr_dev;

@@ -497,19 +497,28 @@ void ntv2_pcmops_copy_audio(struct ntv2_pcm_stream *stream,
 	old_ptr = stream->sample_ptr;
 	if ((old_ptr + buf_frames) > runtime->buffer_size) {
 		u32 cnt = runtime->buffer_size - old_ptr;
-		ntv2_copy_audio(runtime->dma_area + (old_ptr * ring_stride), address,
-						ring_channels, buf_channels,
-						ring_sample_size, buf_sample_size,
-						cnt);
-		ntv2_copy_audio(runtime->dma_area, address + (cnt * num_channels * 4),
-						ring_channels, buf_channels,
-						ring_sample_size, buf_sample_size,
-						buf_frames - cnt);
+		if (address != NULL) {
+			ntv2_copy_audio(runtime->dma_area + (old_ptr * ring_stride), address,
+							ring_channels, buf_channels,
+							ring_sample_size, buf_sample_size,
+							cnt);
+			ntv2_copy_audio(runtime->dma_area, address + (cnt * num_channels * 4),
+							ring_channels, buf_channels,
+							ring_sample_size, buf_sample_size,
+							buf_frames - cnt);
+		} else {
+			memset(runtime->dma_area + (old_ptr * ring_stride), 0, cnt * ring_channels * ring_sample_size);
+			memset(runtime->dma_area, 0, (buf_frames - cnt) * ring_channels * ring_sample_size);
+		}
 	} else {
-		ntv2_copy_audio(runtime->dma_area + (old_ptr * ring_stride), address,
-						ring_channels, buf_channels,
-						ring_sample_size, buf_sample_size,
-						buf_frames);
+		if (address != NULL) {
+			ntv2_copy_audio(runtime->dma_area + (old_ptr * ring_stride), address,
+							ring_channels, buf_channels,
+							ring_sample_size, buf_sample_size,
+							buf_frames);
+		} else {
+			memset(runtime->dma_area + (old_ptr * ring_stride), 0, buf_frames * ring_channels * ring_sample_size);
+		}
 	}
 
 	snd_pcm_stream_lock(substream);

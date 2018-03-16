@@ -24,8 +24,7 @@
 #include "ntv2_serial.h"
 #include "ntv2_channel.h"
 #include "ntv2_register.h"
-#include "ntv2_nwldma.h"
-#include "ntv2_nwlreg.h"
+#include "ntv2_pci.h"
 #include "ntv2_konareg.h"
 #include "ntv2_features.h"
 #include "ntv2_input.h"
@@ -39,9 +38,6 @@ static void ntv2_device_dma_release(struct ntv2_device *ntv2_dev);
 
 static int ntv2_device_irq_configure(struct ntv2_device *ntv2_dev);
 static void ntv2_device_irq_release(struct ntv2_device *ntv2_dev);
-
-static void ntv2_device_irq_enable(struct ntv2_device *ntv2_dev);
-static void ntv2_device_irq_disable(struct ntv2_device *ntv2_dev);
 
 static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id);
 static void ntv2_device_init_hardware(struct ntv2_device *ntv2_dev);
@@ -111,7 +107,7 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 
 	NTV2_MSG_DEVICE_INFO("%s: close ntv2_device\n", ntv2_dev->name);
 
-	ntv2_device_irq_disable(ntv2_dev);
+	ntv2_pci_disable(ntv2_dev->pci_dma);
 
 	/* delete all serial objects */
 	list_for_each_safe(ptr, next, &ntv2_dev->serial_list) {
@@ -161,7 +157,7 @@ void ntv2_device_close(struct ntv2_device *ntv2_dev)
 
 	/* release the resources */
 	ntv2_device_irq_release(ntv2_dev);
-	ntv2_nwldma_close(ntv2_dev->dma_engine);
+	ntv2_pci_close(ntv2_dev->pci_dma);
 	ntv2_device_dma_release(ntv2_dev);
 	ntv2_register_close(ntv2_dev->pci_reg);
 	ntv2_register_close(ntv2_dev->vid_reg);
@@ -268,15 +264,11 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 		return result;
 
 	/* initialize ntv2 dma engines */
-	ntv2_dev->dma_engine = ntv2_nwldma_open((struct ntv2_object*)ntv2_dev, "nwd", 4);
-	if (ntv2_dev->dma_engine == NULL)
+	ntv2_dev->pci_dma = ntv2_pci_open((struct ntv2_object*)ntv2_dev, "pci", 0);
+	if (ntv2_dev->pci_dma == NULL)
 		return  -ENOMEM;
 
-	result = ntv2_nwldma_configure(ntv2_dev->dma_engine, ntv2_dev->pci_reg);
-	if (result != 0)
-		return result;
-
-	result = ntv2_nwldma_enable(ntv2_dev->dma_engine);
+	result = ntv2_pci_configure(ntv2_dev->pci_dma, ntv2_dev->pci_type, ntv2_dev->pci_reg);
 	if (result != 0)
 		return result;
 
@@ -371,7 +363,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 										  ntv2_dev->features,
 										  ntv2_chn,
 										  ntv2_dev->inp_mon,
-										  ntv2_dev->dma_engine);
+										  ntv2_dev->pci_dma);
 			if (result != 0) {
 				ntv2_video_close(ntv2_vid);
 				return result;
@@ -394,7 +386,7 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 										  ntv2_dev->snd_card,
 										  ntv2_chn,
 										  ntv2_dev->inp_mon,
-										  ntv2_dev->dma_engine);
+										  ntv2_dev->pci_dma);
 			if (result != 0) {
 				ntv2_audio_close(ntv2_aud);
 				return result;
@@ -440,7 +432,9 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 	}
 
 	/* enable interrupts */
-	ntv2_device_irq_enable(ntv2_dev);
+	result = ntv2_pci_enable(ntv2_dev->pci_dma);
+	if (result != 0)
+		return result;
 
 	return 0;
 }
@@ -482,8 +476,7 @@ void ntv2_device_suspend(struct ntv2_device *ntv2_dev)
 	/* disable hardware stuff */
 	ntv2_chrdev_disable(ntv2_dev->chr_dev);
 	ntv2_input_disable(ntv2_dev->inp_mon);
-	ntv2_nwldma_disable(ntv2_dev->dma_engine);
-	ntv2_device_irq_disable(ntv2_dev);
+	ntv2_pci_disable(ntv2_dev->pci_dma);
 	ntv2_register_disable(ntv2_dev->vid_reg);
 	ntv2_register_disable(ntv2_dev->pci_reg);
 }
@@ -496,8 +489,7 @@ void ntv2_device_resume(struct ntv2_device *ntv2_dev)
 	/* enable hardware */
 	ntv2_register_enable(ntv2_dev->pci_reg);
 	ntv2_register_enable(ntv2_dev->vid_reg);
-	ntv2_device_irq_enable(ntv2_dev);
-	ntv2_nwldma_enable(ntv2_dev->dma_engine);
+	ntv2_pci_enable(ntv2_dev->pci_dma);
 	ntv2_input_enable(ntv2_dev->inp_mon);
 	ntv2_chrdev_enable(ntv2_dev->chr_dev);
 
@@ -780,35 +772,6 @@ static void ntv2_device_irq_release(struct ntv2_device *ntv2_dev)
 	return;
 }
 
-static void ntv2_device_irq_enable(struct ntv2_device *ntv2_dev)
-{
-	if ((ntv2_dev == NULL) || (ntv2_dev->pci_reg == NULL))
-		return;
-
-	NTV2_MSG_DEVICE_INFO("%s: enable interrupts\n", ntv2_dev->name);
-
-	ntv2_reg_write(ntv2_dev->pci_reg,
-				   ntv2_nwldma_reg_common_control_status, 0,
-				   NTV2_FLD_MASK(ntv2_nwldma_fld_dma_interrupt_enable) |
-				   NTV2_FLD_MASK(ntv2_nwldma_fld_user_interrupt_enable));
-
-	return;
-}
-
-static void ntv2_device_irq_disable(struct ntv2_device *ntv2_dev)
-{
-	if ((ntv2_dev == NULL) || (ntv2_dev->pci_reg == NULL))
-		return;
-
-	NTV2_MSG_DEVICE_INFO("%s: disable interrupts\n", ntv2_dev->name);
-
-	ntv2_reg_write(ntv2_dev->pci_reg,
-				   ntv2_nwldma_reg_common_control_status, 0,
-				   0);
-
-	return;
-}
-
 static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 {
 	struct ntv2_device *ntv2_dev = (struct ntv2_device*)dev_id;
@@ -832,7 +795,7 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 	ntv2_video_read_interrupt_status(ntv2_dev->vid_reg, &irq_status);
 
 	/* process dma interrupt */
-	res = ntv2_nwldma_interrupt(ntv2_dev->dma_engine);
+	res = ntv2_pci_interrupt(ntv2_dev->pci_dma);
 	if (res == IRQ_HANDLED)
 		result = IRQ_HANDLED;
 
@@ -857,23 +820,10 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 
 static void ntv2_device_init_hardware(struct ntv2_device *ntv2_dev)
 {
-	u32 val;
 	int num;
 	int i;
 
 	NTV2_MSG_DEVICE_INFO("%s: initialize ntv2 hardware\n", ntv2_dev->name);
-
-	/* disable pci interrupts */
-	ntv2_reg_write(ntv2_dev->pci_reg, ntv2_nwldma_reg_common_control_status, 0, 0);
-
-	/* disable nwl interrupts */
-	num = NTV2_REG_COUNT(ntv2_nwldma_reg_capabilities);
-	for (i = 0; i < num; i++) {
-		val = ntv2_reg_read(ntv2_dev->pci_reg, ntv2_nwldma_reg_capabilities, i);
-		if ((val & NTV2_FLD_MASK(ntv2_nwldma_fld_present)) != 0) {
-			ntv2_reg_write(ntv2_dev->pci_reg, ntv2_nwldma_reg_engine_control_status, i, 0);
-		}
-	}
 
 	/* disable fpga interrupts */
 	ntv2_reg_write(ntv2_dev->vid_reg, ntv2_kona_reg_interrupt_control, 0, 0);

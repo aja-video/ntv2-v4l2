@@ -26,6 +26,7 @@
 
 struct ntv2_audio;
 struct ntv2_features;
+struct ntv2_pci;
 struct ntv2_source_config;
 
 struct ntv2_pcm_stream {
@@ -65,7 +66,7 @@ struct ntv2_audio {
 	struct snd_card 			*snd_card;
 	struct ntv2_channel 		*ntv2_chn;
 	struct ntv2_input			*ntv2_inp;
-	struct ntv2_nwldma			*dma_engine;
+	struct ntv2_pci				*ntv2_pci;
 	bool						init;
 	int							source_index;
 
@@ -85,7 +86,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct snd_card *snd_card,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_input *ntv2_inp,
-						 struct ntv2_nwldma *ntv2_nwl);
+						 struct ntv2_pci *ntv2_pci);
 
 int ntv2_audio_set_source(struct ntv2_audio *ntv2_aud,
 						  struct ntv2_source_config *config);

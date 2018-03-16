@@ -21,7 +21,7 @@
 #include "ntv2_features.h"
 #include "ntv2_pcmops.h"
 #include "ntv2_channel.h"
-#include "ntv2_nwldma.h"
+#include "ntv2_pci.h"
 #include "ntv2_input.h"
 
 
@@ -91,7 +91,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct snd_card *snd_card,
 						 struct ntv2_channel *ntv2_chn,
 						 struct ntv2_input *ntv2_inp,
-						 struct ntv2_nwldma *ntv2_nwl)
+						 struct ntv2_pci *ntv2_pci)
 {
 	struct ntv2_pcm_stream *stream;
 	bool capture;
@@ -103,7 +103,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 		(snd_card == NULL) ||
 		(ntv2_chn == NULL) ||
 		(ntv2_inp == NULL) ||
-		(ntv2_nwl == NULL))
+		(ntv2_pci == NULL))
 		return -EPERM;
 
 	NTV2_MSG_AUDIO_INFO("%s: configure audio device\n", ntv2_aud->name);
@@ -112,7 +112,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 	ntv2_aud->snd_card = snd_card;
 	ntv2_aud->ntv2_chn = ntv2_chn;
 	ntv2_aud->ntv2_inp = ntv2_inp;
-	ntv2_aud->dma_engine = ntv2_nwl;
+	ntv2_aud->ntv2_pci = ntv2_pci;
 
 	capture = ntv2_aud->features->audio_config[ntv2_aud->index]->capture;
 	playback = ntv2_aud->features->audio_config[ntv2_aud->index]->playback;
@@ -490,7 +490,7 @@ static void ntv2_audio_capture_task(unsigned long data)
 			trn.card_size[1] = stream->dma_audbuf->audio.data_size[1];
 			trn.callback_func = ntv2_audio_dma_callback;
 			trn.callback_data = (unsigned long)stream;
-			result = ntv2_nwldma_transfer(ntv2_aud->dma_engine, &trn);
+			result = ntv2_pci_transfer(ntv2_aud->ntv2_pci, &trn);
 			if (result != 0) {
 				stream->dma_done = true;
 				stream->dma_result = result;
