@@ -1,7 +1,7 @@
 /*
- * NTV2 Northwest Logic DMA interface
+ * NTV2 Xilinx DMA interface
  *
- * Copyright 2016 AJA Video Systems Inc. All rights reserved.
+ * Copyright 2018 AJA Video Systems Inc. All rights reserved.
  *
  * This program is free software; you may redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,14 +17,14 @@
  * SOFTWARE.
  */
 
-#ifndef NTV2_NWLDMA_H
-#define NTV2_NWLDMA_H
+#ifndef NTV2_XLXDMA_H
+#define NTV2_XLXDMA_H
 
 #include "ntv2_common.h"
 
-#define NTV2_NWLDMA_MAX_TASKS			64
+#define NTV2_XLXDMA_MAX_TASKS			64
 
-enum ntv2_nwldma_state {
+enum ntv2_xlxdma_state {
 	ntv2_nwldma_state_unknown,
 	ntv2_nwldma_state_idle,
 	ntv2_nwldma_state_start,
@@ -35,19 +35,19 @@ enum ntv2_nwldma_state {
 	ntv2_nwldma_state_size
 };
 
-/* nwl dma descriptor */
-struct ntv2_nwldma_descriptor {
+/* xlx dma descriptor */
+struct ntv2_xlxdma_descriptor {
     u32	control;
     u32	byte_count;
-    u64	system_address;
-    u64	card_address;
-    u64	next_address;
+    u64	src_address;
+    u64	dst_address;
+    u64	nxt_address;
 };
 
-struct ntv2_nwldma_task {
+struct ntv2_xlxdma_task {
 	int						index;
 	struct list_head		list;
-	struct ntv2_nwldma		*ntv2_nwl;
+	struct ntv2_xlxdma		*ntv2_xlx;
 
 	enum ntv2_transfer_mode mode;
 	struct scatterlist		*sg_list;
@@ -64,35 +64,38 @@ struct ntv2_nwldma_task {
 	int		dma_result;
 };
 
-struct ntv2_nwldma {
+struct ntv2_xlxdma {
 	int						index;
 	char					name[NTV2_STRING_SIZE];
 	struct list_head		list;
 	struct ntv2_device		*ntv2_dev;
 
-	struct ntv2_register	*nwl_reg;
+	struct ntv2_register	*xlx_reg;
 	
 	struct tasklet_struct	engine_task;
 	struct tasklet_struct	engine_dpc;
 	struct timer_list 		engine_timer;
-	enum ntv2_nwldma_state	engine_state;
+	enum ntv2_xlxdma_state	engine_state;
 
 	spinlock_t 				state_lock;
 	enum ntv2_task_state	dma_state;
 	enum ntv2_task_state	task_state;
 
+	u32 					s2c_channels;
+	u32 					c2s_channels;
 	enum ntv2_transfer_mode	mode;
 	u32						engine_number;
+	u32						interrupt_mask;
 	u32						card_address_size;
 	u32						max_transfer_size;
 	u32						max_pages;
 	u32						max_descriptors;
 
-	struct ntv2_nwldma_descriptor	*descriptor;
+	struct ntv2_xlxdma_descriptor	*descriptor;
 	dma_addr_t						dma_descriptor;
 	size_t							descriptor_memsize;
 	
-	struct ntv2_nwldma_task	*dma_task;
+	struct ntv2_xlxtask		*dma_task;
 	u32						dpc_control_status;
 	u32						descriptor_bytes;
 	u32						descriptor_count;
@@ -114,28 +117,28 @@ struct ntv2_nwldma {
     s64						soft_dma_time;
     s64						stat_last_display_time;
 
-	struct ntv2_nwldma_task	dmatask_array[NTV2_NWLDMA_MAX_TASKS];
+	struct ntv2_xlxtask		dmatask_array[NTV2_XLXDMA_MAX_TASKS];
 
 	struct list_head 		dmatask_ready_list;
 	struct list_head 		dmatask_done_list;
 };
 
-struct ntv2_nwldma *ntv2_nwldma_open(struct ntv2_object *ntv2_obj,
+struct ntv2_xlxdma *ntv2_xlxdma_open(struct ntv2_object *ntv2_obj,
 									 const char *name, int index);
-void ntv2_nwldma_close(struct ntv2_nwldma *ntv2_nwl);
+void ntv2_xlxdma_close(struct ntv2_xlxdma *ntv2_xlx);
 
-int ntv2_nwldma_configure(struct ntv2_nwldma *ntv2_nwl, struct ntv2_register *nwl_reg);
+int ntv2_xlxdma_configure(struct ntv2_xlxdma *ntv2_xlx, struct ntv2_register *xlx_reg);
 
-int ntv2_nwldma_enable(struct ntv2_nwldma *ntv2_nwl);
-int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl);
+int ntv2_xlxdma_enable(struct ntv2_xlxdma *ntv2_xlx);
+int ntv2_xlxdma_disable(struct ntv2_xlxdma *ntv2_xlx);
 
-int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
+int ntv2_xlxdma_transfer(struct ntv2_xlxdma *ntv2_xlx,
 						 struct ntv2_transfer* ntv2_trn);
 
-int ntv2_nwldma_interrupt(struct ntv2_nwldma *ntv2_nwl);
-void ntv2_nwldma_abort(struct ntv2_nwldma *ntv2_nwl);
+int ntv2_xlxdma_interrupt(struct ntv2_xlxdma *ntv2_xlx);
+void ntv2_xlxdma_abort(struct ntv2_xlxdma *ntv2_xlx);
 
-void ntv2_nwldma_interrupt_enable(struct ntv2_register *nwl_reg);
-void ntv2_nwldma_interrupt_disable(struct ntv2_register *nwl_reg);
+void ntv2_xlxdma_interrupt_enable(struct ntv2_register *xlx_reg);
+void ntv2_xlxdma_interrupt_disable(struct ntv2_register *xlx_reg);
 
 #endif

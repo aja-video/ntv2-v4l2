@@ -34,7 +34,7 @@
 #define NTV2_NWLDMA_MAX_PAGES				(NTV2_NWLDMA_MAX_FRAME_SIZE / PAGE_SIZE)
 
 static void ntv2_nwldma_task(unsigned long data);
-static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task);
+static int ntv2_nwldma_dodma(struct ntv2_nwldma_task *ntv2_task);
 static void ntv2_nwldma_dpc(unsigned long data);
 static void ntv2_nwldma_timeout(unsigned long data);
 static void ntv2_nwldma_cleanup(struct ntv2_nwldma *ntv2_nwl);
@@ -192,7 +192,7 @@ int ntv2_nwldma_enable(struct ntv2_nwldma *ntv2_nwl)
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	INIT_LIST_HEAD(&ntv2_nwl->dmatask_ready_list);
 	INIT_LIST_HEAD(&ntv2_nwl->dmatask_done_list);
-	for (i = 0; i < NTV2_MAX_DMA_TASKS; i++) {
+	for (i = 0; i < NTV2_NWLDMA_MAX_TASKS; i++) {
 		ntv2_nwl->dmatask_array[i].index = i;
 		INIT_LIST_HEAD(&ntv2_nwl->dmatask_array[i].list);
 		ntv2_nwl->dmatask_array[i].ntv2_nwl = ntv2_nwl;
@@ -271,7 +271,7 @@ int ntv2_nwldma_disable(struct ntv2_nwldma *ntv2_nwl)
 int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 						 struct ntv2_transfer *ntv2_trn)
 {
-	struct ntv2_dmatask *task = NULL;
+	struct ntv2_nwldma_task *task = NULL;
 	unsigned long flags;
 	int task_index = 9999;
 
@@ -285,7 +285,7 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 	spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 	if ((ntv2_nwl->dma_state == ntv2_task_state_enable) &&
 		(!list_empty(&ntv2_nwl->dmatask_done_list))) {
-		task = list_first_entry(&ntv2_nwl->dmatask_done_list, struct ntv2_dmatask, list);
+		task = list_first_entry(&ntv2_nwl->dmatask_done_list, struct ntv2_nwldma_task, list);
 	
 		task->mode = ntv2_trn->mode;
 		task->sg_list = ntv2_trn->sg_list;
@@ -328,7 +328,7 @@ int ntv2_nwldma_transfer(struct ntv2_nwldma *ntv2_nwl,
 static void ntv2_nwldma_task(unsigned long data)
 {
 	struct ntv2_nwldma *ntv2_nwl = (struct ntv2_nwldma *)data;
-	struct ntv2_dmatask *task;
+	struct ntv2_nwldma_task *task;
 	unsigned long flags;
 	int task_index;
 	int result;
@@ -344,13 +344,13 @@ static void ntv2_nwldma_task(unsigned long data)
 	if (ntv2_nwl->task_state != ntv2_task_state_enable)
 		return;
 
-	for(i = 0; i < NTV2_MAX_DMA_TASKS; i++) {
+	for(i = 0; i < NTV2_NWLDMA_MAX_TASKS; i++) {
 		task = NULL;
 		task_index = 999;
 
 		spin_lock_irqsave(&ntv2_nwl->state_lock, flags);
 		if (!list_empty(&ntv2_nwl->dmatask_ready_list)) {
-			task = list_first_entry(&ntv2_nwl->dmatask_ready_list, struct ntv2_dmatask, list);
+			task = list_first_entry(&ntv2_nwl->dmatask_ready_list, struct ntv2_nwldma_task, list);
 			task_index = task->index;
 		}
 		spin_unlock_irqrestore(&ntv2_nwl->state_lock, flags);
@@ -395,7 +395,7 @@ static void ntv2_nwldma_task(unsigned long data)
 					   ntv2_nwl->name);
 }
 
-static int ntv2_nwldma_dodma(struct ntv2_dmatask *ntv2_task)
+static int ntv2_nwldma_dodma(struct ntv2_nwldma_task *ntv2_task)
 {
 	struct ntv2_nwldma *ntv2_nwl;
 	struct scatterlist *sgentry;
