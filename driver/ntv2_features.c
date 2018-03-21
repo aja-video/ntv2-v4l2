@@ -1033,6 +1033,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 0;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
 
@@ -1043,6 +1044,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 1;
 	nic->input_index = 1;
 	nic->num_inputs = 1;
 
@@ -1053,6 +1055,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 2;
 	nic->input_index = 2;
 	nic->num_inputs = 1;
 
@@ -1063,6 +1066,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 3;
 	nic->input_index = 3;
 	nic->num_inputs = 1;
 
@@ -1073,6 +1077,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 4;
 	nic->input_index = 4;
 	nic->num_inputs = 1;
 
@@ -1083,6 +1088,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 5;
 	nic->input_index = 5;
 	nic->num_inputs = 1;
 
@@ -1093,6 +1099,7 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
+	nic->reg_index = 6;
 	nic->input_index = 6;
 	nic->num_inputs = 1;
 
@@ -1102,6 +1109,7 @@ static void ntv2_features_initialize(void) {
 	nic->type = ntv2_input_type_sdi;
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_single;
+	nic->reg_index = 7;
 	nic->input_index = 7;
 	nic->num_inputs = 1;
 
@@ -1114,6 +1122,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
+	nic->reg_index = 0;
 	nic->input_index = 0;
 	nic->num_inputs = 2;
 
@@ -1125,6 +1134,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
+	nic->reg_index = 2;
 	nic->input_index = 2;
 	nic->num_inputs = 2;
 
@@ -1136,6 +1146,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
+	nic->reg_index = 4;
 	nic->input_index = 4;
 	nic->num_inputs = 2;
 
@@ -1147,6 +1158,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_dual;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
+	nic->reg_index = 6;
 	nic->input_index = 6;
 	nic->num_inputs = 2;
 
@@ -1159,6 +1171,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
+	nic->reg_index = 0;
 	nic->input_index = 0;
 	nic->num_inputs = 4;
 
@@ -1170,6 +1183,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_sdi_quad;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
+	nic->reg_index = 4;
 	nic->input_index = 4;
 	nic->num_inputs = 4;
 
@@ -1182,6 +1196,7 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi14;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297; 
+	nic->reg_index = 0;
 	nic->input_index = 0;
 	nic->num_inputs = 1;
 
@@ -1193,7 +1208,8 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
-	nic->input_index = 1;
+	nic->reg_index = 1;
+	nic->input_index = 0;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi20_2;
@@ -1204,7 +1220,8 @@ static void ntv2_features_initialize(void) {
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi20;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | 
 		ntv2_kona_frame_3g | ntv2_kona_frame_uhd297 | ntv2_kona_frame_uhd594; 
-	nic->input_index = 2;
+	nic->reg_index = 2;
+	nic->input_index = 1;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi13_3;
@@ -1214,7 +1231,8 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
-	nic->input_index = 1;
+	nic->reg_index = 1;
+	nic->input_index = 3;
 	nic->num_inputs = 1;
 
 	nic = &nic_hdmi13_4;
@@ -1224,7 +1242,8 @@ static void ntv2_features_initialize(void) {
 	nic->version = 0;
 	nic->v4l2_timings_cap = ntv2_timings_cap_hdmi13;
 	nic->frame_flags = ntv2_kona_frame_sd | ntv2_kona_frame_hd | ntv2_kona_frame_3g;
-	nic->input_index = 2;
+	nic->reg_index = 2;
+	nic->input_index = 4;
 	nic->num_inputs = 1;
 
 	/* audio auto source */
@@ -1688,7 +1707,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2398;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p2400 timing */
@@ -1701,7 +1720,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2400;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p2500 timing */
@@ -1714,7 +1733,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p2997 timing */
@@ -1727,7 +1746,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p3000 timing */
@@ -1740,7 +1759,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_3000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p5000 timing */
@@ -1753,7 +1772,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p5994 timing */
@@ -1766,7 +1785,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* 2160p6000 timing */
@@ -1779,7 +1798,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleaved;
+		ntv2_kona_frame_sample_interleave;
 	nvf->num_channels = 2;
 
 	/* UYVY16 format */

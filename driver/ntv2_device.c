@@ -794,6 +794,8 @@ static irqreturn_t ntv2_device_interrupt(int irq, void* dev_id)
 	/* read the video interrupt status registers */
 	ntv2_video_read_interrupt_status(ntv2_dev->vid_reg, &irq_status);
 
+//	NTV2_MSG_DEVICE_INFO("%s: irq  status %08x %08x\n", 
+//						 ntv2_dev->name, irq_status.interrupt_status[0], irq_status.interrupt_status[1]);
 	/* process dma interrupt */
 	res = ntv2_pci_interrupt(ntv2_dev->pci_dma);
 	if (res == IRQ_HANDLED)

@@ -20,9 +20,11 @@
 #include "ntv2_pci.h"
 #include "ntv2_register.h"
 #include "ntv2_nwldma.h"
-#include "ntv2_nwlreg.h"
+#include "ntv2_xlxdma.h"
+
 
 static struct ntv2_nwldma* ntv2_pci_nwl_config(struct ntv2_pci *ntv2_pci, int index);
+static struct ntv2_xlxdma* ntv2_pci_xlx_config(struct ntv2_pci *ntv2_pci, int index);
 
 
 struct ntv2_pci *ntv2_pci_open(struct ntv2_object *ntv2_obj,
@@ -102,6 +104,10 @@ int ntv2_pci_configure(struct ntv2_pci *ntv2_pci,
 			return -EPERM;
 		break;
 	case ntv2_pci_type_xlx:
+		ntv2_xlxdma_interrupt_disable(pci_reg);
+		ntv2_pci->xlx_engine[0] = ntv2_pci_xlx_config(ntv2_pci, 4);
+		if (ntv2_pci->xlx_engine[0] == NULL)
+			return -EPERM;
 	default:
 		break;
 	}
@@ -138,6 +144,14 @@ int ntv2_pci_enable(struct ntv2_pci *ntv2_pci)
 		}
 		break;
 	case ntv2_pci_type_xlx:
+		ntv2_xlxdma_interrupt_enable(ntv2_pci->pci_reg);
+		for (i = 0; i < NTV2_MAX_DMA_ENGINES; i++)
+		{
+			if (ntv2_pci->xlx_engine[i] != NULL) {
+				ntv2_xlxdma_enable(ntv2_pci->xlx_engine[i]);
+			}
+		}
+		break;
 	default:
 		break;
 	}
@@ -175,6 +189,14 @@ int ntv2_pci_disable(struct ntv2_pci *ntv2_pci)
 		ntv2_nwldma_interrupt_disable(ntv2_pci->pci_reg);
 		break;
 	case ntv2_pci_type_xlx:
+		for (i = 0; i < NTV2_MAX_DMA_ENGINES; i++)
+		{
+			if (ntv2_pci->xlx_engine[i] != NULL) {
+				ntv2_xlxdma_disable(ntv2_pci->xlx_engine[i]);
+			}
+		}
+		ntv2_xlxdma_interrupt_disable(ntv2_pci->pci_reg);
+		break;
 	default:
 		break;
 	}
@@ -210,6 +232,9 @@ int ntv2_pci_transfer(struct ntv2_pci *ntv2_pci,
 			result = ntv2_nwldma_transfer(ntv2_pci->nwl_engine[0], ntv2_trn);
 		break;
 	case ntv2_pci_type_xlx:
+		if (ntv2_pci->xlx_engine[0] != NULL)
+			result = ntv2_xlxdma_transfer(ntv2_pci->xlx_engine[0], ntv2_trn);
+		break;
 	default:
 		break;
 	}
@@ -242,6 +267,15 @@ int ntv2_pci_interrupt(struct ntv2_pci *ntv2_pci)
 		}
 		break;
 	case ntv2_pci_type_xlx:
+		for (i = 0; i < NTV2_MAX_DMA_ENGINES; i++)
+		{
+			if (ntv2_pci->xlx_engine[i] != NULL) {
+				res = ntv2_xlxdma_interrupt(ntv2_pci->xlx_engine[i]);
+				if (res == IRQ_HANDLED)
+					result = IRQ_HANDLED;
+			}
+		}
+		break;
 	default:
 		break;
 	}
@@ -272,5 +306,30 @@ static struct ntv2_nwldma* ntv2_pci_nwl_config(struct ntv2_pci *ntv2_pci, int in
 	}
 	
 	return ntv2_nwl;
+}
+
+static struct ntv2_xlxdma* ntv2_pci_xlx_config(struct ntv2_pci *ntv2_pci, int index)
+{
+	struct ntv2_xlxdma *ntv2_xlx;
+	int result;
+	
+	/* open and configure xlx dma engine */
+	ntv2_xlx = ntv2_xlxdma_open((struct ntv2_object*)ntv2_pci, "xlx", index);
+	if (ntv2_xlx == NULL)
+			return NULL;
+
+	result = ntv2_xlxdma_configure(ntv2_xlx, ntv2_pci->pci_reg);
+	if (result != 0) {
+		ntv2_xlxdma_close(ntv2_xlx);
+		return NULL;
+	}
+
+	result = ntv2_xlxdma_enable(ntv2_xlx);
+	if (result != 0) {
+		ntv2_xlxdma_close(ntv2_xlx);
+		return NULL;
+	}
+	
+	return ntv2_xlx;
 }
 

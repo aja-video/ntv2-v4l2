@@ -735,6 +735,8 @@ void ntv2_kona_register_initialize(void)
 	video_standard_to_hdmi[ntv2_kona_video_standard_525i] = ntv2_kona_hdmiin_video_standard_525i;
 	video_standard_to_hdmi[ntv2_kona_video_standard_625i] = ntv2_kona_hdmiin_video_standard_625i;
 	video_standard_to_hdmi[ntv2_kona_video_standard_1080p] = ntv2_kona_hdmiin_video_standard_1080p;
+	video_standard_to_hdmi[ntv2_kona_video_standard_2048x1080i] = ntv2_kona_hdmiin_video_standard_1080i;
+	video_standard_to_hdmi[ntv2_kona_video_standard_2048x1080p] = ntv2_kona_hdmiin_video_standard_1080p;
 	video_standard_to_hdmi[ntv2_kona_video_standard_3840x2160p] = ntv2_kona_hdmiin_video_standard_4k;
 	video_standard_to_hdmi[ntv2_kona_video_standard_4096x2160p] = ntv2_kona_hdmiin_video_standard_4k;
 

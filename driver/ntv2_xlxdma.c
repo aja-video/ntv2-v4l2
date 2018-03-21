@@ -33,7 +33,7 @@
 #define NTV2_XLXDMA_MAX_FRAME_SIZE			(2048 * 1080 * 4 * 6)
 #define NTV2_XLXDMA_MAX_PAGES				(NTV2_XLXDMA_MAX_FRAME_SIZE / PAGE_SIZE)
 
-#define NTV2_XLXDMA_MAX_ADJACENT_COUNT		0
+#define NTV2_XLXDMA_MAX_ADJACENT_COUNT		15
 
 static void ntv2_xlxdma_task(unsigned long data);
 static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task);
@@ -775,8 +775,6 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 	bool	done = false;
 	u32		status;
 	u32		value;
-	u32		val_hardware_time;
-	u32		val_byte_count;
 	s64		stat_time;
 	int		result = 0;
 	int 	index;
@@ -819,10 +817,6 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 		}
 	}
 	
-	/* get the hardware time (nanoseconds) and bytes transferred */
-	val_hardware_time = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_perf_cycle_count_low, index);
-	val_byte_count = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_perf_data_count_low, index);
-
 	/* transfer complete */
 	ntv2_xlx->transfer_complete_count++;
 
@@ -832,19 +826,18 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_read_error, 1);
 	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_desc_error, 1);
 	if ((status & value) == 0) {
+		stat_time = ntv2_system_time();
 		ntv2_xlx->stat_transfer_count++;
-		ntv2_xlx->stat_transfer_bytes += val_byte_count;
-		ntv2_xlx->stat_transfer_time += val_hardware_time * 100 / 1250;
+		ntv2_xlx->stat_transfer_bytes += ntv2_xlx->dma_task->card_size[0] + ntv2_xlx->dma_task->card_size[1];
 		ntv2_xlx->stat_descriptor_count += ntv2_xlx->descriptor_count;
 
-		stat_time = ntv2_system_time();
 		ntv2_xlx->soft_transfer_time += stat_time - ntv2_xlx->soft_transfer_time_start;
 		ntv2_xlx->soft_dma_time += stat_time - ntv2_xlx->soft_dma_time_start;
 
 		if (stat_time > (ntv2_xlx->stat_last_display_time + NTV2_XLXDMA_STATISTIC_INTERVAL))
 		{
 			s64 stat_transfer_kbytes = ntv2_xlx->stat_transfer_bytes / 1000;
-			s64 stat_transfer_time_us = ntv2_xlx->stat_transfer_time / 1000;
+			s64 stat_transfer_time_us = ntv2_xlx->soft_transfer_time;
 
 			if (ntv2_xlx->stat_transfer_count == 0) {
 				ntv2_xlx->stat_transfer_count = 1;
@@ -859,16 +852,15 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 										(ntv2_xlx->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
 										ntv2_xlx->engine_number,
 										(u32)(ntv2_xlx->stat_transfer_count),
-										(u32)(stat_transfer_kbytes / ntv2_xlx->stat_transfer_count ),
+										(u32)(stat_transfer_kbytes / ntv2_xlx->stat_transfer_count),
 										(u32)(ntv2_xlx->stat_descriptor_count / ntv2_xlx->stat_transfer_count));
 
-				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  strn %6d  sdma %6d  hdma %6d (us)  perf %6d (MB/s)\n",
+				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  strn %6d  sdma %6d (us)  perf %6d (MB/s)\n",
 										ntv2_xlx->name,
 										(ntv2_xlx->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
 										ntv2_xlx->engine_number,
 										(u32)(ntv2_xlx->soft_transfer_time / ntv2_xlx->stat_transfer_count),
 										(u32)(ntv2_xlx->soft_dma_time / ntv2_xlx->stat_transfer_count),
-										(u32)(stat_transfer_time_us / ntv2_xlx->stat_transfer_count ),
 										(u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
 			} else {
 				NTV2_MSG_DMA_STATISTICS("%s: dma dir %3s  eng %1d  cnt %6d  size %6d (kB)  time %6d (us)  perf %6d (MB/s)\n",
@@ -876,7 +868,7 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 										(ntv2_xlx->mode == ntv2_transfer_mode_s2c)?"S2C":"C2S",
 										ntv2_xlx->engine_number,
 										(u32)(ntv2_xlx->stat_transfer_count),
-										(u32)(stat_transfer_kbytes / ntv2_xlx->stat_transfer_count ),
+										(u32)(stat_transfer_kbytes / ntv2_xlx->stat_transfer_count),
 										(u32)(ntv2_xlx->soft_transfer_time / ntv2_xlx->stat_transfer_count),
 										(u32)(stat_transfer_kbytes*1000 / stat_transfer_time_us));
 			}

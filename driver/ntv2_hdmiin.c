@@ -786,6 +786,13 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 			}
 
 			ntv2_hdmiin_find_hdmi_format(ntv2_hin, &hdmi_format);
+			/* if no format from vic use dvi format */
+			if (hdmi_format.video_standard == ntv2_kona_video_standard_none) {
+				hdmi_format.video_standard = dvi_format.video_standard;
+			}
+			if (hdmi_format.frame_rate == ntv2_kona_frame_rate_none) {
+				hdmi_format.frame_rate = dvi_format.frame_rate;
+			}
 			NTV2_MSG_HDMIIN_STATE("%s: hdmi standard %s  rate %s  frame %08x  pixel %08x\n",
 								  ntv2_hin->name,
 								  ntv2_video_standard_name(hdmi_format.video_standard),

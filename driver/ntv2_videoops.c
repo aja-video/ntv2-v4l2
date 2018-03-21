@@ -95,7 +95,7 @@ int ntv2_videoops_update_mode(struct ntv2_channel_stream *stream)
 		if ((i >= index_first) && (i <= index_last)) {
 			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val, mask);
 			stream->video.hardware_enable[i] = stream->queue_enable;
-//			NTV2_MSG_INFO("%s: write frame control[%d]  enable %d\n", ntv2_chn->name, i, enable);
+//			NTV2_MSG_INFO("%s: write frame control[%d]  enable\n", ntv2_chn->name, i);
 		} else if (stream->video.hardware_enable[i]) {
 			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, 0, mask);
 			stream->video.hardware_enable[i] = false;
@@ -159,7 +159,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	mode_372 =
 		((stream->input_format.num_inputs == 2) &&
 		 ((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
-		 ((stream->input_format.frame_flags & ntv2_kona_frame_line_interleaved) != 0))? 1 : 0;
+		 ((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0))? 1 : 0;
 
 	standard = stream->video_format.video_standard;
 	rate = stream->video_format.frame_rate;
@@ -217,7 +217,7 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 		((stream->input_format.frame_flags &
 		  ntv2_kona_frame_3gb) != 0) &&
 		((stream->input_format.frame_flags &
-		  ntv2_kona_frame_line_interleaved) != 0);
+		  ntv2_kona_frame_line_interleave) != 0);
 
 	in_rgb = (stream->input_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
 	fs_rgb = (stream->pixel_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;

@@ -36,9 +36,9 @@ NTV2_CON(ntv2_kona_frame_uhd594,							0x00000100);	/* clock uhd 594 mc */
 NTV2_CON(ntv2_kona_frame_3ga,								0x00001000);	/* sdi transport 3ga */
 NTV2_CON(ntv2_kona_frame_3gb,								0x00002000);	/* sdi transport 3gb */
 NTV2_CON(ntv2_kona_frame_dual_link,							0x00004000);	/* sdi transport smpte 372 4444 */
-NTV2_CON(ntv2_kona_frame_line_interleaved,					0x00008000);	/* sdi transport smpte 372 >30 fps */
+NTV2_CON(ntv2_kona_frame_line_interleave,					0x00008000);	/* sdi transport smpte 372 >30 fps */
 NTV2_CON(ntv2_kona_frame_square_division,					0x00010000);	/* transport square division */
-NTV2_CON(ntv2_kona_frame_sample_interleaved,				0x00020000);	/* transport sample interleaved */
+NTV2_CON(ntv2_kona_frame_sample_interleave,					0x00020000);	/* transport sample interleaved */
 NTV2_CON(ntv2_kona_frame_4x3,								0x01000000);	/* 4x3 aspect */
 NTV2_CON(ntv2_kona_frame_16x9,								0x02000000);	/* 16x9 aspect */
 

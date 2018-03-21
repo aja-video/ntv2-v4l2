@@ -656,6 +656,9 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	u32 video_prog = 0;
 	u32 video_sd = 0;
 	u32 frame_rate = 0;
+	u32 f_flags = 0;
+	u32 p_flags = 0;
+	u32 a_detect = 0;
 
 	// read hardware input state
 	line_rate = NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_videocontrol_linerate, ntv2_hin->video_control);
@@ -868,12 +871,108 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 		ntv2_hin->color_depth = color_depth;
 	}
 
+	/* set frame progressive/interlace flags */
+	if (ntv2_video_standard_progressive(video_standard)) {
+		f_flags = ntv2_kona_frame_picture_progressive | ntv2_kona_frame_transport_progressive;
+	} else {
+		f_flags = ntv2_kona_frame_picture_interlaced | ntv2_kona_frame_transport_interlaced;
+	}
+
+	/* use line rate to set frame rate class */
+	switch (line_rate) {
+	case ntv2_kona_con_hdmiin4_linerate_5940mhz:
+	case ntv2_kona_con_hdmiin4_linerate_4455mhz:
+	case ntv2_kona_con_hdmiin4_linerate_3712mhz:
+		f_flags |= ntv2_kona_frame_uhd594;
+		break;
+	case ntv2_kona_con_hdmiin4_linerate_2970mhz:
+	case ntv2_kona_con_hdmiin4_linerate_2227mhz:
+	case ntv2_kona_con_hdmiin4_linerate_1856mhz:
+		f_flags |= ntv2_kona_frame_uhd297;
+		break;
+	case ntv2_kona_con_hdmiin4_linerate_1485mhz:
+	case ntv2_kona_con_hdmiin4_linerate_1113mhz:
+	case ntv2_kona_con_hdmiin4_linerate_928mhz:
+		f_flags |= ntv2_kona_frame_3g;
+		break;
+	case ntv2_kona_con_hdmiin4_linerate_742mhz:
+	case ntv2_kona_con_hdmiin4_linerate_556mhz:
+	case ntv2_kona_con_hdmiin4_linerate_540mhz:
+	case ntv2_kona_con_hdmiin4_linerate_405mhz:
+	case ntv2_kona_con_hdmiin4_linerate_337mhz:
+		f_flags |= ntv2_kona_frame_hd;
+		break;
+	case ntv2_kona_con_hdmiin4_linerate_270mhz:
+	case ntv2_kona_con_hdmiin4_linerate_250mhz:
+		f_flags |= ntv2_kona_frame_sd;
+		break;
+	default:
+		break;
+	}
+
+	/* color component */
+	switch (color_space) {
+	case ntv2_kona_color_space_yuv422:
+		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_422;
+		break;
+	case ntv2_kona_color_space_rgb444:
+		p_flags |= ntv2_kona_pixel_rgb | ntv2_kona_pixel_444;
+		break;
+	case ntv2_kona_color_space_yuv444:
+		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_444;
+		break;
+	case ntv2_kona_color_space_yuv420:
+		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_420;
+		break;
+	default:
+		break;
+	}
+
+	/* scan for colorimetry (simple for now) */
+	if ((f_flags & ntv2_kona_frame_sd) != 0) {
+		p_flags |= ntv2_kona_pixel_rec601;
+	} else {
+		p_flags |= ntv2_kona_pixel_rec709;
+	}
+
+	/* scan for black/white range (simple for now) */
+	if ((p_flags & ntv2_kona_pixel_rgb) != 0) {
+		p_flags |= ntv2_kona_pixel_full;
+	} else {
+		p_flags |= ntv2_kona_pixel_smpte;
+	}
+	
+	/* scan for aspect ratio ( simple for now) */
+	if ((f_flags & ntv2_kona_frame_sd) != 0) {
+		f_flags |= ntv2_kona_frame_4x3;
+	} else {
+		f_flags |= ntv2_kona_frame_16x9;
+	}
+
+	/* color depth */
+	switch (color_depth) {
+	case ntv2_kona_color_depth_8bit:
+		p_flags |= ntv2_kona_pixel_8bit;
+		break;
+	case ntv2_kona_color_depth_10bit:
+		p_flags |= ntv2_kona_pixel_10bit;
+		break;
+	case ntv2_kona_color_depth_12bit:
+		p_flags |= ntv2_kona_pixel_12bit;
+		break;
+	default:
+		break;
+	}
+
+	/* audio 8 channels */
+	a_detect = hdmi_mode? 0xf : 0x0;
+	
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
-	ntv2_hin->input_format.video_standard = ntv2_kona_video_standard_none;
-	ntv2_hin->input_format.frame_rate = ntv2_kona_frame_rate_none;
-	ntv2_hin->input_format.frame_flags = 0;
-	ntv2_hin->input_format.pixel_flags = 0;
-	ntv2_hin->input_format.audio_detect = 0;
+	ntv2_hin->input_format.video_standard = video_standard;
+	ntv2_hin->input_format.frame_rate = frame_rate;
+	ntv2_hin->input_format.frame_flags = f_flags;
+	ntv2_hin->input_format.pixel_flags = p_flags;
+	ntv2_hin->input_format.audio_detect = a_detect;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
 
 	return true;
