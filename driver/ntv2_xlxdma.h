@@ -25,14 +25,14 @@
 #define NTV2_XLXDMA_MAX_TASKS			64
 
 enum ntv2_xlxdma_state {
-	ntv2_nwldma_state_unknown,
-	ntv2_nwldma_state_idle,
-	ntv2_nwldma_state_start,
-	ntv2_nwldma_state_transfer,
-	ntv2_nwldma_state_done,
-	ntv2_nwldma_state_timeout,
-	ntv2_nwldma_state_abort,
-	ntv2_nwldma_state_size
+	ntv2_xlxdma_state_unknown,
+	ntv2_xlxdma_state_idle,
+	ntv2_xlxdma_state_start,
+	ntv2_xlxdma_state_transfer,
+	ntv2_xlxdma_state_done,
+	ntv2_xlxdma_state_timeout,
+	ntv2_xlxdma_state_abort,
+	ntv2_xlxdma_state_size
 };
 
 /* xlx dma descriptor */
@@ -95,8 +95,7 @@ struct ntv2_xlxdma {
 	dma_addr_t						dma_descriptor;
 	size_t							descriptor_memsize;
 	
-	struct ntv2_xlxtask		*dma_task;
-	u32						dpc_control_status;
+	struct ntv2_xlxdma_task	*dma_task;
 	u32						descriptor_bytes;
 	u32						descriptor_count;
 	
@@ -117,7 +116,7 @@ struct ntv2_xlxdma {
     s64						soft_dma_time;
     s64						stat_last_display_time;
 
-	struct ntv2_xlxtask		dmatask_array[NTV2_XLXDMA_MAX_TASKS];
+	struct ntv2_xlxdma_task	dmatask_array[NTV2_XLXDMA_MAX_TASKS];
 
 	struct list_head 		dmatask_ready_list;
 	struct list_head 		dmatask_done_list;

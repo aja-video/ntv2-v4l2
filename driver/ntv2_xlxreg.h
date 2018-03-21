@@ -104,25 +104,25 @@ NTV2_FLD(ntv2_xlxdma_fld_chn_perf_data_count_bits,			10,	0);
 NTV2_FLD(ntv2_xlxdma_fld_chn_perf_data_count_maxed,			1,	16);
 
 /* xilinx irq identifier register */
-NTV2_REG(ntv2_xlxdma_reg_irq_identifier,					0x0800);
+NTV2_REG(ntv2_xlxdma_reg_irq_identifier,					0x0800, 0x0800, 0x0800, 0x0800, 0x0800, 0x0800, 0x0800, 0x0800);
 
 /* xilinx irq user interrupt enable registers */
-NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable,			0x0801);
-NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable_w1s,		0x0802);
-NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable_w1c,		0x0803);
+NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable,			0x0801, 0x0801, 0x0801, 0x0801, 0x0801, 0x0801, 0x0801, 0x0801);
+NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable_w1s,		0x0802, 0x0802, 0x0802, 0x0802, 0x0802, 0x0802, 0x0802, 0x0802);
+NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_enable_w1c,		0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803, 0x0803);
 
 /* xilinx irq channel interrupt enable registers */
-NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable,			0x0804);
-NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1s,		0x0805);
-NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1c,		0x0806);
+NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable,			0x0804, 0x0804, 0x0804, 0x0804, 0x0804, 0x0804, 0x0804, 0x0804);
+NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1s,		0x0805, 0x0805, 0x0805, 0x0805, 0x0805, 0x0805, 0x0805, 0x0805);
+NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1c,		0x0806, 0x0806, 0x0806, 0x0806, 0x0806, 0x0806, 0x0806, 0x0806);
 
 /* xilinx irq interrupt request registers */
-NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_request,			0x0810);
-NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_request,			0x0811);
+NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_request,			0x0810, 0x0810, 0x0810, 0x0810, 0x0810, 0x0810, 0x0810, 0x0810);
+NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_request,			0x0811, 0x0811, 0x0811, 0x0811, 0x0811, 0x0811, 0x0811, 0x0811);
 
 /* xilinx irq interrupt pending event registers */
-NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_pending,			0x0812);
-NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_pending,			0x0813);
+NTV2_REG(ntv2_xlxdma_reg_irq_usr_interrupt_pending,			0x0812, 0x0812, 0x0812, 0x0812, 0x0812, 0x0812, 0x0812, 0x0812);
+NTV2_REG(ntv2_xlxdma_reg_irq_chn_interrupt_pending,			0x0813, 0x0813, 0x0813, 0x0813, 0x0813, 0x0813, 0x0813, 0x0813);
 
 /* xilinx segment identifier register */
 NTV2_REG(ntv2_xlxdma_reg_seg_identifier,					0x1000, 0x1040, 0x1080, 0x10c0, 0x1400, 0x1440, 0x1480, 0x14c0);

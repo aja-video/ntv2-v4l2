@@ -33,6 +33,8 @@
 #define NTV2_XLXDMA_MAX_FRAME_SIZE			(2048 * 1080 * 4 * 6)
 #define NTV2_XLXDMA_MAX_PAGES				(NTV2_XLXDMA_MAX_FRAME_SIZE / PAGE_SIZE)
 
+#define NTV2_XLXDMA_MAX_ADJACENT_COUNT		0
+
 static void ntv2_xlxdma_task(unsigned long data);
 static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task);
 static void ntv2_xlxdma_dpc(unsigned long data);
@@ -135,7 +137,7 @@ int ntv2_xlxdma_configure(struct ntv2_xlxdma *ntv2_xlx, struct ntv2_register *xl
 	/* find channels */
 	for (i = 0; i < max_channels; i++)
 	{
-		value = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_s2c_identifier, i);
+		value = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_identifier, i);
 		subsystem = NTV2_FLD_GET(ntv2_xlxdma_fld_chn_subsystem_id, value);
 		target = NTV2_FLD_GET(ntv2_xlxdma_fld_chn_target, value);
 		
@@ -427,11 +429,16 @@ static void ntv2_xlxdma_task(unsigned long data)
 static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 {
 	struct ntv2_xlxdma *ntv2_xlx;
+	struct ntv2_register *xlx_reg;
 	struct scatterlist *sgentry;
 	struct ntv2_xlxdma_descriptor *desc;
+	struct ntv2_xlxdma_descriptor *desc_opt;
+	struct ntv2_xlxdma_descriptor *desc_last;
 	enum ntv2_xlxdma_state	state;
 	unsigned long flags;
+	u32		status;
 	u32		control;
+	u32		contig;
 	u64		card_address;
 	u64		system_address;
 	u64		desc_next;
@@ -439,16 +446,21 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 	u32		total_size;
 	u32		data_size;
 	u32		byte_count;
+	u32		value;
 	int		result;
+	int		index;
 	int		i;
 
 	if ((ntv2_task == NULL) ||
 		(ntv2_task->ntv2_xlx == NULL) ||
-		(ntv2_task->sg_list == NULL))
+		(ntv2_task->sg_list == NULL) ||
+		(ntv2_task->ntv2_xlx->xlx_reg == NULL))
 		return -EPERM;
 
 	ntv2_xlx = ntv2_task->ntv2_xlx;
-
+	xlx_reg = ntv2_xlx->xlx_reg;
+	index = ntv2_xlx->index;
+	
 	if (ntv2_task->mode != ntv2_xlx->mode) {
 		NTV2_MSG_DMA_ERROR("%s: *error* transfer mode %d does not match engine mode %d\n",
 						   ntv2_xlx->name, ntv2_task->mode, ntv2_xlx->mode);
@@ -512,22 +524,19 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 		goto error_idle;
 	}
 
-	/* read dma engine control/status register */
-	control = ntv2_reg_read(ntv2_xlx->xlx_reg,
-							ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index);
+	/* read dma engine status register */
+	status = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_status, index);
 
 	/* make sure that engine is not running */
-	if (NTV2_FLD_GET(ntv2_xlxdma_fld_chain_running, control) != 0)
-	{
-		NTV2_MSG_DMA_ERROR("%s: *warn* dma running before start  control/status 0x%08x\n",
-						   ntv2_xlx->name, control);
+	if ((status & NTV2_FLD_MASK(ntv2_xlxdma_fld_chn_run)) != 0) {
+		NTV2_MSG_DMA_ERROR("%s: *warn* dma running before start  status 0x%08x\n",
+						   ntv2_xlx->name, status);
 		ntv2_xlxdma_stop(ntv2_xlx);
-		control = ntv2_reg_read(ntv2_xlx->xlx_reg,
-								ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index);
-		if (NTV2_FLD_GET(ntv2_xlxdma_fld_chain_running, control) != 0)
+		status = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_status, index);
+		if ((status & NTV2_FLD_MASK(ntv2_xlxdma_fld_chn_run)) != 0)
 		{
-			NTV2_MSG_DMA_ERROR("%s: *error* dma running before start  control/status 0x%08x\n",
-							   ntv2_xlx->name, control);
+			NTV2_MSG_DMA_ERROR("%s: *error* dma running before start *again*  status 0x%08x\n",
+							   ntv2_xlx->name, status);
 			ntv2_xlxdma_cleanup(ntv2_xlx);
 			ntv2_xlx->error_count++;
 			result = -EAGAIN;
@@ -539,12 +548,16 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 	sgentry = ntv2_task->sg_list;
 	card_address = ntv2_task->card_address[0];
 	desc = ntv2_xlx->descriptor;
+	desc_opt = desc;
+	desc_last = desc;
 	desc_next = ntv2_xlx->dma_descriptor + sizeof(struct ntv2_xlxdma_descriptor);
 	desc_count = 0;
 	data_size = 0;
 	total_size = ntv2_task->card_size[0] + ntv2_task->card_size[1];
 	ntv2_xlx->descriptor_count = 0;
 	ntv2_xlx->descriptor_bytes = 0;
+	control = NTV2_FLD_SET(ntv2_xlxdma_fld_desc_control_magic,
+						   ntv2_xlxdma_con_desc_control_magic);
 
 	for (i = 0; i < ntv2_task->sg_pages; i++) {
 		system_address = sg_dma_address(sgentry);
@@ -558,56 +571,81 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 		if ((ntv2_task->card_size[1] != 0) &&
 			(data_size < ntv2_task->card_size[0]) &&
 			((data_size + byte_count) >= ntv2_task->card_size[0])) {
+			/* xlx can fetch up to 16 descriptors at once if they do not span pages */
+			contig = (PAGE_SIZE - (((u32)desc_next) & 0xfff)) / sizeof(struct ntv2_xlxdma_descriptor);
+			if (contig > 0)
+				contig--;
+			if (contig > NTV2_XLXDMA_MAX_ADJACENT_COUNT)
+				contig = NTV2_XLXDMA_MAX_ADJACENT_COUNT;
 			/* write descriptor for first fragment */
-			desc->control			= 0;
-			desc->byte_count		= ntv2_task->card_size[0] - data_size;
-			desc->system_address	= system_address;
-			desc->card_address		= card_address;
-			desc->next_address		= desc_next;
+			desc->control = control;
+			desc->control |= NTV2_FLD_SET(ntv2_xlxdma_fld_desc_control_count, contig);
+			desc->byte_count = ntv2_task->card_size[0] - data_size;
+			if (ntv2_xlx->mode == ntv2_transfer_mode_s2c) {
+				desc->src_address = system_address;
+				desc->dst_address = card_address;
+			} else {
+				desc->src_address = card_address;
+				desc->dst_address = system_address;
+			}
+			desc->nxt_address = desc_next;
 			/* setup for next fragment */
 			system_address += desc->byte_count;
 			card_address = ntv2_task->card_address[1];
 			byte_count -= desc->byte_count;
 			data_size += desc->byte_count;
-			if (data_size >= total_size)
-				break;
 			/* setup for next descriptor */
+			desc_last = desc;
 			desc++;
 			desc_next += sizeof(struct ntv2_xlxdma_descriptor);
+			if (desc_count > NTV2_XLXDMA_MAX_ADJACENT_COUNT)
+				desc_opt++;
 			desc_count++;
 			if (desc_count >= ntv2_xlx->max_descriptors)
-			break;
+				break;
 		}
 
 		if (byte_count != 0) {
+			/* xlx can fetch up to 16 descriptors at once if they do not span pages */
+			contig = (PAGE_SIZE - (((u32)desc_next) & 0xfff)) / sizeof(struct ntv2_xlxdma_descriptor);
+			if (contig > 0)
+				contig--;
+			if (contig > NTV2_XLXDMA_MAX_ADJACENT_COUNT)
+				contig = NTV2_XLXDMA_MAX_ADJACENT_COUNT;
 			/* write the descriptor */
-			desc->control			= 0;
-			desc->byte_count		= byte_count;
-			desc->system_address	= system_address;
-			desc->card_address		= card_address;
-			desc->next_address		= desc_next;
-
+			desc->control = control;
+			desc->control |= NTV2_FLD_SET(ntv2_xlxdma_fld_desc_control_count, contig);
+			desc->byte_count = byte_count;
+			if (ntv2_xlx->mode == ntv2_transfer_mode_s2c) {
+				desc->src_address = system_address;
+				desc->dst_address = card_address;
+			} else {
+				desc->src_address = card_address;
+				desc->dst_address = system_address;
+			}
+			desc->nxt_address = desc_next;
 			/* log some descriptors */
 			if (i < 5) {
-				NTV2_MSG_DMA_DESCRIPTOR("%s: con %08x cnt %08x sys %08x:%08x crd %08x:%08x nxt %08x:%08x\n",
+				NTV2_MSG_DMA_DESCRIPTOR("%s: con %08x cnt %08x src %08x:%08x dst %08x:%08x nxt %08x:%08x\n",
 										ntv2_xlx->name,
 										desc->control,
 										desc->byte_count,
-										NTV2_U64_HIGH(desc->system_address),
-										NTV2_U64_LOW(desc->system_address),
-										NTV2_U64_HIGH(desc->card_address),
-										NTV2_U64_LOW(desc->card_address),
-										NTV2_U64_HIGH(desc->next_address),
-										NTV2_U64_LOW(desc->next_address));
+										NTV2_U64_HIGH(desc->src_address),
+										NTV2_U64_LOW(desc->src_address),
+										NTV2_U64_HIGH(desc->dst_address),
+										NTV2_U64_LOW(desc->dst_address),
+										NTV2_U64_HIGH(desc->nxt_address),
+										NTV2_U64_LOW(desc->nxt_address));
 			}
 			/* update card address and size */
 			card_address += byte_count;
 			data_size += byte_count;
-			if (data_size >= total_size)
-				break;
 			/* setup for next descriptor */
+			desc_last = desc;
 			desc++;
 			desc_next += sizeof(struct ntv2_xlxdma_descriptor);
+			if (desc_count > NTV2_XLXDMA_MAX_ADJACENT_COUNT)
+				desc_opt++;
 			desc_count++;
 			if (desc_count >= ntv2_xlx->max_descriptors)
 				break;
@@ -616,13 +654,18 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 		sgentry = sg_next(sgentry);
 	}
 
-	if (data_size >= total_size) {
+	if (data_size == total_size) {
+		/* zero final contig counts */
+		desc = desc_opt;
+		while(desc != desc_last) {
+			desc->control = control;
+			desc++;
+		}
 		/* last descriptor generates interrupt */
-		desc->control = (NTV2_FLD_MASK(ntv2_xlxdma_fld_control_irq_on_completion) |
-						 NTV2_FLD_MASK(ntv2_xlxdma_fld_control_irq_on_short_err) |
-						 NTV2_FLD_MASK(ntv2_xlxdma_fld_control_irq_on_short_sw) |
-						 NTV2_FLD_MASK(ntv2_xlxdma_fld_control_irq_on_short_hw));
-		desc->next_address = 0;
+		desc_last->control = control;
+		desc_last->control |= NTV2_FLD_SET(ntv2_xlxdma_fld_desc_control_stop, 1);
+		desc_last->control |= NTV2_FLD_SET(ntv2_xlxdma_fld_desc_control_completion, 1);
+		desc_last->nxt_address = 0;
 		ntv2_xlx->descriptor_count = desc_count;
 		ntv2_xlx->descriptor_bytes = data_size;
 	} else {
@@ -640,26 +683,37 @@ static int ntv2_xlxdma_dodma(struct ntv2_xlxdma_task *ntv2_task)
 	spin_unlock_irqrestore(&ntv2_xlx->state_lock, flags);
 
 	/* write dma engine descriptor start */
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_chain_start_address_low, ntv2_xlx->index,
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_seg_desc_address_low, index, 
 				   NTV2_U64_LOW(ntv2_xlx->dma_descriptor));
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_chain_start_address_high, ntv2_xlx->index,
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_seg_desc_address_high, index, 
 				   NTV2_U64_HIGH(ntv2_xlx->dma_descriptor));
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_seg_desc_adjacent, ntv2_xlx->index, 
+				   (desc_count > NTV2_XLXDMA_MAX_ADJACENT_COUNT)?NTV2_XLXDMA_MAX_ADJACENT_COUNT:0);
 
 	/* record the dma start */
 	ntv2_task->dma_start = true;
 	ntv2_xlx->soft_dma_time_start = ntv2_system_time();
 
+	/* clear dma status */
+	ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_status_rc, index);
+	/* enable pci irq */
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1s, index, 
+				   ntv2_xlx->interrupt_mask);
+	/* enable performance counts */
+	value = NTV2_FLD_SET(ntv2_xlxdma_fld_chn_perf_auto, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_perf_clear, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_perf_run, 1);
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_chn_perf_control, index, value);
+	/* enable channel interrupt */
+	value = NTV2_FLD_SET(ntv2_xlxdma_fld_chn_desc_stop, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_align_mismatch, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_magic_stop, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_read_error, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_desc_error, 1);
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_chn_interrupt_enable_w1s, index, value);
 	/* start dma engine */
-	control = (NTV2_FLD_MASK(ntv2_xlxdma_fld_interrupt_enable) | 
-			   NTV2_FLD_MASK(ntv2_xlxdma_fld_interrupt_active) |
-			   NTV2_FLD_MASK(ntv2_xlxdma_fld_chain_start) | 
-			   NTV2_FLD_MASK(ntv2_xlxdma_fld_chain_complete));
-
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index,
-				   control);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_run, 1);
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_chn_control, index, value);
 
 	/* start the dma timeout timer */
 	mod_timer(&ntv2_xlx->engine_timer, jiffies +
@@ -677,26 +731,28 @@ error_idle:
 
 int ntv2_xlxdma_interrupt(struct ntv2_xlxdma *ntv2_xlx)
 {
-	u32	control;
+	struct ntv2_register *xlx_reg;
+	u32	request;
+	int index;
 
 	if ((ntv2_xlx == NULL) || (ntv2_xlx->xlx_reg == NULL))
 		return IRQ_NONE;
 
-	/* read control/status register */
-	control = ntv2_reg_read(ntv2_xlx->xlx_reg,
-							ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index);
+	xlx_reg = ntv2_xlx->xlx_reg;
+	index = ntv2_xlx->index;
+	
+	/* read status register */
+	request = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_irq_chn_interrupt_request, index);
 
 	/* check for interrupt active */
-	if ((NTV2_FLD_GET(ntv2_xlxdma_fld_interrupt_enable, control)) &&
-		(NTV2_FLD_GET(ntv2_xlxdma_fld_interrupt_active, control)))
-	{
-		/* clear the interrupt */
-		ntv2_reg_write(ntv2_xlx->xlx_reg,
-					   ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index,
-					   NTV2_FLD_MASK(ntv2_xlxdma_fld_interrupt_active));
-
-		/* save control/status for dpc */
-		ntv2_xlx->dpc_control_status = control;
+	if ((request & ntv2_xlx->interrupt_mask) != 0) {
+		/* disable pci interrupt */
+		ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1c, index, 
+					   ntv2_xlx->interrupt_mask);
+		/* disable channel interrupt */
+		ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_chn_interrupt_enable, index, 0);
+		/* stop the dma engine */
+		ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_chn_control, index, 0);
 
 		/* count the interrupts */
 		ntv2_xlx->interrupt_count++;
@@ -713,15 +769,24 @@ int ntv2_xlxdma_interrupt(struct ntv2_xlxdma *ntv2_xlx)
 static void ntv2_xlxdma_dpc(unsigned long data)
 {
 	struct ntv2_xlxdma *ntv2_xlx = (struct ntv2_xlxdma *)data;
-	enum ntv2_xlxdma_state	state;
+	struct ntv2_register *xlx_reg;
+	enum ntv2_xlxdma_state state;
 	unsigned long flags;
+	bool	done = false;
+	u32		status;
+	u32		value;
 	u32		val_hardware_time;
 	u32		val_byte_count;
 	s64		stat_time;
 	int		result = 0;
+	int 	index;
+	int		i;
 
 	if ((ntv2_xlx == NULL) || (ntv2_xlx->xlx_reg == NULL))
 		return;
+
+	xlx_reg = ntv2_xlx->xlx_reg;
+	index = ntv2_xlx->index;
 
 	spin_lock_irqsave(&ntv2_xlx->state_lock, flags);
 	state = ntv2_xlx->engine_state;
@@ -745,21 +810,31 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 	/* stop the engine timer */
 	del_timer_sync(&ntv2_xlx->engine_timer);
 
+	/* wait for engine stop (can take a couple of register reads) */
+	for (i = 0; i < 1000; i++) {
+		status = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_status, index);
+		if ((status & NTV2_FLD_MASK(ntv2_xlxdma_fld_chn_run)) != 0) {
+			done = true;
+			break;
+		}
+	}
+	
 	/* get the hardware time (nanoseconds) and bytes transferred */
-	val_hardware_time = ntv2_reg_read(ntv2_xlx->xlx_reg,
-									  ntv2_xlxdma_reg_hardware_time, ntv2_xlx->index);
-	val_byte_count = ntv2_reg_read(ntv2_xlx->xlx_reg,
-								   ntv2_xlxdma_reg_chain_complete_byte_count, ntv2_xlx->index);
+	val_hardware_time = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_perf_cycle_count_low, index);
+	val_byte_count = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_chn_perf_data_count_low, index);
 
 	/* transfer complete */
 	ntv2_xlx->transfer_complete_count++;
 
-	// check the reason for the interrupt
-	if (NTV2_FLD_GET(ntv2_xlxdma_fld_chain_complete, ntv2_xlx->dpc_control_status) != 0)
-	{
+	/* check for success */
+	value = NTV2_FLD_SET(ntv2_xlxdma_fld_chn_align_mismatch, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_magic_stop, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_read_error, 1);
+	value |= NTV2_FLD_SET(ntv2_xlxdma_fld_chn_desc_error, 1);
+	if ((status & value) == 0) {
 		ntv2_xlx->stat_transfer_count++;
 		ntv2_xlx->stat_transfer_bytes += val_byte_count;
-		ntv2_xlx->stat_transfer_time += val_hardware_time;
+		ntv2_xlx->stat_transfer_time += val_hardware_time * 100 / 1250;
 		ntv2_xlx->stat_descriptor_count += ntv2_xlx->descriptor_count;
 
 		stat_time = ntv2_system_time();
@@ -817,9 +892,8 @@ static void ntv2_xlxdma_dpc(unsigned long data)
 	}
 	else
 	{
-		NTV2_MSG_DMA_ERROR("%s: *error* dma error control/status 0x%08x\n",
-						   ntv2_xlx->name, ntv2_xlx->dpc_control_status);
-		ntv2_xlxdma_stop(ntv2_xlx);
+		NTV2_MSG_DMA_ERROR("%s: *error* dma error status 0x%08x\n",
+						   ntv2_xlx->name, status);
 		ntv2_xlx->error_count++;
 		result = -EIO;
 	}
@@ -847,7 +921,7 @@ static void ntv2_xlxdma_timeout(unsigned long data)
 	struct ntv2_xlxdma		*ntv2_xlx = (struct ntv2_xlxdma *)data;
 	enum ntv2_xlxdma_state	state;
 	unsigned long			flags;
-	u32						control;
+	u32						status;
 
 	if (ntv2_xlx == NULL)
 		return;
@@ -866,12 +940,10 @@ static void ntv2_xlxdma_timeout(unsigned long data)
 		return;
 	}
 
-	/* read control/status register */
-	control = ntv2_reg_read(ntv2_xlx->xlx_reg,
-							ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index);
-
-	NTV2_MSG_DMA_ERROR("%s: *error* dma engine state: timeout  control/status 0x%08x\n",
-					   ntv2_xlx->name, control);
+	/* read status register */
+	status = ntv2_reg_read(ntv2_xlx->xlx_reg, ntv2_xlxdma_reg_chn_status, ntv2_xlx->index);
+	NTV2_MSG_DMA_ERROR("%s: *error* dma engine state: timeout  status 0x%08x\n",
+					   ntv2_xlx->name, status);
 
 	/* stop transfer */
 	ntv2_xlxdma_stop(ntv2_xlx);
@@ -941,7 +1013,6 @@ static void ntv2_xlxdma_cleanup(struct ntv2_xlxdma *ntv2_xlx)
 		return;
 
 	ntv2_xlx->dma_task = NULL;
-	ntv2_xlx->dpc_control_status = 0;
 	ntv2_xlx->descriptor_bytes = 0;
 	ntv2_xlx->descriptor_count = 0;
 }
@@ -954,20 +1025,15 @@ static void ntv2_xlxdma_stop(struct ntv2_xlxdma *ntv2_xlx)
 	/* stop the engine timer */
 	del_timer(&ntv2_xlx->engine_timer);
 
-	/* disable the interrupt */
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index,
-				   NTV2_FLD_MASK(ntv2_xlxdma_fld_interrupt_active));
-	
-	/* write the reset bit */
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index,
-				   NTV2_FLD_MASK(ntv2_xlxdma_fld_status_dma_reset_request));
+	/* disable pci interrupt */
+	ntv2_reg_write(ntv2_xlx->xlx_reg, ntv2_xlxdma_reg_irq_chn_interrupt_enable_w1c,
+				   ntv2_xlx->index, ntv2_xlx->interrupt_mask);
 
-	/* clear the interrupt */
-	ntv2_reg_write(ntv2_xlx->xlx_reg,
-				   ntv2_xlxdma_reg_engine_control_status, ntv2_xlx->index,
-				   NTV2_FLD_MASK(ntv2_xlxdma_fld_interrupt_active));
+	/* disable channel interrupt */
+	ntv2_reg_write(ntv2_xlx->xlx_reg, ntv2_xlxdma_reg_chn_interrupt_enable, ntv2_xlx->index, 0);
+
+	/* stop the dma engine */
+	ntv2_reg_write(ntv2_xlx->xlx_reg, ntv2_xlxdma_reg_chn_control, ntv2_xlx->index, 0);
 }
 
 void ntv2_xlxdma_interrupt_enable(struct ntv2_register *xlx_reg)
@@ -975,33 +1041,16 @@ void ntv2_xlxdma_interrupt_enable(struct ntv2_register *xlx_reg)
 	if (xlx_reg == NULL)
 		return;
 
-	/* enable xlx and user interrupts */
-	ntv2_reg_write(xlx_reg,
-				   ntv2_xlxdma_reg_common_control_status, 0,
-				   NTV2_FLD_MASK(ntv2_xlxdma_fld_dma_interrupt_enable) |
-				   NTV2_FLD_MASK(ntv2_xlxdma_fld_user_interrupt_enable));
+	/* enable user interrupts */
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_irq_usr_interrupt_enable, 0, 0x1);
 }
 
 void ntv2_xlxdma_interrupt_disable(struct ntv2_register *xlx_reg)
 {
-	int num;
-	int i;
-	u32 val;
-	
 	if (xlx_reg == NULL)
 		return;
 
 	/* disable xlx and user interrupts */
-	ntv2_reg_write(xlx_reg,
-				   ntv2_xlxdma_reg_common_control_status, 0,
-				   0);
-
-	/* disable xlx dma interrupts */
-	num = NTV2_REG_COUNT(ntv2_xlxdma_reg_capabilities);
-	for (i = 0; i < num; i++) {
-		val = ntv2_reg_read(xlx_reg, ntv2_xlxdma_reg_capabilities, i);
-		if ((val & NTV2_FLD_MASK(ntv2_xlxdma_fld_present)) != 0) {
-			ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_engine_control_status, i, 0);
-		}
-	}
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_irq_usr_interrupt_enable, 0, 0);
+	ntv2_reg_write(xlx_reg, ntv2_xlxdma_reg_irq_chn_interrupt_enable, 0, 0);
 }
