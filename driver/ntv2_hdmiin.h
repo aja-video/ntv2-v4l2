@@ -95,6 +95,9 @@ struct ntv2_hdmiin {
 	u32								v_frequency;
 	u32								tmds_frequency;
 
+	u32								color_space;
+	u32								color_depth;
+
 	struct task_struct 				*monitor_task;
 	enum ntv2_task_state			monitor_state;
 };

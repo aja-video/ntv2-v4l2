@@ -366,6 +366,8 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	ntv2_hin->yuv_mode = false;
 	ntv2_hin->prefer_yuv = false;
 	ntv2_hin->prefer_rgb = false;
+	ntv2_hin->color_space = 0;
+	ntv2_hin->color_depth = 0;
 	ntv2_hin->relock_reports = NTV2_REPORT_ANY;
 
 	ntv2_hdmiin_set_no_video(ntv2_hin);
@@ -1178,7 +1180,10 @@ static void ntv2_hdmiin_find_dvi_format(struct ntv2_hdmiin *ntv2_hin,
 	} else {
 		f_flags |= ntv2_kona_frame_16x9;
 		p_flags |= ntv2_kona_pixel_rec709;
-	}		
+	}
+
+	ntv2_hin->color_space = ntv2_kona_color_space_rgb444;
+	ntv2_hin->color_depth = ntv2_kona_color_depth_8bit;
 
 	format->video_standard = standard;
 	format->frame_rate = rate;
@@ -1275,12 +1280,16 @@ static void ntv2_hdmiin_find_hdmi_format(struct ntv2_hdmiin *ntv2_hin,
 	val = (a_byte[1] & avi_color_component_mask1) >> avi_color_component_shift1;
 	if (val == avi_color_comp_422) {
 		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_422;
+		ntv2_hin->color_space = ntv2_kona_color_space_yuv422;
 	} else if (val == avi_color_comp_444) {
 		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_444;
+		ntv2_hin->color_space = ntv2_kona_color_space_yuv444;
 	} else if (val == avi_color_comp_420) {
 		p_flags |= ntv2_kona_pixel_yuv | ntv2_kona_pixel_420;
+		ntv2_hin->color_space = ntv2_kona_color_space_yuv420;
 	} else {
 		p_flags |= ntv2_kona_pixel_rgb | ntv2_kona_pixel_444;
+		ntv2_hin->color_space = ntv2_kona_color_space_rgb444;
 	}
 
 	/* scan for colorimetry */
@@ -1325,7 +1334,7 @@ static void ntv2_hdmiin_find_hdmi_format(struct ntv2_hdmiin *ntv2_hin,
 		f_flags |= ntv2_kona_frame_16x9;
 	}
 
-	/* use detected deep color for bit depth */
+	/* use detected deep color for cross point bit depth */
 	if ((p_flags & ntv2_kona_pixel_rgb) != 0) {
 		if (ntv2_hin->deep_color_12bit) {
 			p_flags |= ntv2_kona_pixel_12bit;
@@ -1335,7 +1344,17 @@ static void ntv2_hdmiin_find_hdmi_format(struct ntv2_hdmiin *ntv2_hin,
 			p_flags |= ntv2_kona_pixel_8bit;
 		}
 	} else {
+		/* yuv 422 always 10 bit */
 		p_flags |= ntv2_kona_pixel_10bit;
+	}
+
+	/* use detected deep color to report deep color */
+	if (ntv2_hin->deep_color_12bit) {
+		ntv2_hin->color_depth = ntv2_kona_color_depth_12bit;
+	} else if (ntv2_hin->deep_color_10bit) {
+		ntv2_hin->color_depth = ntv2_kona_color_depth_10bit;
+	} else {
+		ntv2_hin->color_depth = ntv2_kona_color_depth_8bit;
 	}
 
 done:
@@ -1381,6 +1400,7 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	u32 vertical_data_fld1;
 	u32 vertical_data_fld2;
 	u32 input_status;
+	u32 input_mask;
 
 	/* good format ??? */
 	if ((hdmiin_standard == ntv2_kona_hdmiin_video_standard_none) ||
@@ -1517,6 +1537,12 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_rate, format->frame_rate);
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_input_status, ntv2_hin->index, input_status);
 
+	input_status = NTV2_FLD_SET(ntv2_kona_fld_hdmiin_color_space, ntv2_hin->color_space);
+	input_mask = NTV2_FLD_MASK(ntv2_kona_fld_hdmiin_color_space);
+	input_status |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_color_depth, ntv2_hin->color_depth);
+	input_mask |= NTV2_FLD_MASK(ntv2_kona_fld_hdmiin_color_depth);
+	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmi_control, ntv2_hin->index, input_status, input_mask);
+
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
 	ntv2_hin->input_format = *format;
 	spin_unlock_irqrestore(&ntv2_hin->state_lock, flags);
@@ -1544,7 +1570,8 @@ static void ntv2_hdmiin_set_no_video(struct ntv2_hdmiin *ntv2_hin)
 	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
 	struct ntv2_konai2c *i2c_reg = ntv2_hin->i2c_reg;
 	unsigned long flags;
-	u32 val = 0;
+	u32 value = 0;
+	u32 mask = 0;
 
 	/* disable hdmi to fpga link */
 	ntv2_konai2c_set_device(i2c_reg, device_io_bank);
@@ -1565,21 +1592,27 @@ static void ntv2_hdmiin_set_no_video(struct ntv2_hdmiin *ntv2_hin)
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_vertical_data_fld2, ntv2_hin->index, 0);
 
 	/* clear fpga status */
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_locked, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_stable, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_rgb, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_deep_color, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_code, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_8ch,	0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_progressive, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_sd, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_74_25, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_rate, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_word_length,	0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_format, 0);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_dvi, 1);
-	val |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_rate, 0);
-	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_input_status, ntv2_hin->index, val);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_locked, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_stable, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_rgb, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_deep_color, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_code, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_8ch,	0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_progressive, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_sd, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_74_25, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_rate, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_audio_word_length,	0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_format, 0);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_dvi, 1);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_video_rate, 0);
+	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin_input_status, ntv2_hin->index, value);
+
+	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin_color_space, 0);
+	mask = NTV2_FLD_MASK(ntv2_kona_fld_hdmiin_color_space);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin_color_depth, 0);
+	mask |= NTV2_FLD_MASK(ntv2_kona_fld_hdmiin_color_depth);
+	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmi_control, ntv2_hin->index, value, mask);
 
 	spin_lock_irqsave(&ntv2_hin->state_lock, flags);
 	ntv2_hin->input_format.video_standard = ntv2_kona_video_standard_none;

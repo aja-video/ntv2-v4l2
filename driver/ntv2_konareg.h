@@ -356,7 +356,7 @@ NTV2_CON(ntv2_kona_xpt_fb7_ds2_rgb,							0xf6);
 NTV2_CON(ntv2_kona_xpt_fb8_ds2_yuv,							0x77);
 NTV2_CON(ntv2_kona_xpt_fb8_ds2_rgb,							0xf7);
 NTV2_CON(ntv2_kona_xpt_hdmiin2_yuv_q1,						0x78);
-NTV2_CON(ntv2_kona_xpt_hdmiin2_yuv_q2,						0x78);
+NTV2_CON(ntv2_kona_xpt_hdmiin2_yuv_q2,						0x79);
 NTV2_CON(ntv2_kona_xpt_hdmiin2_yuv_q3,						0x7a);
 NTV2_CON(ntv2_kona_xpt_hdmiin2_yuv_q4,						0x7b);
 NTV2_CON(ntv2_kona_xpt_hdmiin2_rgb_q1,						0xf8);
@@ -827,6 +827,8 @@ NTV2_FLD(ntv2_kona_fld_hdmiout_force_config,				1,	1);		/* force output config (
 NTV2_FLD(ntv2_kona_fld_hdmiin_chan34_swap_disable,			1,	5);		/* hdmi input audio channel 3/4 swap disable */	
 NTV2_FLD(ntv2_kona_fld_hdmiout_chan34_swap_disable,			1,	6);		/* hdmi output audio channel 3/4 swap disable */	
 NTV2_FLD(ntv2_kona_fld_hdmiout_fallback_enable,				1,	7);		/* enable 4k/uhd to 2k/hd fallback */	
+NTV2_FLD(ntv2_kona_fld_hdmiin_color_depth,					2,	16);	/* hdmi input bit depth */	
+NTV2_FLD(ntv2_kona_fld_hdmiin_color_space,					2,	18);	/* hdmi input color space */
 NTV2_FLD(ntv2_kona_fld_hdmiout_source_select,				4,	20);	/* output audio source select */	
 NTV2_FLD(ntv2_kona_fld_hdmiout_crop_enable,					1,	24);	/* crop 2k -> hd  4k -> uhd */
 NTV2_FLD(ntv2_kona_fld_hdmiout_channel_select,				2,	29);	/* output audio channel select */	
@@ -1002,6 +1004,8 @@ NTV2_FLD(ntv2_kona_fld_hdmiout4_force_config,				1,	1);		/* force output config 
 NTV2_FLD(ntv2_kona_fld_hdmiin4_chn34_swap_disable,			1,	5);		/* hdmi input audio channel 3/4 swap disable */	
 NTV2_FLD(ntv2_kona_fld_hdmiout4_chn34_swap_disable,			1,	6);		/* hdmi output audio channel 3/4 swap disable */	
 NTV2_FLD(ntv2_kona_fld_hdmiout4_fallback_enable,			1,	7);		/* enable 4k/uhd to 2k/hd fallback */	
+NTV2_FLD(ntv2_kona_fld_hdmiin4_color_depth,					2,	16);	/* hdmi input bit depth */	
+NTV2_FLD(ntv2_kona_fld_hdmiin4_color_space,					2,	18);	/* hdmi input color space */
 NTV2_FLD(ntv2_kona_fld_hdmiout4_source_select,				4,	20);	/* output audio source select */	
 NTV2_FLD(ntv2_kona_fld_hdmiout4_crop_enable,				1,	24);	/* crop 2k -> hd  4k -> uhd */
 NTV2_FLD(ntv2_kona_fld_hdmiout4_channel_select,				2,	29);	/* output audio channel select */	

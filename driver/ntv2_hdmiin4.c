@@ -848,6 +848,12 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_video_rate, frame_rate);
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin4_input_status, ntv2_hin->index, value);
 
+	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_color_space, color_space);
+	mask = NTV2_FLD_MASK(ntv2_kona_fld_hdmiin4_color_space);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_color_depth, color_depth);
+	mask |= NTV2_FLD_MASK(ntv2_kona_fld_hdmiin4_color_depth);
+	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmi4_control, ntv2_hin->index, value, mask);
+
 //	if ((ntv2_hin->input_locked != input_locked) ||
 //		(ntv2_hin->hdmi_mode != hdmi_mode) ||
 //		(ntv2_hin->video_standard != video_standard) ||
@@ -1015,6 +1021,7 @@ static void set_no_video(struct ntv2_hdmiin4 *ntv2_hin)
 	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
 	unsigned long flags;
 	u32 value;
+	u32 mask;
 
 	/* clear fpga hdmi status */
 	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_locked, 0);
@@ -1032,6 +1039,12 @@ static void set_no_video(struct ntv2_hdmiin4 *ntv2_hin)
 	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_dvi, 1);
 	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_video_rate, 0);
 	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin4_input_status, ntv2_hin->index, value);
+
+	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_color_space, 0);
+	mask = NTV2_FLD_MASK(ntv2_kona_fld_hdmiin4_color_space);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_color_depth, 0);
+	mask |= NTV2_FLD_MASK(ntv2_kona_fld_hdmiin4_color_depth);
+	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmi4_control, ntv2_hin->index, value, mask);
 
 	ntv2_hin->input_locked		= false;
 	ntv2_hin->hdmi_mode			= false;
