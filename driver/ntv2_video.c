@@ -219,16 +219,6 @@ int ntv2_video_enable(struct ntv2_video *ntv2_vid)
 	if (ntv2_vid->transfer_state == ntv2_task_state_enable)
 		return 0;
 
-	/* acquire hardware */
-	result = ntv2_features_acquire_sdi_inputs(ntv2_vid->features,
-											  ntv2_vid->input_format.input_index,
-											  ntv2_vid->input_format.num_inputs,
-											  (unsigned long)ntv2_vid);
-	if (result < 0) {
-		NTV2_MSG_VIDEO_ERROR("%s: *error* can not acquire sdi input(s)\n", ntv2_vid->name);
-		return result;
-	}
-
 	NTV2_MSG_VIDEO_STATE("%s: video transfer task enable\n", ntv2_vid->name);
 
 	spin_lock_irqsave(&ntv2_vid->state_lock, flags);
@@ -253,6 +243,9 @@ int ntv2_video_enable(struct ntv2_video *ntv2_vid)
 
 	result = ntv2_channel_enable(ntv2_vid->vid_str);
 	if (result != 0) {
+		spin_lock_irqsave(&ntv2_vid->state_lock, flags);
+		ntv2_vid->transfer_state = ntv2_task_state_disable;
+		spin_unlock_irqrestore(&ntv2_vid->state_lock, flags);
 		return result;
 	}
 
@@ -297,7 +290,6 @@ int ntv2_video_disable(struct ntv2_video *ntv2_vid)
 
 	ntv2_channel_flush(ntv2_vid->vid_str);
 	ntv2_channel_disable(ntv2_vid->vid_str);
-	ntv2_features_release_components(ntv2_vid->features, (unsigned long)ntv2_vid);
 
 	return 0;
 }

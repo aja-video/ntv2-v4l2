@@ -115,6 +115,7 @@ struct ntv2_audio_stream {
 
 struct ntv2_stream_ops {
 	int (*setup)(struct ntv2_channel_stream *stream);
+	int (*release)(struct ntv2_channel_stream *stream);
 	int (*update_mode)(struct ntv2_channel_stream *stream);
 	int (*update_timing)(struct ntv2_channel_stream *stream);
 	int (*update_format)(struct ntv2_channel_stream *stream);
@@ -127,6 +128,9 @@ struct ntv2_channel_stream {
 	enum ntv2_stream_type			type;
 	struct ntv2_channel 			*ntv2_chn;
 
+	u32								channel_first;
+	u32								channel_last;
+	
 	bool							capture;
 	bool							queue_enable;
 	bool							queue_run;

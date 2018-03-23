@@ -25,6 +25,7 @@
 struct ntv2_channel_stream;
 
 int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream);
+int ntv2_videoops_release_capture(struct ntv2_channel_stream *stream);
 int ntv2_videoops_update_mode(struct ntv2_channel_stream *stream);
 int ntv2_videoops_update_format(struct ntv2_channel_stream *stream);
 int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream);

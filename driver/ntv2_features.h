@@ -84,6 +84,9 @@ struct ntv2_features {
 	u32							num_reference_inputs;
 	u32							frame_buffer_size;
 	u32							num_serial_ports;
+	u32							num_line_interleave_channels;
+	u32							num_sample_interleave_channels;
+	u32							num_square_division_channels;
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
@@ -219,4 +222,9 @@ bool ntv2_features_find_dv_timings_cap(struct ntv2_features *features,
 bool ntv2_features_match_dv_timings(const struct v4l2_dv_timings *measured,
 									const struct v4l2_dv_timings *standard,
 									unsigned pclock_delta);
+
+int ntv2_features_num_line_interleave_channels(struct ntv2_features *features);
+int ntv2_features_num_sample_interleave_channels(struct ntv2_features *features);
+int ntv2_features_num_square_division_channels(struct ntv2_features *features);
+
 #endif

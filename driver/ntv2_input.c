@@ -125,7 +125,7 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 		input_config = ntv2_features_get_input_config(features, i, 0);
 		if (input_config == NULL) continue;
 		if (input_config->type == ntv2_input_type_hdmi) {
-			if (input_config->version == 0) {
+			if (input_config->version < 4) {
 				in0 = input_config->input_index;
 				if (in0 < NTV2_MAX_HDMI_INPUTS) {
 					ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, 
@@ -286,7 +286,7 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 	}
 
 	if (config->type == ntv2_input_type_hdmi) {
-		if (config->version == 0) {
+		if (config->version < 4) {
 			/* validate config parameters */
 			if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
 				(ntv2_inp->hdmi0_input[config->input_index] == NULL) ||
@@ -302,7 +302,10 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 			format->frame_flags = hdmi_format.frame_flags;
 			format->pixel_flags = hdmi_format.pixel_flags;
 
-			result = ntv2_hdmi_stream_to_sqd_format(config, format);
+			if (config->version == 0) 
+				result = ntv2_hdmi_stream_to_sqd_format(config, format);
+			else
+				result = ntv2_hdmi_stream_to_tsi_format(config, format);
 		}
 		if (config->version == 4) {
 			/* validate config parameters */
@@ -394,7 +397,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 	}
 
 	if (config->type == ntv2_input_type_hdmi) {
-		if (config->version == 0) {
+		if (config->version < 4) {
 			/* validate config parameters */
 			if ((config->input_index >= ntv2_inp->num_hdmi0_inputs) ||
 				(config->num_inputs != 1))

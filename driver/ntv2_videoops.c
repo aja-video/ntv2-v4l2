@@ -23,13 +23,34 @@
 #include "ntv2_register.h"
 #include "ntv2_features.h"
 
+int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
+								   u32* channel_first, u32* channel_last);
+
+
 int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	struct ntv2_features *features = ntv2_chn->features;
 	int index = ntv2_chn->index;
 	int buf_index;
+	int result;
 	int i;
+
+	/* acquire hardware resources */
+	result = ntv2_videoops_acquire_hardware(stream,
+											&stream->channel_first,
+											&stream->channel_last);
+	if (result != 0)
+		return result;
+	
+	/* get the video frame buffer frame range and size */
+	ntv2_features_get_frame_range(features,
+								  &stream->video_format,
+								  &stream->pixel_format,
+								  index,
+								  &stream->video.frame_first,
+								  &stream->video.frame_last,
+								  &stream->video.frame_size);
 
 	/* initialize video input stream data */
 	INIT_LIST_HEAD(&stream->data_ready_list);
@@ -45,15 +66,6 @@ int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 	stream->video.last_display_time = 0;
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++)
 		stream->video.hardware_enable[i] = false;
-
-	/* get the video frame buffer frame range and size */
-	ntv2_features_get_frame_range(features,
-								  &stream->video_format,
-								  &stream->pixel_format,
-								  index,
-								  &stream->video.frame_first,
-								  &stream->video.frame_last,
-								  &stream->video.frame_size);
 
 	/* initialize video data buffers */
 	buf_index = 0;
@@ -81,18 +93,27 @@ int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 	return 0;
 }
 
+int ntv2_videoops_release_capture(struct ntv2_channel_stream *stream)
+{
+	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_features *features = ntv2_chn->features;
+
+	/* release hardware resources */
+	ntv2_features_release_components(features, (unsigned long)stream);
+
+	return 0;
+}
+
 int ntv2_videoops_update_mode(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	u32 val = stream->queue_enable? 1 : 0;
 	u32 mask = NTV2_FLD_MASK(ntv2_kona_fld_frame_capture_enable);
-	int index_first = ntv2_chn->index;
-	int index_last = ntv2_chn->index + stream->input_format.num_inputs - 1;
 	int i;
 
 	/* enable/disable frame store capture mode */
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
-		if ((i >= index_first) && (i <= index_last)) {
+		if ((i >= stream->channel_first) && (i <= stream->channel_last)) {
 			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val, mask);
 			stream->video.hardware_enable[i] = stream->queue_enable;
 //			NTV2_MSG_INFO("%s: write frame control[%d]  enable\n", ntv2_chn->name, i);
@@ -109,7 +130,6 @@ int ntv2_videoops_update_mode(struct ntv2_channel_stream *stream)
 int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
-	int index = ntv2_chn->index;
 	u32 val;
 	u32 mask;
 	int i;
@@ -118,11 +138,11 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_frame_buffer_format_b0123);
 
 	/* set frame store pixel format */
-	for (i = 0; i < stream->input_format.num_inputs; i++) {
+	for (i = stream->channel_first; i <= stream->channel_last; i++) {
 		if (ntv2_chn->state == ntv2_channel_state_run) {
-			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, index + i, val, mask);
+			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val, mask);
 		} else {
-			ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, index + i, val);
+			ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val);
 		}
 //		NTV2_MSG_INFO("%s: write frame control[%d]  %08x\n", ntv2_chn->name, index + i, val);
 	}
@@ -131,7 +151,7 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 	ntv2_features_get_frame_range(ntv2_chn->features,
 								  &stream->video_format,
 								  &stream->pixel_format,
-								  ntv2_chn->index,
+								  stream->channel_first,
 								  &stream->video.frame_first,
 								  &stream->video.frame_last,
 								  &stream->video.frame_size);
@@ -141,26 +161,31 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
-	int index = ntv2_chn->index;
-	int mode_372;
-	int mode_sync;
-	int mode_quad;
+	int index = stream->channel_first;
+	int mode_372 = 0;
+	int mode_sync = ntv2_kona_reg_sync_field;
+	int mode_tsi = 0;
+	int mode_quad = 0;
 	u32 standard;
 	u32 rate;
 	u32 val;
 
-	mode_sync =
-		((stream->video_format.frame_flags & ntv2_kona_frame_picture_interlaced) != 0)?
-		ntv2_kona_reg_sync_frame : ntv2_kona_reg_sync_field;
-	mode_quad =
-		((stream->video_format.frame_flags & ntv2_kona_frame_square_division) != 0)? 1 : 0;
-
+	/* sync to frame for interlaced video */
+	if ((stream->video_format.frame_flags & ntv2_kona_frame_picture_interlaced) != 0)
+		mode_sync = ntv2_kona_reg_sync_frame;
+	/* look for tw0 sample interleave video */
+	if ((stream->video_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0)
+		mode_tsi = 1;
+	/* look for square division video */
+	if ((stream->video_format.frame_flags & ntv2_kona_frame_square_division) != 0)
+		mode_quad = 1;
 	/* kluge 372 mode */
-	mode_372 =
-		((stream->input_format.num_inputs == 2) &&
-		 ((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
-		 ((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0))? 1 : 0;
+	if ((stream->input_format.num_inputs == 2) &&
+		((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
+		((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0))
+		mode_372 = 1;
 
+	/* determine video standard and rate */
 	standard = stream->video_format.video_standard;
 	rate = stream->video_format.frame_rate;
 	if (mode_372 == 1) {
@@ -187,8 +212,24 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 //	NTV2_MSG_INFO("%s: write global control  %08x\n", ntv2_chn->name, val);
 
 	/* set quad bit for square division video */
-	val = NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
+	if (((stream->channel_first + 1) / 4) == 1) {
+		val = NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
+	} else if (((stream->channel_first + 1) / 4) == 2) {
+		val = NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
+	}
+	/* set 425 bit for two sample interleave video */
+	if (((stream->channel_first + 1) / 2) == 1) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
+	} else if (((stream->channel_first + 1) / 2) == 2) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
+	} else if (((stream->channel_first + 1) / 2) == 3) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
+	} else if (((stream->channel_first + 1) / 2) == 4) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
+	}
+	/* channels independent */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_independent_channel_enable, 1);
+	/* need to figure out how to handle reference source */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_reference_source_b3, ntv2_kona_ref_source_sdiin1 >> 3);
 	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, index, val);
 //	NTV2_MSG_INFO("%s: write global control2 %08x\n", ntv2_chn->name, val);
@@ -197,7 +238,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	ntv2_features_get_frame_range(ntv2_chn->features,
 								  &stream->video_format,
 								  &stream->pixel_format,
-								  ntv2_chn->index,
+								  index,
 								  &stream->video.frame_first,
 								  &stream->video.frame_last,
 								  &stream->video.frame_size);
@@ -380,3 +421,53 @@ int ntv2_videoops_interrupt_capture(struct ntv2_channel_stream *stream)
 	return 0;
 }
 
+int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
+								   u32* channel_first, u32* channel_last)
+{
+	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_features *features = ntv2_chn->features;
+	int index = ntv2_chn->index;
+	int num_channels = 1;
+	int result = 0;
+
+	/* acquire inputs */
+	if (stream->input_format.type == ntv2_input_type_sdi) {
+		result = ntv2_features_acquire_sdi_inputs(features,
+												  stream->input_format.input_index,
+												  stream->input_format.num_inputs,
+												  (unsigned long)stream);
+	} else 	if (stream->input_format.type == ntv2_input_type_hdmi) {
+		result = ntv2_features_acquire_hdmi_inputs(features,
+												   stream->input_format.input_index,
+												   stream->input_format.num_inputs,
+												   (unsigned long)stream);
+	}
+	if (result != 0)
+		return result;
+
+	/* look for smpte 372 high rate on 2 wires */
+	if ((stream->input_format.num_inputs == 2) &&
+		((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
+		((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0)) {
+		num_channels = ntv2_features_num_line_interleave_channels(features);
+	}
+	/* look for two sample interleave */
+	else if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
+		num_channels = ntv2_features_num_sample_interleave_channels(features);
+	}
+	/* look for square division */
+	else if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) {
+		num_channels = ntv2_features_num_square_division_channels(features);
+	}
+	if (num_channels < 1)
+		return -EPERM;
+
+	result = ntv2_features_acquire_channels(features, index, num_channels, (unsigned long)stream);
+	if (result != 0)
+		return result;
+
+	*channel_first = index;
+	*channel_last = index + num_channels - 1;
+
+	return 0;
+}

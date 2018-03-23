@@ -104,6 +104,7 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->capture = true;
 	ntv2_streamops_initialize(&stream->ops);
 	stream->ops.setup = ntv2_videoops_setup_capture;
+	stream->ops.release = ntv2_videoops_release_capture;
 	stream->ops.update_mode = ntv2_videoops_update_mode;
 	stream->ops.update_timing = ntv2_videoops_update_timing;
 	stream->ops.update_format = ntv2_videoops_update_format;
@@ -126,6 +127,7 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->ops.update_format(stream);
 	stream->ops.update_timing(stream);
 	stream->ops.update_route(stream);
+	stream->ops.release(stream);
 
 	stream = kzalloc(sizeof(struct ntv2_channel_stream), GFP_KERNEL);
 	if (stream == NULL)
@@ -156,6 +158,7 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->ops.update_format(stream);
 	stream->ops.update_timing(stream);
 	stream->ops.update_route(stream);
+	stream->ops.release(stream);
 
 	NTV2_MSG_CHANNEL_STATE("%s: channel state: idle\n", ntv2_chn->name);
 	ntv2_chn->state = ntv2_channel_state_idle;
@@ -334,6 +337,7 @@ int ntv2_channel_enable(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn;
 	unsigned long flags;
+	int result;
 
 	if (stream == NULL)
 		return -EPERM;
@@ -352,7 +356,14 @@ int ntv2_channel_enable(struct ntv2_channel_stream *stream)
 
 	/* enable stream */
 	stream->queue_enable = true;
-	stream->ops.setup(stream);
+	result = stream->ops.setup(stream);
+	if (result != 0) {
+		stream->queue_enable = false;
+		spin_unlock_irqrestore(&ntv2_chn->state_lock, flags);
+		NTV2_MSG_VIDEO_ERROR("%s: *error* %s can not acquire hardware\n", 
+							 ntv2_chn->name, ntv2_stream_name(stream->type));
+		return result;
+	}
 	stream->ops.update_format(stream);
 	stream->ops.update_timing(stream);
 	stream->ops.update_route(stream);
@@ -396,7 +407,8 @@ int ntv2_channel_disable(struct ntv2_channel_stream *stream)
 	stream->queue_run = false;
 	stream->queue_enable = false;
 	stream->ops.update_mode(stream);
-
+	stream->ops.release(stream);
+	
 	/* disable vertical interrupts if no streams enabled*/
 	for (i = 0; i < ntv2_stream_type_size; i++) {
 		if ((ntv2_chn->streams[i] != NULL) &&
@@ -688,6 +700,7 @@ static int ntv2_streamops_nop(struct ntv2_channel_stream *stream)
 static void ntv2_streamops_initialize(struct ntv2_stream_ops *ops)
 {
 	ops->setup = ntv2_streamops_nop;
+	ops->release = ntv2_streamops_nop;
 	ops->update_mode = ntv2_streamops_nop;
 	ops->update_timing = ntv2_streamops_nop;
 	ops->update_format = ntv2_streamops_nop;
