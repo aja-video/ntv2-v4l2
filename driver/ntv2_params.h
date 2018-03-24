@@ -288,14 +288,6 @@ struct ntv2_sdi_input_status {
 	u32							audio_detect;
 };
 
-struct ntv2_hdmi_input_status {
-	u32							input_index;
-	u32							video_standard;
-	u32							frame_rate;
-	u32							pixel_flags;
-	u32							audio_detect;
-};
-
 struct ntv2_aes_input_status {
 	u32							input_index;
 	u32							audio_detect;

@@ -578,6 +578,7 @@ NTV2_FLD(ntv2_kona_fld_sdiout6_linkb_p60_mode,				1,	14);
 NTV2_FLD(ntv2_kona_fld_sdiout8_linkb_p60_mode,				1,	15);
 NTV2_FLD(ntv2_kona_fld_independent_channel_enable,			1,	16);
 NTV2_FLD(ntv2_kona_fld_fb_2mb_supported,					1,	17);
+NTV2_FLD(ntv2_kona_fld_has_audio_mixer,						1,	18);
 NTV2_FLD(ntv2_kona_fld_fb12_425mode_enable,					1,	20);
 NTV2_FLD(ntv2_kona_fld_fb34_425mode_enable,					1,	21);
 NTV2_FLD(ntv2_kona_fld_fb56_425mode_enable,					1,	22);
@@ -1515,6 +1516,7 @@ u32 ntv2_video_output_interrupt_rate(struct ntv2_register *ntv2_reg, int index);
 
 void ntv2_sdi_output_transmit_enable(struct ntv2_register *ntv2_reg, int index, bool enable);
 void ntv2_sdi_input_convert_3g_enable(struct ntv2_register *ntv2_reg, int index, bool enable);
+void ntv2_qrc_4k_enable(struct ntv2_register *ntv2_reg, bool input, bool output);
 
 void ntv2_read_sdi_input_status(struct ntv2_register *ntv2_reg, int index,
 								struct ntv2_sdi_input_status *input_status);

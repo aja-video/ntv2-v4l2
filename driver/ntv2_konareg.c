@@ -1110,6 +1110,30 @@ void ntv2_sdi_input_convert_3g_enable(struct ntv2_register *ntv2_reg, int index,
 	ntv2_register_rmw(ntv2_reg, sdi_input_status[index].flag_reg, val, mask);
 }
 
+void ntv2_qrc_4k_enable(struct ntv2_register *ntv2_reg, bool input, bool output)
+{
+	u32 val;
+	
+	if (ntv2_reg == NULL)
+		return;
+
+	/* audio mixer means no qrc */
+	val = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_global_control2, 0);
+	val = NTV2_FLD_GET(ntv2_kona_fld_has_audio_mixer, val);
+
+	if (val == 0)
+		return;
+
+	if (input)
+		val = NTV2_FLD_SET(ntv2_kona_fld_hdmi_raster_mode, ntv2_kona_hdmi_raster_mode_4k_input);
+	else if (output)
+		val = NTV2_FLD_SET(ntv2_kona_fld_hdmi_raster_mode, ntv2_kona_hdmi_raster_mode_4k_output);			
+	else
+		val = NTV2_FLD_SET(ntv2_kona_fld_hdmi_raster_mode, ntv2_kona_hdmi_raster_mode_hdsd_bidirect);
+	
+	ntv2_reg_write(ntv2_reg, ntv2_kona_reg_hdmi_rasterizer_control, 0, val);
+}
+
 void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 								struct ntv2_sdi_input_status *input_status)
 {
