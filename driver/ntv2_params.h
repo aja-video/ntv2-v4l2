@@ -281,8 +281,7 @@ struct ntv2_sdi_input_status {
 	u32							input_geometry;
 	u32							frame_rate;
 	bool						progressive;
-	bool						is3g;
-	bool						is3gb;
+	u32							interface;
 	u32							vpid_ds1;
 	u32							vpid_ds2;
 	u32							audio_detect;

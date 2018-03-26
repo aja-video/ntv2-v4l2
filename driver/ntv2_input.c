@@ -549,8 +549,7 @@ static bool ntv2_compare_sdi_input_status(struct ntv2_sdi_input_status *status_a
 		(status_a->frame_rate == status_b->frame_rate) &&
 		(status_a->input_geometry == status_b->input_geometry) &&
 		(status_a->progressive == status_b->progressive) &&
-		(status_a->is3g == status_b->is3g) &&
-		(status_a->is3gb == status_b->is3gb);
+		(status_a->interface == status_b->interface);
 
 	return match;
 }
@@ -616,22 +615,22 @@ static int ntv2_sdi_single_stream_to_format(struct ntv2_sdi_input_status *status
 
 	} else if (status->input_geometry == ntv2_kona_input_geometry_1125) {
 		if (status->progressive) {
-			if (status->is3gb)
+			if (status->interface == ntv2_kona_sdi_interface_3gb)
 				goto bad_status;
 			standard = ntv2_kona_video_standard_1080p;
 			rate = status->frame_rate;
 			frame_flags |= ntv2_kona_frame_picture_progressive |
 				ntv2_kona_frame_transport_progressive |
 				ntv2_kona_frame_16x9;
-			if (status->is3g) {
+			if (status->interface == ntv2_kona_sdi_interface_3ga) {
 				frame_flags |= ntv2_kona_frame_3g | ntv2_kona_frame_3ga;
 			} else {
 				frame_flags |= ntv2_kona_frame_hd;
 			}
 		} else {
-			if (status->is3g) {
-				if (!status->is3gb)
-					goto bad_status;
+			if (status->interface == ntv2_kona_sdi_interface_3ga) {
+				goto bad_status;					
+			} else 	if (status->interface == ntv2_kona_sdi_interface_3gb) {
 				standard = ntv2_kona_video_standard_1080p;
 				if (status->frame_rate == ntv2_kona_frame_rate_2500) {
 					rate = ntv2_kona_frame_rate_5000;
@@ -699,7 +698,8 @@ static int ntv2_sdi_dual_stream_to_format(struct ntv2_sdi_input_status *status,
 	if (status->progressive) {
 		goto bad_status;
 	} else {
-		if (status->is3g)
+		if ((status->interface == ntv2_kona_sdi_interface_3ga) ||
+			(status->interface == ntv2_kona_sdi_interface_3gb))
 			goto bad_status;
 		if (status->frame_rate == ntv2_kona_frame_rate_2500) {
 			rate = ntv2_kona_frame_rate_5000;
@@ -749,10 +749,10 @@ static int ntv2_sdi_quad_stream_to_format(struct ntv2_sdi_input_status *status,
 		goto bad_status;
 
 	if (status->progressive) {
-		if (status->is3gb)
+		if (status->interface == ntv2_kona_sdi_interface_3gb)
 			goto bad_status;
 		rate = status->frame_rate;
-		if (status->is3g) {
+		if (status->interface == ntv2_kona_sdi_interface_3ga) {
 			frame_flags |= ntv2_kona_frame_3g | ntv2_kona_frame_3ga;
 		} else {
 			frame_flags |= ntv2_kona_frame_hd;
@@ -760,7 +760,7 @@ static int ntv2_sdi_quad_stream_to_format(struct ntv2_sdi_input_status *status,
 		frame_flags |= ntv2_kona_frame_picture_progressive |
 			ntv2_kona_frame_transport_progressive;
 	} else {
-		if (!status->is3gb)
+		if (status->interface != ntv2_kona_sdi_interface_3gb)
 			goto bad_status;
 		if (status->frame_rate == ntv2_kona_frame_rate_2500) {
 			rate = ntv2_kona_frame_rate_5000;
@@ -851,8 +851,8 @@ static bool ntv2_valid_input_pixel_rate(u32 config_flags, u32 format_flags)
 	u32 mask = ntv2_kona_frame_sd |
 		ntv2_kona_frame_hd |
 		ntv2_kona_frame_3g |
-		ntv2_kona_frame_uhd297 |
-		ntv2_kona_frame_uhd594;
+		ntv2_kona_frame_6g |
+		ntv2_kona_frame_12g;
 	
 	if ((config_flags & format_flags & mask) == 0)
 		return false;

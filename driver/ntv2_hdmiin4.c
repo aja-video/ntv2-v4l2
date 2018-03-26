@@ -889,12 +889,12 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	case ntv2_kona_con_hdmiin4_linerate_5940mhz:
 	case ntv2_kona_con_hdmiin4_linerate_4455mhz:
 	case ntv2_kona_con_hdmiin4_linerate_3712mhz:
-		f_flags |= ntv2_kona_frame_uhd594;
+		f_flags |= ntv2_kona_frame_12g;
 		break;
 	case ntv2_kona_con_hdmiin4_linerate_2970mhz:
 	case ntv2_kona_con_hdmiin4_linerate_2227mhz:
 	case ntv2_kona_con_hdmiin4_linerate_1856mhz:
-		f_flags |= ntv2_kona_frame_uhd297;
+		f_flags |= ntv2_kona_frame_6g;
 		break;
 	case ntv2_kona_con_hdmiin4_linerate_1485mhz:
 	case ntv2_kona_con_hdmiin4_linerate_1113mhz:

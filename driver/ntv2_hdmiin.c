@@ -1267,7 +1267,7 @@ static void ntv2_hdmiin_find_hdmi_format(struct ntv2_hdmiin *ntv2_hin,
 
 	/* use tmds frequency to set frame rate class */
 	if (ntv2_hin->tmds_frequency > 290000) {
-		f_flags |= ntv2_kona_frame_uhd297;
+		f_flags |= ntv2_kona_frame_6g;
 	} else if (ntv2_hin->tmds_frequency > 145000) {
 		f_flags |= ntv2_kona_frame_3g;
 	} else if (ntv2_hin->tmds_frequency > 74000) {

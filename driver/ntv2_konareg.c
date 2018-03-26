@@ -193,6 +193,8 @@ struct sdi_input_status {
 	u32 flag_reg;
 	u32 flag_3g_fld;
 	u32 flag_3gb_fld;
+	u32 flag_6gb_fld;
+	u32 flag_12gb_fld;
 	u32 flag_3g_b2a_convert_fld;
 	u32 flag_vpid_ds1_fld;
 	u32 flag_vpid_ds2_fld;
@@ -427,6 +429,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[0].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status, 0);
 	sdi_input_status[0].flag_3g_fld = ntv2_kona_fld_sdiin1_3g_mode;
 	sdi_input_status[0].flag_3gb_fld = ntv2_kona_fld_sdiin1_3gb_mode;
+	sdi_input_status[0].flag_6gb_fld = ntv2_kona_fld_sdiin1_6gb_mode;
+	sdi_input_status[0].flag_12gb_fld = ntv2_kona_fld_sdiin1_12gb_mode;
 	sdi_input_status[0].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin1_3g_b2a_convert;
 	sdi_input_status[0].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin1_vpid_linka_valid;
 	sdi_input_status[0].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin1_vpid_linkb_valid;
@@ -442,6 +446,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[1].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status, 0);
 	sdi_input_status[1].flag_3g_fld = ntv2_kona_fld_sdiin2_3g_mode;
 	sdi_input_status[1].flag_3gb_fld = ntv2_kona_fld_sdiin2_3gb_mode;
+	sdi_input_status[1].flag_6gb_fld = ntv2_kona_fld_sdiin2_6gb_mode;
+	sdi_input_status[1].flag_12gb_fld = ntv2_kona_fld_sdiin2_12gb_mode;
 	sdi_input_status[1].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin2_3g_b2a_convert;
 	sdi_input_status[1].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin2_vpid_linka_valid;
 	sdi_input_status[1].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin2_vpid_linkb_valid;
@@ -457,6 +463,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[2].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status2, 0);
 	sdi_input_status[2].flag_3g_fld = ntv2_kona_fld_sdiin3_3g_mode;
 	sdi_input_status[2].flag_3gb_fld = ntv2_kona_fld_sdiin3_3gb_mode;
+	sdi_input_status[2].flag_6gb_fld = ntv2_kona_fld_sdiin3_6gb_mode;
+	sdi_input_status[2].flag_12gb_fld = ntv2_kona_fld_sdiin3_12gb_mode;
 	sdi_input_status[2].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin3_3g_b2a_convert;
 	sdi_input_status[2].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin3_vpid_linka_valid;
 	sdi_input_status[2].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin3_vpid_linkb_valid;
@@ -472,6 +480,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[3].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status2, 0);
 	sdi_input_status[3].flag_3g_fld = ntv2_kona_fld_sdiin4_3g_mode;
 	sdi_input_status[3].flag_3gb_fld = ntv2_kona_fld_sdiin4_3gb_mode;
+	sdi_input_status[3].flag_6gb_fld = ntv2_kona_fld_sdiin4_6gb_mode;
+	sdi_input_status[3].flag_12gb_fld = ntv2_kona_fld_sdiin4_12gb_mode;
 	sdi_input_status[3].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin4_3g_b2a_convert;
 	sdi_input_status[3].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin4_vpid_linka_valid;
 	sdi_input_status[3].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin4_vpid_linkb_valid;
@@ -487,6 +497,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[4].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status3, 0);
 	sdi_input_status[4].flag_3g_fld = ntv2_kona_fld_sdiin5_3g_mode;
 	sdi_input_status[4].flag_3gb_fld = ntv2_kona_fld_sdiin5_3gb_mode;
+	sdi_input_status[4].flag_6gb_fld = ntv2_kona_fld_sdiin5_6gb_mode;
+	sdi_input_status[4].flag_12gb_fld = ntv2_kona_fld_sdiin5_12gb_mode;
 	sdi_input_status[4].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin5_3g_b2a_convert;
 	sdi_input_status[4].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin5_vpid_linka_valid;
 	sdi_input_status[4].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin5_vpid_linkb_valid;
@@ -502,6 +514,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[5].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status3, 0);
 	sdi_input_status[5].flag_3g_fld = ntv2_kona_fld_sdiin6_3g_mode;
 	sdi_input_status[5].flag_3gb_fld = ntv2_kona_fld_sdiin6_3gb_mode;
+	sdi_input_status[5].flag_6gb_fld = ntv2_kona_fld_sdiin6_6gb_mode;
+	sdi_input_status[5].flag_12gb_fld = ntv2_kona_fld_sdiin6_12gb_mode;
 	sdi_input_status[5].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin6_3g_b2a_convert;
 	sdi_input_status[5].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin6_vpid_linka_valid;
 	sdi_input_status[5].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin6_vpid_linkb_valid;
@@ -517,6 +531,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[6].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status3, 0);
 	sdi_input_status[6].flag_3g_fld = ntv2_kona_fld_sdiin7_3g_mode;
 	sdi_input_status[6].flag_3gb_fld = ntv2_kona_fld_sdiin7_3gb_mode;
+	sdi_input_status[6].flag_6gb_fld = ntv2_kona_fld_sdiin7_6gb_mode;
+	sdi_input_status[6].flag_12gb_fld = ntv2_kona_fld_sdiin7_12gb_mode;
 	sdi_input_status[6].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin7_3g_b2a_convert;
 	sdi_input_status[6].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin7_vpid_linka_valid;
 	sdi_input_status[6].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin7_vpid_linkb_valid;
@@ -532,6 +548,8 @@ void ntv2_kona_register_initialize(void)
 	sdi_input_status[7].flag_reg = NTV2_REG_NUM(ntv2_kona_reg_input_3g_status3, 0);
 	sdi_input_status[7].flag_3g_fld = ntv2_kona_fld_sdiin8_3g_mode;
 	sdi_input_status[7].flag_3gb_fld = ntv2_kona_fld_sdiin8_3gb_mode;
+	sdi_input_status[7].flag_6gb_fld = ntv2_kona_fld_sdiin8_6gb_mode;
+	sdi_input_status[7].flag_12gb_fld = ntv2_kona_fld_sdiin8_12gb_mode;
 	sdi_input_status[7].flag_3g_b2a_convert_fld = ntv2_kona_fld_sdiin1_3g_b2a_convert;
 	sdi_input_status[7].flag_vpid_ds1_fld = ntv2_kona_fld_sdiin8_vpid_linka_valid;
 	sdi_input_status[7].flag_vpid_ds2_fld = ntv2_kona_fld_sdiin8_vpid_linkb_valid;
@@ -1141,8 +1159,11 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 	u32 rate = 0;
 	u32 geom = 0;
 	bool prog = false;
-	bool tg = false;
-	bool tgb = false;
+	bool is3g = false;
+	bool is3gb = false;
+	bool is6gb = false;
+	bool is12gb = false;
+	u32 interface = 0;
 	u32 vds1 = 0;
 	u32 vds2 = 0;
 	u32 detect = 0;
@@ -1164,8 +1185,10 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 		
 		val = ntv2_register_read(ntv2_reg, sdi_input_status[index].flag_reg);
 
-		tg = NTV2_FLD_GET(sdi_input_status[index].flag_3g_fld, val) != 0;
-		tgb = NTV2_FLD_GET(sdi_input_status[index].flag_3gb_fld, val) != 0;
+		is3g = NTV2_FLD_GET(sdi_input_status[index].flag_3g_fld, val) != 0;
+		is3gb = NTV2_FLD_GET(sdi_input_status[index].flag_3gb_fld, val) != 0;
+		is6gb = NTV2_FLD_GET(sdi_input_status[index].flag_6gb_fld, val) != 0;
+		is12gb = NTV2_FLD_GET(sdi_input_status[index].flag_12gb_fld, val) != 0;
 		
 		if (NTV2_FLD_GET(sdi_input_status[index].flag_vpid_ds1_fld, val) != 0)
 			vds1 = ntv2_reg_read(ntv2_reg, ntv2_kona_reg_sdiin_vpid_linka, index);
@@ -1176,12 +1199,26 @@ void ntv2_read_sdi_input_status(struct ntv2_register* ntv2_reg, int index,
 		detect = NTV2_FLD_GET(sdi_input_status[index].audio_detect_fld, val);
 	}
 
+	/* collapse all the is interface */
+	if ((geom == ntv2_kona_input_geometry_525) ||
+		(geom == ntv2_kona_input_geometry_625))
+		interface = ntv2_kona_sdi_interface_sd;
+	else if (is3g && !is3gb)
+		interface = ntv2_kona_sdi_interface_3ga;
+	else if (is3g && is3gb)
+		interface = ntv2_kona_sdi_interface_3gb;
+	else if (is6gb)
+		interface = ntv2_kona_sdi_interface_6gb;
+	else if (is12gb)
+		interface = ntv2_kona_sdi_interface_12gb;
+	else
+		interface = ntv2_kona_sdi_interface_hd;
+
 	input_status->input_index = index;
 	input_status->frame_rate = rate;
 	input_status->input_geometry = geom;
 	input_status->progressive = prog;
-	input_status->is3g = tg;
-	input_status->is3gb = tgb;
+	input_status->interface = interface;
 	input_status->vpid_ds1 = vds1;
 	input_status->vpid_ds2 = vds2;
 	input_status->audio_detect = detect;

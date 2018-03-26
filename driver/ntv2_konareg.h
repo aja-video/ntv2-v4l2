@@ -28,11 +28,11 @@ NTV2_CON(ntv2_kona_frame_picture_progressive,				0x00000001);	/* picture progres
 NTV2_CON(ntv2_kona_frame_picture_interlaced,				0x00000002);	/* picture interlaced */
 NTV2_CON(ntv2_kona_frame_transport_progressive,				0x00000004);	/* transport progressive */
 NTV2_CON(ntv2_kona_frame_transport_interlaced,				0x00000008);	/* transport interlaced */
-NTV2_CON(ntv2_kona_frame_sd,								0x00000010);	/* clock sd */
-NTV2_CON(ntv2_kona_frame_hd,								0x00000020);	/* clock hd */
-NTV2_CON(ntv2_kona_frame_3g,								0x00000040);	/* clock 3g */
-NTV2_CON(ntv2_kona_frame_uhd297,							0x00000080);	/* clock uhd 297 mc */
-NTV2_CON(ntv2_kona_frame_uhd594,							0x00000100);	/* clock uhd 594 mc */
+NTV2_CON(ntv2_kona_frame_sd,								0x00000010);	/* data rate sd */
+NTV2_CON(ntv2_kona_frame_hd,								0x00000020);	/* data rate hd */
+NTV2_CON(ntv2_kona_frame_3g,								0x00000040);	/* data rate 3g */
+NTV2_CON(ntv2_kona_frame_6g,								0x00000080);	/* data rate 6g */
+NTV2_CON(ntv2_kona_frame_12g,								0x00000100);	/* data rate 12g */
 NTV2_CON(ntv2_kona_frame_3ga,								0x00001000);	/* sdi transport 3ga */
 NTV2_CON(ntv2_kona_frame_3gb,								0x00002000);	/* sdi transport 3gb */
 NTV2_CON(ntv2_kona_frame_dual_link,							0x00004000);	/* sdi transport smpte 372 4444 */
@@ -133,6 +133,15 @@ NTV2_CON(ntv2_kona_color_depth_8bit,						0);
 NTV2_CON(ntv2_kona_color_depth_10bit,						1);
 NTV2_CON(ntv2_kona_color_depth_12bit,						2);
 NTV2_CON(ntv2_kona_color_depth_none,						3);
+
+/* sdi interface */
+NTV2_CON(ntv2_kona_sdi_interface_none,						0);
+NTV2_CON(ntv2_kona_sdi_interface_sd,						1);
+NTV2_CON(ntv2_kona_sdi_interface_hd,						2);
+NTV2_CON(ntv2_kona_sdi_interface_3ga,						3);
+NTV2_CON(ntv2_kona_sdi_interface_3gb,						4);
+NTV2_CON(ntv2_kona_sdi_interface_6gb,						5);
+NTV2_CON(ntv2_kona_sdi_interface_12gb,						6);
 
 /* register synchronization */
 NTV2_CON(ntv2_kona_reg_sync_field,							0);
@@ -676,11 +685,15 @@ NTV2_FLD(ntv2_kona_fld_sdiin1_3gb_mode,						1,	1);
 NTV2_FLD(ntv2_kona_fld_sdiin1_3g_b2a_convert,				1,	2);
 NTV2_FLD(ntv2_kona_fld_sdiin1_vpid_linka_valid,				1,	4);
 NTV2_FLD(ntv2_kona_fld_sdiin1_vpid_linkb_valid,				1,	5);
+NTV2_FLD(ntv2_kona_fld_sdiin1_6gb_mode,						1,	6);
+NTV2_FLD(ntv2_kona_fld_sdiin1_12gb_mode,					1,	7);
 NTV2_FLD(ntv2_kona_fld_sdiin2_3g_mode,						1,	8);
 NTV2_FLD(ntv2_kona_fld_sdiin2_3gb_mode,						1,	9);
 NTV2_FLD(ntv2_kona_fld_sdiin2_3g_b2a_convert,				1,	10);
 NTV2_FLD(ntv2_kona_fld_sdiin2_vpid_linka_valid,				1,	12);
 NTV2_FLD(ntv2_kona_fld_sdiin2_vpid_linkb_valid,				1,	13);
+NTV2_FLD(ntv2_kona_fld_sdiin2_6gb_mode,						1,	14);
+NTV2_FLD(ntv2_kona_fld_sdiin2_12gb_mode,					1,	15);
 
 NTV2_REG(ntv2_kona_reg_input_3g_status2,					287);
 NTV2_FLD(ntv2_kona_fld_sdiin3_3g_mode,						1,	0);
@@ -688,11 +701,15 @@ NTV2_FLD(ntv2_kona_fld_sdiin3_3gb_mode,						1,	1);
 NTV2_FLD(ntv2_kona_fld_sdiin3_3g_b2a_convert,				1,	2);
 NTV2_FLD(ntv2_kona_fld_sdiin3_vpid_linka_valid,				1,	4);
 NTV2_FLD(ntv2_kona_fld_sdiin3_vpid_linkb_valid,				1,	5);
+NTV2_FLD(ntv2_kona_fld_sdiin3_6gb_mode,						1,	6);
+NTV2_FLD(ntv2_kona_fld_sdiin3_12gb_mode,					1,	7);
 NTV2_FLD(ntv2_kona_fld_sdiin4_3g_mode,						1,	8);
 NTV2_FLD(ntv2_kona_fld_sdiin4_3gb_mode,						1,	9);
 NTV2_FLD(ntv2_kona_fld_sdiin4_3g_b2a_convert,				1,	10);
 NTV2_FLD(ntv2_kona_fld_sdiin4_vpid_linka_valid,				1,	12);
 NTV2_FLD(ntv2_kona_fld_sdiin4_vpid_linkb_valid,				1,	13);
+NTV2_FLD(ntv2_kona_fld_sdiin4_6gb_mode,						1,	14);
+NTV2_FLD(ntv2_kona_fld_sdiin4_12gb_mode,					1,	15);
 
 NTV2_REG(ntv2_kona_reg_input_3g_status3,					457);
 NTV2_FLD(ntv2_kona_fld_sdiin5_3g_mode,						1,	0);
@@ -700,37 +717,110 @@ NTV2_FLD(ntv2_kona_fld_sdiin5_3gb_mode,						1,	1);
 NTV2_FLD(ntv2_kona_fld_sdiin5_3g_b2a_convert,				1,	2);
 NTV2_FLD(ntv2_kona_fld_sdiin5_vpid_linka_valid,				1,	4);
 NTV2_FLD(ntv2_kona_fld_sdiin5_vpid_linkb_valid,				1,	5);
+NTV2_FLD(ntv2_kona_fld_sdiin5_6gb_mode,						1,	6);
+NTV2_FLD(ntv2_kona_fld_sdiin5_12gb_mode,					1,	7);
 NTV2_FLD(ntv2_kona_fld_sdiin6_3g_mode,						1,	8);
 NTV2_FLD(ntv2_kona_fld_sdiin6_3gb_mode,						1,	9);
 NTV2_FLD(ntv2_kona_fld_sdiin6_3g_b2a_convert,				1,	10);
 NTV2_FLD(ntv2_kona_fld_sdiin6_vpid_linka_valid,				1,	12);
 NTV2_FLD(ntv2_kona_fld_sdiin6_vpid_linkb_valid,				1,	13);
+NTV2_FLD(ntv2_kona_fld_sdiin6_6gb_mode,						1,	14);
+NTV2_FLD(ntv2_kona_fld_sdiin6_12gb_mode,					1,	15);
 NTV2_FLD(ntv2_kona_fld_sdiin7_3g_mode,						1,	16);
 NTV2_FLD(ntv2_kona_fld_sdiin7_3gb_mode,						1,	17);
 NTV2_FLD(ntv2_kona_fld_sdiin7_3g_b2a_convert,				1,	18);
 NTV2_FLD(ntv2_kona_fld_sdiin7_vpid_linka_valid,				1,	20);
 NTV2_FLD(ntv2_kona_fld_sdiin7_vpid_linkb_valid,				1,	21);
+NTV2_FLD(ntv2_kona_fld_sdiin7_6gb_mode,						1,	22);
+NTV2_FLD(ntv2_kona_fld_sdiin7_12gb_mode,					1,	23);
 NTV2_FLD(ntv2_kona_fld_sdiin8_3g_mode,						1,	24);
 NTV2_FLD(ntv2_kona_fld_sdiin8_3gb_mode,						1,	25);
 NTV2_FLD(ntv2_kona_fld_sdiin8_3g_b2a_convert,				1,	26);
 NTV2_FLD(ntv2_kona_fld_sdiin8_vpid_linka_valid,				1,	28);
 NTV2_FLD(ntv2_kona_fld_sdiin8_vpid_linkb_valid,				1,	29);
+NTV2_FLD(ntv2_kona_fld_sdiin8_6gb_mode,						1,	30);
+NTV2_FLD(ntv2_kona_fld_sdiin8_12gb_mode,					1,	31);
 
 /* sdi input vpid registers */
 NTV2_REG(ntv2_kona_reg_sdiin_vpid_linka,					188, 238, 306, 308, 410, 412, 421, 430);
 NTV2_REG(ntv2_kona_reg_sdiin_vpid_linkb,					189, 239, 307, 309, 411, 413, 422, 431);
+/* vpid byte 4 video bit depth and channel */
 NTV2_FLD(ntv2_kona_fld_vpid_bit_depth,						2,	0);
+NTV2_CON(ntv2_kona_con_vpid_bit_depth_8,					0x0);
+NTV2_CON(ntv2_kona_con_vpid_bit_depth_10,					0x1);
+NTV2_CON(ntv2_kona_con_vpid_bit_depth_12,					0x2);
+NTV2_FLD(ntv2_kona_fld_vpid_audio_status,					1,	2);
+NTV2_CON(ntv2_kona_con_vpid_audio_status_additional,		0x0);
+NTV2_CON(ntv2_kona_con_vpid_audio_status_copy,				0x1);
 NTV2_FLD(ntv2_kona_fld_vpid_dynamic_range,					2,	3);
-NTV2_FLD(ntv2_kona_fld_vpid_channel_quad,					2,	6);
 NTV2_FLD(ntv2_kona_fld_vpid_channel_octa,					3,	5);
+NTV2_FLD(ntv2_kona_fld_vpid_channel_quad,					2,	6);
+NTV2_FLD(ntv2_kona_fld_vpid_channel_dual,					1,	6);
+NTV2_CON(ntv2_kona_con_vpid_channel_1,						0x0);
+NTV2_CON(ntv2_kona_con_vpid_channel_2,						0x1);
+NTV2_CON(ntv2_kona_con_vpid_channel_3,						0x2);
+NTV2_CON(ntv2_kona_con_vpid_channel_4,						0x3);
+NTV2_CON(ntv2_kona_con_vpid_channel_5,						0x4);
+NTV2_CON(ntv2_kona_con_vpid_channel_6,						0x5);
+NTV2_CON(ntv2_kona_con_vpid_channel_7,						0x6);
+NTV2_CON(ntv2_kona_con_vpid_channel_8,						0x7);
+/* vpid byte 3 pixel sampling structure */
 NTV2_FLD(ntv2_kona_fld_vpid_sampling,						4,	8);
-NTV2_FLD(ntv2_kona_fld_vpid_horizontal_sampling,			1,	14);
-NTV2_FLD(ntv2_kona_fld_vpid_image_aspect_16x9,				1,	15);
-NTV2_FLD(ntv2_kona_fld_vpid_picture_rate,					4,	16);
-NTV2_FLD(ntv2_kona_fld_vpid_progressive_picture,			1,	22);
-NTV2_FLD(ntv2_kona_fld_vpid_progressive_transport,			1,	23);
-NTV2_FLD(ntv2_kona_fld_vpid_standard,						7,	24);
-NTV2_FLD(ntv2_kona_fld_vpid_version_id,						1,	31);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuv_422,				0x0);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuv_444,				0x1);
+NTV2_CON(ntv2_kona_con_vpid_sampling_gbr_444,				0x2);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuv_420,				0x3);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuva_4224,				0x4);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuva_4444,				0x5);
+NTV2_CON(ntv2_kona_con_vpid_sampling_gbra_4444,				0x6);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuvd_4224,				0x8);
+NTV2_CON(ntv2_kona_con_vpid_sampling_yuvd_4444,				0x9);
+NTV2_CON(ntv2_kona_con_vpid_sampling_gbrd_4444,				0xa);
+NTV2_CON(ntv2_kona_con_vpid_sampling_xyz_444,				0xe);
+NTV2_FLD(ntv2_kona_fld_vpid_colorimetry,					2,	13);
+NTV2_CON(ntv2_kona_con_vpid_colorimetry_rec709,				0x0);
+NTV2_CON(ntv2_kona_con_vpid_colorimetry_vanc,				0x1);
+NTV2_CON(ntv2_kona_con_vpid_colorimetry_rec2020,			0x2);
+NTV2_FLD(ntv2_kona_fld_vpid_aspect_ratio_b5,				1,	13);
+NTV2_CON(ntv2_kona_con_vpid_aspect_ratio_4x3,				0x0);
+NTV2_CON(ntv2_kona_con_vpid_aspect_ratio_16x9,				0x1);
+NTV2_FLD(ntv2_kona_fld_vpid_horizontal_pixels,				1, 14);
+NTV2_CON(ntv2_kona_con_vpid_horizontal_1920,				0x0);
+NTV2_CON(ntv2_kona_con_vpid_horizontal_2048,				0x1);
+NTV2_FLD(ntv2_kona_fld_vpid_aspect_ratio_b7,				1,	15);
+/* vpid byte 2 defines frame rate */
+NTV2_FLD(ntv2_kona_fld_vpid_byte2_frame_rate,				4,	16);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_2398,				0x2);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_2400,				0x3);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_4795,				0x4);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_2500,				0x5);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_2997,				0x6);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_3000,				0x7);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_4800,				0x8);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_5000,				0x9);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_5994,				0xa);
+NTV2_CON(ntv2_kona_con_vpid_frame_rate_6000,				0xb);
+NTV2_FLD(ntv2_kona_fld_vpid_frame_scan_picture,				1,	22);
+NTV2_FLD(ntv2_kona_fld_vpid_frame_scan_transport,			1,	23);
+NTV2_CON(ntv2_kona_con_vpid_frame_scan_progressive,			0x1);
+NTV2_CON(ntv2_kona_con_vpid_frame_scan_interlaced,			0x0);
+/* vpid byte 1 defines interface standard */
+NTV2_FLD(ntv2_kona_fld_vpid_byte1_standard,					8,	24);
+NTV2_CON(ntv2_kona_con_vpid_standard_sd,		  			0x81);
+NTV2_CON(ntv2_kona_con_vpid_standard_720_hd,		   		0x84);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_hd,  				0x85);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_hd_dual,	   		0x87);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_3ga,				0x89);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_3gb,				0x8a);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_3gb_x2,			0x8c);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_3ga_dual,			0x94);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_3gb_dual,			0x95);
+NTV2_CON(ntv2_kona_con_vpid_standard_2160_3gb_dual,			0x96);
+NTV2_CON(ntv2_kona_con_vpid_standard_2160_3ga_quad,			0x97);
+NTV2_CON(ntv2_kona_con_vpid_standard_2160_3gb_quad,			0x98);
+NTV2_CON(ntv2_kona_con_vpid_standard_2160_6gb,				0xc0);
+NTV2_CON(ntv2_kona_con_vpid_standard_1080_6gb_x4,			0xc1);
+NTV2_CON(ntv2_kona_con_vpid_standard_2160_12gb,				0xce);
 
 /* audio detection bits */
 NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch12,				1,	0);
