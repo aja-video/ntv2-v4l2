@@ -173,12 +173,15 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	/* sync to frame for interlaced video */
 	if ((stream->video_format.frame_flags & ntv2_kona_frame_picture_interlaced) != 0)
 		mode_sync = ntv2_kona_reg_sync_frame;
+	
 	/* look for tw0 sample interleave video */
 	if ((stream->video_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0)
 		mode_tsi = 1;
+	
 	/* look for square division video */
 	if ((stream->video_format.frame_flags & ntv2_kona_frame_square_division) != 0)
 		mode_quad = 1;
+	
 	/* kluge 372 mode */
 	if ((stream->input_format.num_inputs == 2) &&
 		((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
@@ -212,25 +215,34 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 //	NTV2_MSG_INFO("%s: write global control  %08x\n", ntv2_chn->name, val);
 
 	/* set quad bit for square division video */
-	if (((stream->channel_first + 1) / 4) == 1) {
-		val = NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
-	} else if (((stream->channel_first + 1) / 4) == 2) {
-		val = NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
+	val = 0;
+	if (mode_quad == 1) {
+		if ((stream->channel_first / 4) == 0) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
+		} else if ((stream->channel_first / 4) == 1) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
+		}
 	}
+	
 	/* set 425 bit for two sample interleave video */
-	if (((stream->channel_first + 1) / 2) == 1) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
-	} else if (((stream->channel_first + 1) / 2) == 2) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
-	} else if (((stream->channel_first + 1) / 2) == 3) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
-	} else if (((stream->channel_first + 1) / 2) == 4) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
+	if (mode_tsi == 1) {
+		if ((stream->channel_first / 2) == 0) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
+		} else if ((stream->channel_first / 2) == 1) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
+		} else if ((stream->channel_first / 2) == 2) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
+		} else if ((stream->channel_first / 2) == 3) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
+		}
 	}
+	
 	/* channels independent */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_independent_channel_enable, 1);
+	
 	/* need to figure out how to handle reference source */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_reference_source_b3, ntv2_kona_ref_source_sdiin1 >> 3);
+	
 	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, index, val);
 //	NTV2_MSG_INFO("%s: write global control2 %08x\n", ntv2_chn->name, val);
 

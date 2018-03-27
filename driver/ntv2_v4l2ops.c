@@ -35,7 +35,7 @@ static int ntv2_querycap(struct file *file,
 	strlcpy(cap->driver, ntv2_module_info()->name, sizeof(cap->driver));
 //	strlcpy(cap->card, ntv2_vid->features->device_name, sizeof(cap->card));
 	snprintf(cap->card, sizeof(cap->card),
-			 "%s Ch%d", ntv2_vid->features->device_name, ntv2_vid->index);
+			 "%s Channel %d", ntv2_vid->features->device_name, ntv2_vid->index + 1);
 	snprintf(cap->bus_info, sizeof(cap->bus_info),
 			 "PCI:%s", pci_name(ntv2_vid->ntv2_dev->pci_dev));
 	cap->device_caps = V4L2_CAP_VIDEO_CAPTURE |
@@ -96,7 +96,9 @@ bool ntv2_compatible_input_format(struct ntv2_input_format *inpf,
 		((inpf->frame_rate == vidf->frame_rate) &&
 		 (inpf->video_standard == vidf->video_standard) &&
 		 ((inpf->frame_flags & ntv2_kona_frame_square_division) ==
-		  (vidf->frame_flags & ntv2_kona_frame_square_division)));
+		  (vidf->frame_flags & ntv2_kona_frame_square_division)) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_sample_interleave) ==
+		  (vidf->frame_flags & ntv2_kona_frame_sample_interleave)));
 
 	return match;
 }
