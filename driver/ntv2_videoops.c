@@ -216,25 +216,21 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 
 	/* set quad bit for square division video */
 	val = 0;
-	if (mode_quad == 1) {
-		if ((stream->channel_first / 4) == 0) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
-		} else if ((stream->channel_first / 4) == 1) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
-		}
+	if ((stream->channel_first / 4) == 0) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
+	} else if ((stream->channel_first / 4) == 1) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
 	}
-	
+
 	/* set 425 bit for two sample interleave video */
-	if (mode_tsi == 1) {
-		if ((stream->channel_first / 2) == 0) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
-		} else if ((stream->channel_first / 2) == 1) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
-		} else if ((stream->channel_first / 2) == 2) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
-		} else if ((stream->channel_first / 2) == 3) {
-			val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
-		}
+	if ((stream->channel_first / 2) == 0) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
+	} else if ((stream->channel_first / 2) == 1) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
+	} else if ((stream->channel_first / 2) == 2) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
+	} else if ((stream->channel_first / 2) == 3) {
+		val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
 	}
 	
 	/* channels independent */
@@ -243,7 +239,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	/* need to figure out how to handle reference source */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_reference_source_b3, ntv2_kona_ref_source_sdiin1 >> 3);
 	
-	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, index, val);
+	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, 0, val);
 //	NTV2_MSG_INFO("%s: write global control2 %08x\n", ntv2_chn->name, val);
 
 	/* update the video frame buffer range */
@@ -260,6 +256,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	int csc_index;
 	bool convert3gb;
 	bool in_rgb;
 	bool fs_rgb;
@@ -316,11 +313,12 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 			} else {
 				for (i = 0; i < 4; i++) {
 					/* route hdmi input to csc to mux */
+					csc_index = ((ntv2_chn->index == 0)? 0 : 4) + i;
 					ntv2_route_hdmi_to_csc(ntv2_chn->vid_reg,
 										   stream->input_format.input_index , i, in_rgb,
-										   ntv2_chn->index + i, 0);
+										   csc_index, 0);
 					ntv2_route_csc_to_mux(ntv2_chn->vid_reg,
-										  ntv2_chn->index + i, 0, fs_rgb,
+										  csc_index, 0, fs_rgb,
 										  ntv2_chn->index + (i/2), i%2);
 					ntv2_route_mux_to_fs(ntv2_chn->vid_reg,
 										 ntv2_chn->index + (i/2), i%2, fs_rgb,

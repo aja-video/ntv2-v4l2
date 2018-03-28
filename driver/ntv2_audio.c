@@ -119,7 +119,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 
 	result = snd_pcm_new(ntv2_aud->snd_card,
 						 features->pcm_name,
-						 ntv2_aud->index,
+						 ntv2_aud->index + 1,
 						 playback? 1 : 0, 
 						 capture? 1 : 0, 
 						 &ntv2_aud->pcm);

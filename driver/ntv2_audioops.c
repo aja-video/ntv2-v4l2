@@ -162,7 +162,7 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch78, new_source);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_input_ch78);
 
-	/* set sdi embedded channel */
+	/* set sdi embedded / hdmi channel */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b0, new_bit0);
 	mask |= NTV2_FLD_MASK(ntv2_kona_fld_audio_embedded_input_b0);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_audio_embedded_input_b1, new_bit1);

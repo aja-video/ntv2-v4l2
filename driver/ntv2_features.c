@@ -2276,6 +2276,7 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->input_config[0][0] = &nic_hdmi20_1;
 	features->input_config[1][0] = &nic_hdmi13_2;
 	features->input_config[2][0] = &nic_hdmi13_3;
+	features->input_config[2][1] = &nic_hdmi20_2;
 	features->input_config[3][0] = &nic_hdmi13_4;
 
 	features->source_config[0][0] = &asc_auto;
@@ -2284,6 +2285,7 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->source_config[1][1] = &asc_hdmi_2;
 	features->source_config[2][0] = &asc_auto;
 	features->source_config[2][1] = &asc_hdmi_3;
+	features->source_config[2][2] = &asc_hdmi_2;
 	features->source_config[3][0] = &asc_auto;
 	features->source_config[3][1] = &asc_hdmi_4;
 

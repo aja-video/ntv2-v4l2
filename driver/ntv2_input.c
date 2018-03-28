@@ -712,7 +712,7 @@ static int ntv2_sdi_dual_stream_to_format(struct ntv2_sdi_input_status *status,
 		}
 	}
 
-	frame_flags |= ntv2_kona_frame_hd |
+	frame_flags |= ntv2_kona_frame_3g |
 		ntv2_kona_frame_picture_progressive |
 		ntv2_kona_frame_transport_interlaced |
 		ntv2_kona_frame_line_interleave |
@@ -753,9 +753,9 @@ static int ntv2_sdi_quad_stream_to_format(struct ntv2_sdi_input_status *status,
 			goto bad_status;
 		rate = status->frame_rate;
 		if (status->interface == ntv2_kona_sdi_interface_3ga) {
-			frame_flags |= ntv2_kona_frame_3g | ntv2_kona_frame_3ga;
+			frame_flags |= ntv2_kona_frame_12g | ntv2_kona_frame_3ga;
 		} else {
-			frame_flags |= ntv2_kona_frame_hd;
+			frame_flags |= ntv2_kona_frame_6g;
 		}
 		frame_flags |= ntv2_kona_frame_picture_progressive |
 			ntv2_kona_frame_transport_progressive;
@@ -771,7 +771,7 @@ static int ntv2_sdi_quad_stream_to_format(struct ntv2_sdi_input_status *status,
 		} else {
 			goto bad_status;
 		}
-		frame_flags |= ntv2_kona_frame_3g |
+		frame_flags |= ntv2_kona_frame_12g |
 			ntv2_kona_frame_3gb |
 			ntv2_kona_frame_picture_progressive |
 			ntv2_kona_frame_transport_interlaced |

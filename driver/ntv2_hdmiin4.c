@@ -602,7 +602,7 @@ static bool has_video_input_changed(struct ntv2_hdmiin4 *ntv2_hin)
 		changed = true;
 	}
 
-	value =  ntv2_reg_read(vid_reg, ntv2_kona_reg_hdmiin4_tmdsclockfrequency, 0);
+	value =  ntv2_reg_read(vid_reg, ntv2_kona_reg_hdmiin4_tmdsclockfrequency, ntv2_hin->index);
 	value = (value < 50000000)? (value & 0xfffff000) : (value & 0xffffc000);
 	if (value != ntv2_hin->tmds_rate) {
 		ntv2_hin->tmds_rate = value;
@@ -1125,7 +1125,7 @@ static struct ntv2_hdmi_clock_data* find_clock_data(u32 lineRate, u32 tmdsRate)
 static bool compare_tmds_rate(u32 tmdsRate, u32 tmdsRef)
 {
 	u32 tol = 15000;
-	if (tmdsRef < 50000) tol = 10000;
+//	if (tmdsRef < 50000) tol = 10000;
 
 	if ((tmdsRate > (tmdsRef - tol)) &&
 		(tmdsRate < (tmdsRef + tol)))
