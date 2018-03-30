@@ -64,6 +64,11 @@ struct ntv2_source_config {
 	u32							num_inputs;
 };
 
+struct ntv2_csc_config {
+	const char*					name;
+	u32							reg_index;
+};
+
 struct ntv2_features {
 	int							index;
 	char						name[NTV2_STRING_SIZE];
@@ -90,6 +95,7 @@ struct ntv2_features {
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
+	struct ntv2_csc_config		*csc_config[NTV2_MAX_CHANNELS][NTV2_MAX_CSC_CONFIGS];
 
 	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
 	struct ntv2_source_config	*source_config[NTV2_MAX_CHANNELS][NTV2_MAX_SOURCE_CONFIGS];
@@ -104,6 +110,7 @@ struct ntv2_features {
 
 	struct ntv2_serial_config	*serial_config[NTV2_MAX_CHANNELS];
 };
+
 
 struct ntv2_features *ntv2_features_open(struct ntv2_object *ntv2_obj,
 										 const char *name, int index);
@@ -164,6 +171,10 @@ struct ntv2_source_config
 								  int channel_index,
 								  enum ntv2_input_type input_type,
 								  int input_index);
+
+struct ntv2_csc_config
+*ntv2_features_find_csc_config(struct ntv2_features *features,
+							   int channel_index);
 
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,

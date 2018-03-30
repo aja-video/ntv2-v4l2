@@ -596,10 +596,10 @@ void ntv2_kona_register_initialize(void)
 	video_csc_route[0][0].fld = ntv2_kona_fld_csc1_vid_source;
 	video_csc_route[0][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select3, 0);
 	video_csc_route[0][1].fld = ntv2_kona_fld_csc1_key_source;
-	video_csc_route[1][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select5, 0);
-	video_csc_route[1][1].fld = ntv2_kona_fld_csc2_vid_source;
 	video_csc_route[1][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select5, 0);
-	video_csc_route[1][0].fld = ntv2_kona_fld_csc2_key_source;
+	video_csc_route[1][0].fld = ntv2_kona_fld_csc2_vid_source;
+	video_csc_route[1][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select5, 0);
+	video_csc_route[1][1].fld = ntv2_kona_fld_csc2_key_source;
 	video_csc_route[2][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select17, 0);
 	video_csc_route[2][0].fld = ntv2_kona_fld_csc3_vid_source;
 	video_csc_route[2][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select17, 0);

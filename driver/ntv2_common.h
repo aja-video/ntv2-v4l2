@@ -70,6 +70,7 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,17,0))
 #define NTV2_USE_V4L2_FH					/* 3.17.0 required */
 #define NTV2_USE_TTY_GROUP					/* 3.17.0 required */
+#define NTV2_RGB_PIXEL_FORMATS				/* 3.17.0 required */
 #endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
 #define NTV2_USE_VB2_V4L2_BUFFER			/* 4.4.0 required */

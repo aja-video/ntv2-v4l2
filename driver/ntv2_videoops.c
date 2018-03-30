@@ -256,11 +256,28 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
-	int csc_index;
-	bool convert3gb;
+	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
+	struct ntv2_csc_config *ntv2_csc;
+	int chn_index = 0;
+	int inp_index = 0;
+	int csc_index = 0;
+	bool do_csc = false;
+	bool convert3gb = false;
 	bool in_rgb;
 	bool fs_rgb;
 	int i;
+
+	/* get hardware components */
+	chn_index = ntv2_chn->index;
+	inp_index = stream->input_format.input_index;
+	ntv2_csc = ntv2_features_find_csc_config(ntv2_chn->features, ntv2_chn->index);
+	if (ntv2_csc != NULL)
+		csc_index = ntv2_csc->reg_index;
+	
+	/* determine input and pixel rgbness */
+	in_rgb = (stream->input_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
+	fs_rgb = (stream->pixel_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
+	do_csc = (in_rgb && !fs_rgb) || (!in_rgb && fs_rgb);
 
 	convert3gb =
 		((stream->input_format.frame_flags &
@@ -268,83 +285,87 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 		((stream->input_format.frame_flags &
 		  ntv2_kona_frame_line_interleave) != 0);
 
-	in_rgb = (stream->input_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
-	fs_rgb = (stream->pixel_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
-
 	if (stream->input_format.type == ntv2_input_type_sdi) {
 		for (i = 0; i < stream->input_format.num_inputs; i++) {
 			/* set sdi to input mode */
-			ntv2_sdi_output_transmit_enable(ntv2_chn->vid_reg,
-											stream->input_format.input_index + i,
-											false);
+			ntv2_sdi_output_transmit_enable(vid_reg, inp_index + i, false);
 			/* convert 3gb to 3ga for line interleaved input */
-			ntv2_sdi_input_convert_3g_enable(ntv2_chn->vid_reg,
-											 stream->input_format.input_index + i,
-											 convert3gb);
+			ntv2_sdi_input_convert_3g_enable(vid_reg, inp_index + i, convert3gb);
 
 			/* route sdi to frame store */
-			if ((in_rgb && fs_rgb) || (!in_rgb && !fs_rgb)) {
-				ntv2_route_sdi_to_fs(ntv2_chn->vid_reg,
-									 stream->input_format.input_index + i, 0, in_rgb,
-									 ntv2_chn->index + i, 0);
+			if (do_csc) {
+				ntv2_route_sdi_to_csc(vid_reg,
+									  inp_index + i, 0, in_rgb,
+									  csc_index + i, 0);
+				ntv2_route_csc_to_fs(vid_reg,
+									 csc_index + i, 0, !in_rgb,
+									 chn_index + i, 0);
 			} else {
-				ntv2_route_sdi_to_csc(ntv2_chn->vid_reg,
-									  stream->input_format.input_index + i, 0, in_rgb,
-									  ntv2_chn->index + i, 0);
-				ntv2_route_csc_to_fs(ntv2_chn->vid_reg,
-									 ntv2_chn->index + i, 0, !in_rgb,
-									 ntv2_chn->index + i, 0);
+				ntv2_route_sdi_to_fs(vid_reg,
+									 inp_index + i, 0, in_rgb,
+									 chn_index + i, 0);
 			}
 		}
 	}
 
 	if (stream->input_format.type == ntv2_input_type_hdmi) {
 		if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
-			if ((in_rgb && fs_rgb) || (!in_rgb && !fs_rgb)) {
-				/* route hdmi input through mux */
+			if (do_csc) {
 				for (i = 0; i < 4; i++) {
-					ntv2_route_hdmi_to_mux(ntv2_chn->vid_reg,
-										   stream->input_format.input_index, i, in_rgb,
-										   ntv2_chn->index + (i/2), i%2);
-					ntv2_route_mux_to_fs(ntv2_chn->vid_reg,
-										 ntv2_chn->index + (i/2), i%2, fs_rgb,
-										 ntv2_chn->index + (i/2), i%2);
-				}
+					ntv2_route_hdmi_to_csc(vid_reg,
+										   inp_index, i, in_rgb,
+										   csc_index + i, 0);
+					ntv2_route_csc_to_mux(vid_reg,
+										  csc_index + i, 0, fs_rgb,
+										  chn_index + (i/2), i%2);
+					ntv2_route_mux_to_fs(vid_reg,
+										 chn_index + (i/2), i%2, fs_rgb,
+										 chn_index + (i/2), i%2);
+				}				
 			} else {
 				for (i = 0; i < 4; i++) {
-					/* route hdmi input to csc to mux */
-					csc_index = ((ntv2_chn->index == 0)? 0 : 4) + i;
-					ntv2_route_hdmi_to_csc(ntv2_chn->vid_reg,
-										   stream->input_format.input_index , i, in_rgb,
-										   csc_index, 0);
-					ntv2_route_csc_to_mux(ntv2_chn->vid_reg,
-										  csc_index, 0, fs_rgb,
-										  ntv2_chn->index + (i/2), i%2);
-					ntv2_route_mux_to_fs(ntv2_chn->vid_reg,
-										 ntv2_chn->index + (i/2), i%2, fs_rgb,
-										 ntv2_chn->index + (i/2), i%2);
-				}				
+					ntv2_route_hdmi_to_mux(vid_reg,
+										   inp_index, i, in_rgb,
+										   chn_index + (i/2), i%2);
+					ntv2_route_mux_to_fs(vid_reg,
+										 chn_index + (i/2), i%2, fs_rgb,
+										 chn_index + (i/2), i%2);
+				}
 			}
-		} else {
-			/* configure qrc if present */
-			ntv2_qrc_4k_enable(ntv2_chn->vid_reg,
-							   ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0),
-							   false);
+		} else if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) {
+			/* configure qrc for uhd input */
+			ntv2_qrc_4k_enable(vid_reg, true, false);
 
 			/* route hdmi to frame store direct */
 			for (i = 0; i < stream->input_format.num_streams; i++) {
-				if ((in_rgb && fs_rgb) || (!in_rgb && !fs_rgb)) {
-					ntv2_route_hdmi_to_fs(ntv2_chn->vid_reg,
-										  stream->input_format.input_index, i, in_rgb,
-										  ntv2_chn->index + i, 0);
+				if (do_csc) {
+					ntv2_route_hdmi_to_csc(vid_reg,
+										   inp_index, i, in_rgb,
+										   csc_index + i, 0);
+					ntv2_route_csc_to_fs(vid_reg,
+										 csc_index + i, 0, !in_rgb,
+										 chn_index + i, 0);
 				} else {
-					ntv2_route_hdmi_to_csc(ntv2_chn->vid_reg,
-										   stream->input_format.input_index + i, 0, in_rgb,
-										   ntv2_chn->index + i, 0);
-					ntv2_route_csc_to_fs(ntv2_chn->vid_reg,
-										 ntv2_chn->index + i, 0, !in_rgb,
-										 ntv2_chn->index + i, 0);
+					ntv2_route_hdmi_to_fs(vid_reg,
+										  inp_index, i, in_rgb,
+										  chn_index + i, 0);
 				}
+			}
+		} else {
+			/* configure qrc for hd */
+			ntv2_qrc_4k_enable(vid_reg, false, false);
+
+			if (do_csc) {
+				ntv2_route_hdmi_to_csc(vid_reg,
+									   inp_index, 0, in_rgb,
+									   csc_index, 0);
+				ntv2_route_csc_to_fs(vid_reg,
+									 csc_index, 0, !in_rgb,
+									 chn_index, 0);
+			} else {
+				ntv2_route_hdmi_to_fs(vid_reg,
+									  inp_index, 0, in_rgb,
+									  chn_index, 0);
 			}
 		}
 	}
