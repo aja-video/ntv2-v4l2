@@ -46,8 +46,6 @@ void ntv2_module_initialize(void)
 	ntv2_mod->cdev_name = NTV2_CDEV_NAME;
 
 	ntv2_mod->debug_mask =
-		NTV2_DEBUG_INFO |
-		NTV2_DEBUG_ERROR |
 		NTV2_DEBUG_INPUT_STATE |
 		NTV2_DEBUG_HDMIIN_STATE |
 		NTV2_DEBUG_HDMIIN_DETECT |
@@ -59,7 +57,10 @@ void ntv2_module_initialize(void)
 //		NTV2_DEBUG_DMA_STATE |
 //		NTV2_DEBUG_DMA_STREAM |
 //		NTV2_DEBUG_DMA_DESCRIPTOR |
-		NTV2_DEBUG_DMA_STATISTICS;
+		NTV2_DEBUG_AUDIO_STATE |
+//		NTV2_DEBUG_DMA_STATISTICS |
+		NTV2_DEBUG_INFO |
+		NTV2_DEBUG_ERROR;
 
 	INIT_LIST_HEAD(&ntv2_mod->device_list);
 	spin_lock_init(&ntv2_mod->device_lock);

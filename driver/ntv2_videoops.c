@@ -169,6 +169,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	u32 standard;
 	u32 rate;
 	u32 val;
+	u32 msk;
 
 	/* sync to frame for interlaced video */
 	if ((stream->video_format.frame_flags & ntv2_kona_frame_picture_interlaced) != 0)
@@ -216,31 +217,40 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 
 	/* set quad bit for square division video */
 	val = 0;
+	msk = 0;
 	if ((stream->channel_first / 4) == 0) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
 	} else if ((stream->channel_first / 4) == 1) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
 	}
 
 	/* set 425 bit for two sample interleave video */
 	if ((stream->channel_first / 2) == 0) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb12_425mode_enable);
 	} else if ((stream->channel_first / 2) == 1) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb34_425mode_enable);
 	} else if ((stream->channel_first / 2) == 2) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb56_425mode_enable);
 	} else if ((stream->channel_first / 2) == 3) {
 		val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
+		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb78_425mode_enable);
 	}
 	
 	/* channels independent */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_independent_channel_enable, 1);
-	
+	msk |= NTV2_FLD_MASK(ntv2_kona_fld_independent_channel_enable);
+
 	/* need to figure out how to handle reference source */
 	val |= NTV2_FLD_SET(ntv2_kona_fld_reference_source_b3, ntv2_kona_ref_source_sdiin1 >> 3);
+	msk |= NTV2_FLD_MASK(ntv2_kona_fld_reference_source_b3);
 	
-	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, 0, val);
-//	NTV2_MSG_INFO("%s: write global control2 %08x\n", ntv2_chn->name, val);
+	ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, 0, val, msk);
+//	NTV2_MSG_INFO("%s: write global control2 %08x/%08x\n", ntv2_chn->name, val, msk);
 
 	/* update the video frame buffer range */
 	ntv2_features_get_frame_range(ntv2_chn->features,

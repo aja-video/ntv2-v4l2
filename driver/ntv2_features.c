@@ -2424,7 +2424,7 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
 	features->num_hdmi_inputs = 4;
-	features->frame_buffer_size = 0x20000000;
+	features->frame_buffer_size = 0x80000000;
 	features->num_line_interleave_channels = 2;
 	features->num_sample_interleave_channels = 2;
 	features->num_square_division_channels = 4;
