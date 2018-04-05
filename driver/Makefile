@@ -72,7 +72,6 @@ obj-m			:= $(DRIVERTARGET)
 $(DRIVERNAME)-y	:= $(DRIVEROBJS)
 
 default: driver
-	$(MAKE) -C $(KDIR) M=$(DRIVERDIR) DRIVERDIR=$(DRIVERDIR) modules
 
 install: load var nod
 
@@ -86,11 +85,9 @@ load:
 	find /lib/modules/$(shell uname -r) -name videobuf2-v4l2.ko -exec /sbin/modprobe videobuf2-v4l2 \;
 	/sbin/rmmod ntv2video.ko && /sbin/insmod ntv2video.ko || /sbin/insmod ntv2video.ko
 
-
 # find ntv2dev major number
 var:
 	$(eval MAJOR = $(shell cat /proc/devices | awk '$$2=="ntv2dev" {print $$1}'))
-
 
 # remove and insert nodes
 nod:
@@ -117,7 +114,6 @@ uninstall:
 
 driver:
 	$(MAKE) -C $(KDIR) M=$(DRIVERDIR) DRIVERDIR=$(DRIVERDIR) modules
-
 
 all: $(DRIVERSRCS) $(DRIVERINCS)
 
