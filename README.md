@@ -34,9 +34,12 @@ to adjust them for your kernel.
 
 ## Loading the Driver
 
-To load the driver use:	'sudo ./load'.  The script modprobe(s) several
-dependencies before loading the ntv2video.ko driver.  There is also an
-unload script.  Unloading the driver requires exiting any application
+To load the driver use:	'sudo make install'.
+The install target modprobe(s) several dependencies before loading the ntv2video.ko driver
+
+## Unloading the Driver
+To unload the driver use: 'sudo make uninstall'.
+Unloading the driver requires exiting any application
 that has opened the driver including the system audio mixer (pulseaudio).
 
 ## Running Some Tests
