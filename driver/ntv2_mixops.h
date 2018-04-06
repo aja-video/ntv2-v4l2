@@ -22,6 +22,6 @@
 
 #include "ntv2_common.h"
 
-int ntv2_mixops_configure(struct ntv2_device *ntv2_dev);
+int ntv2_mixops_capture_configure(struct ntv2_audio *ntv2_aud);
 
 #endif

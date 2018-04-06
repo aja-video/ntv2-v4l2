@@ -20,7 +20,6 @@
 #include "ntv2_device.h"
 #include "ntv2_video.h"
 #include "ntv2_audio.h"
-#include "ntv2_mixops.h"
 #include "ntv2_serial.h"
 #include "ntv2_channel.h"
 #include "ntv2_register.h"
@@ -398,9 +397,6 @@ int ntv2_device_configure(struct ntv2_device *ntv2_dev,
 			spin_unlock_irqrestore(&ntv2_dev->audio_lock, flags);
 		}
 	}
-
-	/* configure the audio mixer */
-	ntv2_mixops_configure(ntv2_dev);
 
 	/* register the pcm devices */
 	if (num_audio > 0) {

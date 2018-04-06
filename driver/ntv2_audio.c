@@ -23,6 +23,7 @@
 #include "ntv2_channel.h"
 #include "ntv2_pci.h"
 #include "ntv2_input.h"
+#include "ntv2_mixops.h"
 
 
 #define NTV2_AUDIO_TRANSFER_TIMEOUT			(100000)
@@ -94,6 +95,7 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						 struct ntv2_pci *ntv2_pci)
 {
 	struct ntv2_pcm_stream *stream;
+	char name[80];
 	bool capture;
 	bool playback;
 	int result;
@@ -117,8 +119,10 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 	capture = ntv2_aud->features->audio_config[ntv2_aud->index]->capture;
 	playback = ntv2_aud->features->audio_config[ntv2_aud->index]->playback;
 
+	snprintf(name, sizeof(name), "%s Channel %d", 
+			 features->device_name, ntv2_aud->index + 1);
 	result = snd_pcm_new(ntv2_aud->snd_card,
-						 features->pcm_name,
+						 name,
 						 ntv2_aud->index,
 						 playback? 1 : 0, 
 						 capture? 1 : 0, 
@@ -151,6 +155,9 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 			return result;
 
 		ntv2_aud->capture = stream;
+
+		/* configure the audio mixer */
+		ntv2_mixops_capture_configure(ntv2_aud);
 	}
 	if (playback) {
 		stream = kzalloc(sizeof(struct ntv2_pcm_stream), GFP_KERNEL);
@@ -171,6 +178,9 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 
 		ntv2_aud->playback = stream;
 	}
+
+	snprintf(ntv2_aud->pcm->name, sizeof(ntv2_aud->pcm->name), "Channel %d", 
+			 ntv2_aud->index + 1);
 
 	return 0;
 }
