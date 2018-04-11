@@ -22,6 +22,16 @@
 
 #include "ntv2_common.h"
 
+enum ntv2_component {
+	ntv2_component_unknown,
+	ntv2_component_sdi,
+	ntv2_component_hdmi,
+	ntv2_component_csc,
+	ntv2_component_video,
+	ntv2_component_audio,
+	ntv2_component_size,
+};
+
 struct ntv2_video_config {
 	bool						capture;
 	bool						playback;
@@ -82,6 +92,7 @@ struct ntv2_features {
 
 	u32							num_video_channels;
 	u32							num_audio_channels;
+	u32							num_csc_channels;
 	u32							num_sdi_inputs;
 	u32							num_hdmi_inputs;
 	u32							num_aes_inputs;
@@ -89,9 +100,9 @@ struct ntv2_features {
 	u32							num_reference_inputs;
 	u32							frame_buffer_size;
 	u32							num_serial_ports;
-	u32							num_line_interleave_channels;
-	u32							num_sample_interleave_channels;
-	u32							num_square_division_channels;
+	u32							req_line_interleave_channels;
+	u32							req_sample_interleave_channels;
+	u32							req_square_division_channels;
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
@@ -104,9 +115,7 @@ struct ntv2_features {
 	struct ntv2_pixel_format	*pixel_formats[NTV2_MAX_PIXEL_FORMATS];
 	struct v4l2_dv_timings		*v4l2_timings[NTV2_MAX_VIDEO_FORMATS];
 
-	unsigned long				sdi_owner[NTV2_MAX_SDI_INPUTS];
-	unsigned long				hdmi_owner[NTV2_MAX_HDMI_INPUTS];
-	unsigned long				channel_owner[NTV2_MAX_CHANNELS];
+	unsigned long				component_owner[ntv2_component_size][NTV2_MAX_CHANNELS];
 
 	struct ntv2_serial_config	*serial_config[NTV2_MAX_CHANNELS];
 };
@@ -203,19 +212,12 @@ int ntv2_features_get_frame_range(struct ntv2_features *features,
 u32 ntv2_features_get_audio_capture_address(struct ntv2_features *features, u32 index);
 u32 ntv2_features_get_audio_play_address(struct ntv2_features *features, u32 index);
 
-int ntv2_features_acquire_sdi_inputs(struct ntv2_features *features,
+int ntv2_features_acquire_components(struct ntv2_features *features, enum ntv2_component com,
 									 int index, int num, unsigned long owner);
-int ntv2_features_release_sdi_inputs(struct ntv2_features *features,
+int ntv2_features_release_components(struct ntv2_features *features, enum ntv2_component com,
 									 int index, int num, unsigned long owner);
-int ntv2_features_acquire_hdmi_inputs(struct ntv2_features *features,
-									  int index, int num, unsigned long owner);
-int ntv2_features_release_hdmi_inputs(struct ntv2_features *features,
-									  int index, int num, unsigned long owner);
-int ntv2_features_acquire_channels(struct ntv2_features *features,
-								   int index, int num, unsigned long owner);
-int ntv2_features_release_channels(struct ntv2_features *features,
-								   int index, int num, unsigned long owner);
-void ntv2_features_release_components(struct ntv2_features *features, unsigned long owner);
+void ntv2_features_release_video_components(struct ntv2_features *features, unsigned long owner);
+void ntv2_features_release_audio_components(struct ntv2_features *features, unsigned long owner);
 
 bool ntv2_features_valid_dv_timings(struct ntv2_features *features,
 									const struct v4l2_dv_timings *t,
@@ -234,8 +236,8 @@ bool ntv2_features_match_dv_timings(const struct v4l2_dv_timings *measured,
 									const struct v4l2_dv_timings *standard,
 									unsigned pclock_delta);
 
-int ntv2_features_num_line_interleave_channels(struct ntv2_features *features);
-int ntv2_features_num_sample_interleave_channels(struct ntv2_features *features);
-int ntv2_features_num_square_division_channels(struct ntv2_features *features);
+int ntv2_features_req_line_interleave_channels(struct ntv2_features *features);
+int ntv2_features_req_sample_interleave_channels(struct ntv2_features *features);
+int ntv2_features_req_square_division_channels(struct ntv2_features *features);
 
 #endif

@@ -461,8 +461,8 @@ int ntv2_features_get_frame_range(struct ntv2_features *features,
 		return -EPERM;
 
 	/* simple for now */
-	if (((vidf->frame_flags & ntv2_kona_frame_square_division) != 0) ||
-		((vidf->frame_flags & ntv2_kona_frame_sample_interleave) != 0)) {
+	if (((vidf->frame_flags & ntv2_kona_frame_6g) != 0) ||
+		((vidf->frame_flags & ntv2_kona_frame_12g) != 0)) {
 		index /= 2;
 		fst = 8 * index;
 		lst = fst + 7;
@@ -502,129 +502,14 @@ u32 ntv2_features_get_audio_playback_address(struct ntv2_features *features, u32
 	return (features->frame_buffer_size - 0x800000*(index + 1));
 }
 
-int ntv2_features_acquire_sdi_inputs(struct ntv2_features *features,
+int ntv2_features_acquire_components(struct ntv2_features *features, enum ntv2_component com,
 									 int index, int num, unsigned long owner)
 {
 	unsigned long flags;
 	int i;
 
 	if ((features == NULL) ||
-		(index < 0) ||
-		((index + num) > NTV2_MAX_SDI_INPUTS) ||
-		(owner == 0))
-		return -EPERM;
-
-	spin_lock_irqsave(&features->state_lock, flags);
-
-	for (i = 0; i < num; i++) {
-		if (features->sdi_owner[index + i] != 0) {
-			spin_unlock_irqrestore(&features->state_lock, flags);
-			return -EBUSY;
-		}
-	}
-
-	for (i = 0; i < num; i++)
-		features->sdi_owner[index + i] = owner;
-
-	spin_unlock_irqrestore(&features->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_features_release_sdi_inputs(struct ntv2_features *features,
-									 int index, int num, unsigned long owner)
-{
-	unsigned long flags;
-	int i;
-
-	if ((features == NULL) ||
-		(index < 0) ||
-		((index + num) > NTV2_MAX_SDI_INPUTS) ||
-		(owner == 0))
-		return -EPERM;
-
-	spin_lock_irqsave(&features->state_lock, flags);
-
-	for (i = 0; i < num; i++) {
-		if (features->sdi_owner[index + i] != owner) {
-			spin_unlock_irqrestore(&features->state_lock, flags);
-			return -EINVAL;
-		}
-	}
-
-	for (i = 0; i < num; i++)
-		features->sdi_owner[index + i] = 0;
-
-	spin_unlock_irqrestore(&features->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_features_acquire_hdmi_inputs(struct ntv2_features *features,
-									  int index, int num, unsigned long owner)
-{
-	unsigned long flags;
-	int i;
-
-	if ((features == NULL) ||
-		(index < 0) ||
-		((index + num) > NTV2_MAX_HDMI_INPUTS) ||
-		(owner == 0))
-		return -EPERM;
-
-	spin_lock_irqsave(&features->state_lock, flags);
-
-	for (i = 0; i < num; i++) {
-		if (features->hdmi_owner[index + i] != 0) {
-			spin_unlock_irqrestore(&features->state_lock, flags);
-			return -EBUSY;
-		}
-	}
-
-	for (i = 0; i < num; i++)
-		features->hdmi_owner[index + i] = owner;
-
-	spin_unlock_irqrestore(&features->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_features_release_hdmi_inputs(struct ntv2_features *features,
-									  int index, int num, unsigned long owner)
-{
-	unsigned long flags;
-	int i;
-
-	if ((features == NULL) ||
-		(index < 0) ||
-		((index + num) > NTV2_MAX_HDMI_INPUTS) ||
-		(owner == 0))
-		return -EPERM;
-
-	spin_lock_irqsave(&features->state_lock, flags);
-
-	for (i = 0; i < num; i++) {
-		if (features->hdmi_owner[index + i] != owner) {
-			spin_unlock_irqrestore(&features->state_lock, flags);
-			return -EINVAL;
-		}
-	}
-
-	for (i = 0; i < num; i++)
-		features->hdmi_owner[index + i] = 0;
-
-	spin_unlock_irqrestore(&features->state_lock, flags);
-
-	return 0;
-}
-
-int ntv2_features_acquire_channels(struct ntv2_features *features,
-								   int index, int num, unsigned long owner)
-{
-	unsigned long flags;
-	int i;
-
-	if ((features == NULL) ||
+		(com >= ntv2_component_size) ||
 		(index < 0) ||
 		((index + num) > NTV2_MAX_CHANNELS) ||
 		(owner == 0))
@@ -633,27 +518,28 @@ int ntv2_features_acquire_channels(struct ntv2_features *features,
 	spin_lock_irqsave(&features->state_lock, flags);
 
 	for (i = 0; i < num; i++) {
-		if (features->channel_owner[index + i] != 0) {
+		if (features->component_owner[com][index + i] != 0) {
 			spin_unlock_irqrestore(&features->state_lock, flags);
 			return -EBUSY;
 		}
 	}
 
 	for (i = 0; i < num; i++)
-		features->channel_owner[index + i] = owner;
+		features->component_owner[com][index + i] = owner;
 
 	spin_unlock_irqrestore(&features->state_lock, flags);
 
 	return 0;
 }
 
-int ntv2_features_release_channels(struct ntv2_features *features,
-								   int index, int num, unsigned long owner)
+int ntv2_features_release_components(struct ntv2_features *features, enum ntv2_component com,
+									 int index, int num, unsigned long owner)
 {
 	unsigned long flags;
 	int i;
 
 	if ((features == NULL) ||
+		(com >= ntv2_component_size) ||
 		(index < 0) ||
 		((index + num) > NTV2_MAX_CHANNELS) ||
 		(owner == 0))
@@ -662,21 +548,21 @@ int ntv2_features_release_channels(struct ntv2_features *features,
 	spin_lock_irqsave(&features->state_lock, flags);
 
 	for (i = 0; i < num; i++) {
-		if (features->channel_owner[index + i] != owner) {
+		if (features->component_owner[com][index + i] != owner) {
 			spin_unlock_irqrestore(&features->state_lock, flags);
 			return -EINVAL;
 		}
 	}
 
 	for (i = 0; i < num; i++)
-		features->channel_owner[index + i] = 0;
+		features->component_owner[com][index + i] = 0;
 
 	spin_unlock_irqrestore(&features->state_lock, flags);
 
 	return 0;
 }
 
-void ntv2_features_release_components(struct ntv2_features *features, unsigned long owner)
+void ntv2_features_release_video_components(struct ntv2_features *features, unsigned long owner)
 {
 	unsigned long flags;
 	int i;
@@ -686,17 +572,39 @@ void ntv2_features_release_components(struct ntv2_features *features, unsigned l
 
 	spin_lock_irqsave(&features->state_lock, flags);
 
-	for (i = 0; i < NTV2_MAX_SDI_INPUTS; i++) {
-		if (features->sdi_owner[i] == owner)
-			features->sdi_owner[i] = 0;
-	}
-	for (i = 0; i < NTV2_MAX_HDMI_INPUTS; i++) {
-		if (features->hdmi_owner[i] == owner)
-			features->hdmi_owner[i] = 0;
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->component_owner[ntv2_component_sdi][i] == owner)
+			features->component_owner[ntv2_component_sdi][i] = 0;
 	}
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
-		if (features->channel_owner[i] == owner)
-			features->channel_owner[i] = 0;
+		if (features->component_owner[ntv2_component_hdmi][i] == owner)
+			features->component_owner[ntv2_component_hdmi][i] = 0;
+	}
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->component_owner[ntv2_component_csc][i] == owner)
+			features->component_owner[ntv2_component_csc][i] = 0;
+	}
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->component_owner[ntv2_component_video][i] == owner)
+			features->component_owner[ntv2_component_video][i] = 0;
+	}
+
+	spin_unlock_irqrestore(&features->state_lock, flags);
+}
+
+void ntv2_features_release_audio_components(struct ntv2_features *features, unsigned long owner)
+{
+	unsigned long flags;
+	int i;
+
+	if (features == NULL)
+		return;
+
+	spin_lock_irqsave(&features->state_lock, flags);
+
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->component_owner[ntv2_component_audio][i] == owner)
+			features->component_owner[ntv2_component_audio][i] = 0;
 	}
 
 	spin_unlock_irqrestore(&features->state_lock, flags);
@@ -797,28 +705,28 @@ bool ntv2_features_match_dv_timings(const struct v4l2_dv_timings *t1,
 	return false;
 }
 
-int ntv2_features_num_line_interleave_channels(struct ntv2_features *features)
+int ntv2_features_req_line_interleave_channels(struct ntv2_features *features)
 {
 	if (features == NULL)
 		return 0;
 
-	return features->num_line_interleave_channels;
+	return features->req_line_interleave_channels;
 }
 
-int ntv2_features_num_sample_interleave_channels(struct ntv2_features *features)
+int ntv2_features_req_sample_interleave_channels(struct ntv2_features *features)
 {
 	if (features == NULL)
 		return 0;
 
-	return features->num_sample_interleave_channels;
+	return features->req_sample_interleave_channels;
 }
 
-int ntv2_features_num_square_division_channels(struct ntv2_features *features)
+int ntv2_features_req_square_division_channels(struct ntv2_features *features)
 {
 	if (features == NULL)
 		return 0;
 
-	return features->num_square_division_channels;
+	return features->req_square_division_channels;
 }
 
 #ifndef V4L2_DV_BT_CEA_3840X2160P24
@@ -1033,22 +941,14 @@ static struct ntv2_video_format 	nvf_1080p6000;
 static struct ntv2_video_format 	nvf_1080i5000;
 static struct ntv2_video_format 	nvf_1080i5994;
 static struct ntv2_video_format 	nvf_1080i6000;
-static struct ntv2_video_format 	nvf_2160p2398_sqd;
-static struct ntv2_video_format 	nvf_2160p2400_sqd;
-static struct ntv2_video_format 	nvf_2160p2500_sqd;
-static struct ntv2_video_format 	nvf_2160p2997_sqd;
-static struct ntv2_video_format 	nvf_2160p3000_sqd;
-static struct ntv2_video_format 	nvf_2160p5000_sqd;
-static struct ntv2_video_format 	nvf_2160p5994_sqd;
-static struct ntv2_video_format 	nvf_2160p6000_sqd;
-static struct ntv2_video_format 	nvf_2160p2398_tsi;
-static struct ntv2_video_format 	nvf_2160p2400_tsi;
-static struct ntv2_video_format 	nvf_2160p2500_tsi;
-static struct ntv2_video_format 	nvf_2160p2997_tsi;
-static struct ntv2_video_format 	nvf_2160p3000_tsi;
-static struct ntv2_video_format 	nvf_2160p5000_tsi;
-static struct ntv2_video_format 	nvf_2160p5994_tsi;
-static struct ntv2_video_format 	nvf_2160p6000_tsi;
+static struct ntv2_video_format 	nvf_2160p2398;
+static struct ntv2_video_format 	nvf_2160p2400;
+static struct ntv2_video_format 	nvf_2160p2500;
+static struct ntv2_video_format 	nvf_2160p2997;
+static struct ntv2_video_format 	nvf_2160p3000;
+static struct ntv2_video_format 	nvf_2160p5000;
+static struct ntv2_video_format 	nvf_2160p5994;
+static struct ntv2_video_format 	nvf_2160p6000;
 
 static struct ntv2_pixel_format 	npf_uyvy;
 static struct ntv2_pixel_format 	npf_yuyv;
@@ -1559,8 +1459,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_720x486;
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_interlaced;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_interlaced |
+		ntv2_kona_frame_sd;
 
 	/* 625i5000 timing */
 	nvf = &nvf_625i5000;
@@ -1571,8 +1471,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_720x576;
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_interlaced;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_interlaced |
+		ntv2_kona_frame_sd;
 
 	/* 720p5000 timing */
 	nvf = &nvf_720p5000;
@@ -1583,8 +1483,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1280x720;
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 720p5994 timing */
 	nvf = &nvf_720p5994;
@@ -1595,8 +1495,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1280x720;
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 720p6000 timing */
 	nvf = &nvf_720p6000;
@@ -1607,8 +1507,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1280x720;
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p2398 timing */
 	nvf = &nvf_1080p2398;
@@ -1619,8 +1519,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2398;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p2400 timing */
 	nvf = &nvf_1080p2400;
@@ -1631,8 +1531,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2400;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p2500 timing */
 	nvf = &nvf_1080p2500;
@@ -1643,8 +1543,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p2997 timing */
 	nvf = &nvf_1080p2997;
@@ -1655,8 +1555,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p3000 timing */
 	nvf = &nvf_1080p3000;
@@ -1667,8 +1567,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_3000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_hd;
 
 	/* 1080p5000 timing */
 	nvf = &nvf_1080p5000;
@@ -1679,8 +1579,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_3g;
 
 	/* 1080p5994 timing */
 	nvf = &nvf_1080p5994;
@@ -1691,8 +1591,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_3g;
 
 	/* 1080p6000 timing */
 	nvf = &nvf_1080p6000;
@@ -1703,8 +1603,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_progressive |
+		ntv2_kona_frame_3g;
 
 	/* 1080i5000 timing */
 	nvf = &nvf_1080i5000;
@@ -1715,8 +1615,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_interlaced;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_interlaced |
+		ntv2_kona_frame_hd;
 
 	/* 1080i5994 timing */
 	nvf = &nvf_1080i5994;
@@ -1727,8 +1627,8 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_interlaced;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_interlaced |
+		ntv2_kona_frame_hd;
 
 	/* 1080i6000 timing */
 	nvf = &nvf_1080i6000;
@@ -1739,11 +1639,11 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
-		ntv2_kona_frame_picture_interlaced;
-	nvf->num_channels = 1;
+		ntv2_kona_frame_picture_interlaced |
+		ntv2_kona_frame_hd;
 
 	/* 2160p2398 timing */
-	nvf = &nvf_2160p2398_sqd;
+	nvf = &nvf_2160p2398;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2398";
 	nvf->v4l2_timings = dvt_3840x2160p24;
@@ -1752,11 +1652,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2398;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_6g;
 
 	/* 2160p2400 timing */
-	nvf = &nvf_2160p2400_sqd;
+	nvf = &nvf_2160p2400;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2400";
 	nvf->v4l2_timings = dvt_3840x2160p24;
@@ -1765,11 +1664,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2400;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_6g;
 
 	/* 2160p2500 timing */
-	nvf = &nvf_2160p2500_sqd;
+	nvf = &nvf_2160p2500;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2500";
 	nvf->v4l2_timings = dvt_3840x2160p25;
@@ -1778,11 +1676,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2500;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_6g;
 
 	/* 2160p2997 timing */
-	nvf = &nvf_2160p2997_sqd;
+	nvf = &nvf_2160p2997;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p2997";
 	nvf->v4l2_timings = dvt_3840x2160p30;
@@ -1791,11 +1688,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_2997;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_6g;
 
 	/* 2160p3000 timing */
-	nvf = &nvf_2160p3000_sqd;
+	nvf = &nvf_2160p3000;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p3000";
 	nvf->v4l2_timings = dvt_3840x2160p30;
@@ -1804,11 +1700,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_3000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_6g;
 
 	/* 2160p5000 timing */
-	nvf = &nvf_2160p5000_sqd;
+	nvf = &nvf_2160p5000;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p5000";
 	nvf->v4l2_timings = dvt_3840x2160p50;
@@ -1817,11 +1712,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_12g;
 
 	/* 2160p5994 timing */
-	nvf = &nvf_2160p5994_sqd;
+	nvf = &nvf_2160p5994;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p5994";
 	nvf->v4l2_timings = dvt_3840x2160p60;
@@ -1830,11 +1724,10 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_5994;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
+		ntv2_kona_frame_12g;
 
 	/* 2160p6000 timing */
-	nvf = &nvf_2160p6000_sqd;
+	nvf = &nvf_2160p6000;
 	memset(nvf, 0, sizeof(struct ntv2_video_format));
 	nvf->name = "2160p6000";
 	nvf->v4l2_timings = dvt_3840x2160p60;
@@ -1843,112 +1736,7 @@ static void ntv2_features_initialize(void) {
 	nvf->frame_rate = ntv2_kona_frame_rate_6000;
 	nvf->frame_flags =
 		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_square_division;
-	nvf->num_channels = 4;
-
-	/* 2160p2398 timing */
-	nvf = &nvf_2160p2398_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p2398";
-	nvf->v4l2_timings = dvt_3840x2160p24;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_2398;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p2400 timing */
-	nvf = &nvf_2160p2400_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p2400";
-	nvf->v4l2_timings = dvt_3840x2160p24;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_2400;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p2500 timing */
-	nvf = &nvf_2160p2500_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p2500";
-	nvf->v4l2_timings = dvt_3840x2160p25;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_2500;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p2997 timing */
-	nvf = &nvf_2160p2997_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p2997";
-	nvf->v4l2_timings = dvt_3840x2160p30;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_2997;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p3000 timing */
-	nvf = &nvf_2160p3000_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p3000";
-	nvf->v4l2_timings = dvt_3840x2160p30;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_3000;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p5000 timing */
-	nvf = &nvf_2160p5000_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p5000";
-	nvf->v4l2_timings = dvt_3840x2160p50;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_5000;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p5994 timing */
-	nvf = &nvf_2160p5994_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p5994";
-	nvf->v4l2_timings = dvt_3840x2160p60;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_5994;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
-
-	/* 2160p6000 timing */
-	nvf = &nvf_2160p6000_tsi;
-	memset(nvf, 0, sizeof(struct ntv2_video_format));
-	nvf->name = "2160p6000";
-	nvf->v4l2_timings = dvt_3840x2160p60;
-	nvf->video_standard = ntv2_kona_video_standard_1080p;
-	nvf->frame_geometry = ntv2_kona_frame_geometry_1920x1080;
-	nvf->frame_rate = ntv2_kona_frame_rate_6000;
-	nvf->frame_flags =
-		ntv2_kona_frame_picture_progressive |
-		ntv2_kona_frame_sample_interleave;
-	nvf->num_channels = 2;
+		ntv2_kona_frame_12g;
 
 	/* UYVY16 format */
 	npf = &npf_uyvy;
@@ -2083,22 +1871,14 @@ static void all_video_formats(struct ntv2_features *features)
 	features->video_formats[13] = &nvf_1080i5000;
 	features->video_formats[14] = &nvf_1080i5994;
 	features->video_formats[15] = &nvf_1080i6000;
-	features->video_formats[16] = &nvf_2160p2398_sqd;
-	features->video_formats[17] = &nvf_2160p2400_sqd;
-	features->video_formats[18] = &nvf_2160p2500_sqd;
-	features->video_formats[19] = &nvf_2160p2997_sqd;
-	features->video_formats[20] = &nvf_2160p3000_sqd;
-	features->video_formats[21] = &nvf_2160p5000_sqd;
-	features->video_formats[22] = &nvf_2160p5994_sqd;
-	features->video_formats[23] = &nvf_2160p6000_sqd;
-	features->video_formats[24] = &nvf_2160p2398_tsi;
-	features->video_formats[25] = &nvf_2160p2400_tsi;
-	features->video_formats[26] = &nvf_2160p2500_tsi;
-	features->video_formats[27] = &nvf_2160p2997_tsi;
-	features->video_formats[28] = &nvf_2160p3000_tsi;
-	features->video_formats[29] = &nvf_2160p5000_tsi;
-	features->video_formats[30] = &nvf_2160p5994_tsi;
-	features->video_formats[31] = &nvf_2160p6000_tsi;
+	features->video_formats[16] = &nvf_2160p2398;
+	features->video_formats[17] = &nvf_2160p2400;
+	features->video_formats[18] = &nvf_2160p2500;
+	features->video_formats[19] = &nvf_2160p2997;
+	features->video_formats[20] = &nvf_2160p3000;
+	features->video_formats[21] = &nvf_2160p5000;
+	features->video_formats[22] = &nvf_2160p5994;
+	features->video_formats[23] = &nvf_2160p6000;
 }
 
 static void all_yuv_pixel_formats(struct ntv2_features *features)
@@ -2155,12 +1935,13 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 	features->pcm_name = "Corvid44 PCM";
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
+	features->num_csc_channels = 4;
 	features->num_sdi_inputs = 4;
 	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x40000000;
-	features->num_line_interleave_channels = 2;
-	features->num_sample_interleave_channels = 2;
-	features->num_square_division_channels = 4;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
 
 	for (i = 0; i < features->num_video_channels; i++) {
 		features->video_config[i] = &nvc_capture;
@@ -2216,12 +1997,13 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 	features->pcm_name = "Corvid88 PCM";
 	features->num_video_channels = 8;
 	features->num_audio_channels = 8;
+	features->num_csc_channels = 8;
 	features->num_sdi_inputs = 8;
 	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x40000000;
-	features->num_line_interleave_channels = 2;
-	features->num_sample_interleave_channels = 2;
-	features->num_square_division_channels = 4;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
 
 	for (i = 0; i < features->num_video_channels; i++) {
 		features->video_config[i] = &nvc_capture;
@@ -2309,12 +2091,13 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->pcm_name = "Kona4 PCM";
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
+	features->num_csc_channels = 4;
 	features->num_sdi_inputs = 4;
 	features->num_reference_inputs = 1;
 	features->frame_buffer_size = 0x37800000;
-	features->num_line_interleave_channels = 2;
-	features->num_sample_interleave_channels = 2;
-	features->num_square_division_channels = 4;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
 
 	for (i = 0; i < features->num_video_channels; i++) {
 		features->video_config[i] = &nvc_capture;
@@ -2368,13 +2151,14 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->pcm_name = "CorvidHB-R PCM";
 	features->num_video_channels = 1;
 	features->num_audio_channels = 1;
+	features->num_csc_channels = 4;
 	features->num_hdmi_inputs = 1;
 	features->num_aes_inputs = 1;
 	features->frame_buffer_size = 0x20000000;
 	features->num_serial_ports = 1;
-	features->num_line_interleave_channels = 2;
-	features->num_sample_interleave_channels = 2;
-	features->num_square_division_channels = 4;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
 
 	features->video_config[0] = &nvc_capture;
 	features->audio_config[0] = &nac_capture;
@@ -2399,11 +2183,11 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->video_formats[13] = &nvf_1080i5000;
 	features->video_formats[14] = &nvf_1080i5994;
 	features->video_formats[15] = &nvf_1080i6000;
-	features->video_formats[16] = &nvf_2160p2398_sqd;
-	features->video_formats[17] = &nvf_2160p2400_sqd;
-	features->video_formats[18] = &nvf_2160p2500_sqd;
-	features->video_formats[19] = &nvf_2160p2997_sqd;
-	features->video_formats[20] = &nvf_2160p3000_sqd;
+	features->video_formats[16] = &nvf_2160p2398;
+	features->video_formats[17] = &nvf_2160p2400;
+	features->video_formats[18] = &nvf_2160p2500;
+	features->video_formats[19] = &nvf_2160p2997;
+	features->video_formats[20] = &nvf_2160p3000;
 
 	features->source_config[0][0] = &asc_auto;
 	features->source_config[0][1] = &asc_aes;
@@ -2423,11 +2207,12 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->pcm_name = "Kona HDMI PCM";
 	features->num_video_channels = 4;
 	features->num_audio_channels = 4;
+	features->num_csc_channels = 8;
 	features->num_hdmi_inputs = 4;
 	features->frame_buffer_size = 0x80000000;
-	features->num_line_interleave_channels = 2;
-	features->num_sample_interleave_channels = 2;
-	features->num_square_division_channels = 4;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
 
 	for (i = 0; i < features->num_video_channels; i++) {
 		features->video_config[i] = &nvc_capture;

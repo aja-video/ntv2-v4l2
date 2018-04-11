@@ -93,12 +93,13 @@ bool ntv2_compatible_input_format(struct ntv2_input_format *inpf,
 		return false;
 
 	match =
-		((inpf->frame_rate == vidf->frame_rate) &&
-		 (inpf->video_standard == vidf->video_standard) &&
-		 ((inpf->frame_flags & ntv2_kona_frame_square_division) ==
-		  (vidf->frame_flags & ntv2_kona_frame_square_division)) &&
-		 ((inpf->frame_flags & ntv2_kona_frame_sample_interleave) ==
-		  (vidf->frame_flags & ntv2_kona_frame_sample_interleave)));
+		((inpf->video_standard == vidf->video_standard) &&
+		 (inpf->frame_rate == vidf->frame_rate) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_sd) == (vidf->frame_flags & ntv2_kona_frame_sd)) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_hd) == (vidf->frame_flags & ntv2_kona_frame_hd)) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_3g) == (vidf->frame_flags & ntv2_kona_frame_3g)) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_6g) == (vidf->frame_flags & ntv2_kona_frame_6g)) &&
+		 ((inpf->frame_flags & ntv2_kona_frame_12g) == (vidf->frame_flags & ntv2_kona_frame_12g)));
 
 	return match;
 }
@@ -237,8 +238,8 @@ static int ntv2_s_fmt_vid_cap(struct file *file,
 								 &ntv2_vid->v4l2_format);
 
 	/* update hardware */
-	ntv2_channel_set_pixel_format(ntv2_vid->vid_str,
-								  &ntv2_vid->pixel_format);
+//	ntv2_channel_set_pixel_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->pixel_format);
 	return 0;
 }
 
@@ -432,13 +433,13 @@ static int ntv2_s_dv_timings(struct file *file,
 
 	/* update hardware */
 	ntv2_input_get_input_format(ntv2_vid->ntv2_inp, config, &ntv2_vid->input_format);
-	ntv2_channel_set_input_format(ntv2_vid->vid_str,
-								  &ntv2_vid->input_format);
-	ntv2_channel_set_video_format(ntv2_vid->vid_str,
-								  &ntv2_vid->video_format);
+//	ntv2_channel_set_input_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->input_format);
+//	ntv2_channel_set_video_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->video_format);
 	/* audio input follows video */
-	ntv2_channel_set_input_format(ntv2_vid->aud_str,
-								  &ntv2_vid->input_format);
+//	ntv2_channel_set_input_format(ntv2_vid->aud_str,
+//								  &ntv2_vid->input_format);
 	return 0;
 }
 
@@ -651,15 +652,15 @@ static int ntv2_s_input(struct file *file, void *fh, unsigned int input)
 	ntv2_vid->v4l2_timings = vidf->v4l2_timings;
 
 	/* update hardware */
-	ntv2_channel_set_input_format(ntv2_vid->vid_str,
-								  &ntv2_vid->input_format);
-	ntv2_channel_set_video_format(ntv2_vid->vid_str,
-								  &ntv2_vid->video_format);
-	ntv2_channel_set_pixel_format(ntv2_vid->vid_str,
-								  &ntv2_vid->pixel_format);
+//	ntv2_channel_set_input_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->input_format);
+//	ntv2_channel_set_video_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->video_format);
+//	ntv2_channel_set_pixel_format(ntv2_vid->vid_str,
+//								  &ntv2_vid->pixel_format);
 	/* audio input follows video */
-	ntv2_channel_set_input_format(ntv2_vid->aud_str,
-								  &ntv2_vid->input_format);
+//	ntv2_channel_set_input_format(ntv2_vid->aud_str,
+//								  &ntv2_vid->input_format);
 
 done:
 	/* update v4l2 pixel format */

@@ -122,12 +122,12 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	ntv2_chn->streams[ntv2_stream_type_vidin] = stream;
 
 	/* program the video input stream */
-	stream->ops.setup(stream);
-	stream->ops.update_mode(stream);
-	stream->ops.update_format(stream);
-	stream->ops.update_timing(stream);
-	stream->ops.update_route(stream);
-	stream->ops.release(stream);
+//	stream->ops.setup(stream);
+//	stream->ops.update_mode(stream);
+//	stream->ops.update_format(stream);
+//	stream->ops.update_timing(stream);
+//	stream->ops.update_route(stream);
+//	stream->ops.release(stream);
 
 	stream = kzalloc(sizeof(struct ntv2_channel_stream), GFP_KERNEL);
 	if (stream == NULL)
@@ -198,8 +198,8 @@ int ntv2_channel_set_video_format(struct ntv2_channel_stream *stream,
 
 	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
 	stream->video_format = *vidf;
-	stream->ops.update_timing(stream);
-	stream->ops.update_route(stream);
+//	stream->ops.update_timing(stream);
+//	stream->ops.update_route(stream);
 	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
 
 	return 0;
@@ -230,8 +230,8 @@ int ntv2_channel_set_pixel_format(struct ntv2_channel_stream *stream,
 
 	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
 	stream->pixel_format = *pixf;
-	stream->ops.update_format(stream);
-	stream->ops.update_route(stream);
+//	stream->ops.update_format(stream);
+//	stream->ops.update_route(stream);
 	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
 
 	return 0;
@@ -262,8 +262,8 @@ int ntv2_channel_set_input_format(struct ntv2_channel_stream *stream,
 
 	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
 	stream->input_format = *inpf;
-	stream->ops.update_mode(stream);
-	stream->ops.update_route(stream);
+//	stream->ops.update_mode(stream);
+//	stream->ops.update_route(stream);
 	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
 
 	return 0;
@@ -294,8 +294,8 @@ int ntv2_channel_set_source_format(struct ntv2_channel_stream *stream,
 
 	spin_lock_irqsave(&stream->ntv2_chn->state_lock, flags);
 	stream->source_format = *souf;
-	stream->ops.update_mode(stream);
-	stream->ops.update_route(stream);
+//	stream->ops.update_mode(stream);
+//	stream->ops.update_route(stream);
 	spin_unlock_irqrestore(&stream->ntv2_chn->state_lock, flags);
 
 	return 0;

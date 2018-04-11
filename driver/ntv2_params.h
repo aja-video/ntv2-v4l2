@@ -245,7 +245,6 @@ struct ntv2_video_format {
 	u32							frame_geometry;
 	u32							frame_rate;
 	u32							frame_flags;
-	u32							num_channels;
 };
 
 struct ntv2_pixel_format {

@@ -86,9 +86,9 @@ int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 	list_del_init(&stream->video.frame_next->list);
 
 	/* setup hardware */
-	stream->ops.update_timing(stream);
-	stream->ops.update_format(stream);
-	stream->ops.update_route(stream);
+//	stream->ops.update_timing(stream);
+//	stream->ops.update_format(stream);
+//	stream->ops.update_route(stream);
 
 	return 0;
 }
@@ -99,7 +99,7 @@ int ntv2_videoops_release_capture(struct ntv2_channel_stream *stream)
 	struct ntv2_features *features = ntv2_chn->features;
 
 	/* release hardware resources */
-	ntv2_features_release_components(features, (unsigned long)stream);
+	ntv2_features_release_video_components(features, (unsigned long)stream);
 
 	return 0;
 }
@@ -148,13 +148,13 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 	}
 
 	/* update the video frame buffer frame size */
-	ntv2_features_get_frame_range(ntv2_chn->features,
-								  &stream->video_format,
-								  &stream->pixel_format,
-								  stream->channel_first,
-								  &stream->video.frame_first,
-								  &stream->video.frame_last,
-								  &stream->video.frame_size);
+//	ntv2_features_get_frame_range(ntv2_chn->features,
+//								  &stream->video_format,
+//								  &stream->pixel_format,
+//								  stream->channel_first,
+//								  &stream->video.frame_first,
+//								  &stream->video.frame_last,
+//								  &stream->video.frame_size);
 	return 0;
 }
 
@@ -175,12 +175,12 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	if ((stream->video_format.frame_flags & ntv2_kona_frame_picture_interlaced) != 0)
 		mode_sync = ntv2_kona_reg_sync_frame;
 	
-	/* look for tw0 sample interleave video */
-	if ((stream->video_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0)
+	/* look for two sample interleave video */
+	if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0)
 		mode_tsi = 1;
 	
 	/* look for square division video */
-	if ((stream->video_format.frame_flags & ntv2_kona_frame_square_division) != 0)
+	if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0)
 		mode_quad = 1;
 	
 	/* kluge 372 mode */
@@ -295,33 +295,101 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 		((stream->input_format.frame_flags &
 		  ntv2_kona_frame_line_interleave) != 0);
 
-	if (stream->input_format.type == ntv2_input_type_sdi) {
-		for (i = 0; i < stream->input_format.num_inputs; i++) {
-			/* set sdi to input mode */
-			ntv2_sdi_output_transmit_enable(vid_reg, inp_index + i, false);
-			/* convert 3gb to 3ga for line interleaved input */
-			ntv2_sdi_input_convert_3g_enable(vid_reg, inp_index + i, convert3gb);
+	for (i = 0; i < stream->input_format.num_inputs; i++) {
+		/* set sdi to input mode */
+		ntv2_sdi_output_transmit_enable(vid_reg, inp_index + i, false);
+		/* convert 3gb to 3ga for line interleaved input */
+		ntv2_sdi_input_convert_3g_enable(vid_reg, inp_index + i, convert3gb);
+	}
 
-			/* route sdi to frame store */
-			if (do_csc) {
-				ntv2_route_sdi_to_csc(vid_reg,
-									  inp_index + i, 0, in_rgb,
-									  csc_index + i, 0);
-				ntv2_route_csc_to_fs(vid_reg,
-									 csc_index + i, 0, !in_rgb,
-									 chn_index + i, 0);
+	if (stream->input_format.type == ntv2_input_type_sdi) {
+		if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
+			if (stream->input_format.num_inputs == 2) {
+				/* route 3gb tsi inputs */
+				for (i = 0; i < 4; i++) {
+					if (do_csc) {
+						ntv2_route_sdi_to_csc(vid_reg,
+											  inp_index + (i/2), i%2, in_rgb,
+											  csc_index + i, 0);
+						ntv2_route_csc_to_mux(vid_reg,
+											  csc_index + i, 0, fs_rgb,
+											  chn_index + (i/2), i%2);
+						ntv2_route_mux_to_fs(vid_reg,
+											 chn_index + (i/2), i%2, fs_rgb,
+											 chn_index + (i/2), i%2);
+					} else {
+						ntv2_route_sdi_to_mux(vid_reg,
+											  inp_index + (i/2), i%2, in_rgb,
+											  chn_index + (i/2), i%2);
+						ntv2_route_mux_to_fs(vid_reg,
+											 chn_index + (i/2), i%2, fs_rgb,
+											 chn_index + (i/2), i%2);
+					}
+				}
 			} else {
-				ntv2_route_sdi_to_fs(vid_reg,
-									 inp_index + i, 0, in_rgb,
-									 chn_index + i, 0);
+				/* route 3ga tsi inputs */
+				for (i = 0; i < 4; i++) {
+					if (do_csc) {
+						ntv2_route_sdi_to_csc(vid_reg,
+											  inp_index + i, 0, in_rgb,
+											  csc_index + i, 0);
+						ntv2_route_csc_to_mux(vid_reg,
+											  csc_index + i, 0, fs_rgb,
+											  chn_index + (i/2), i%2);
+						ntv2_route_mux_to_fs(vid_reg,
+											 chn_index + (i/2), i%2, fs_rgb,
+											 chn_index + (i/2), i%2);
+					} else {
+						ntv2_route_sdi_to_mux(vid_reg,
+											  inp_index + i, 0, in_rgb,
+											  chn_index + (i/2), i%2);
+						ntv2_route_mux_to_fs(vid_reg,
+											 chn_index + (i/2), i%2, fs_rgb,
+											 chn_index + (i/2), i%2);
+					}
+				}
+			}
+		} else if (((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) &&
+				   (stream->input_format.num_inputs == 2)) {
+			/* route 3gb sqd inputs */
+			for (i = 0; i < stream->input_format.num_inputs; i++) {
+				if (do_csc) {
+					ntv2_route_sdi_to_csc(vid_reg,
+										  inp_index + (i/2), i%2, in_rgb,
+										  csc_index + i, 0);
+					ntv2_route_csc_to_fs(vid_reg,
+										 csc_index + i, 0, !in_rgb,
+										 chn_index + i, 0);
+				} else {
+					ntv2_route_sdi_to_fs(vid_reg,
+										 inp_index + (i/2), i%2, in_rgb,
+										 chn_index + i, 0);
+				}
+			}
+		} else {
+			/* route 3ga and hd inputs */
+			for (i = 0; i < stream->input_format.num_inputs; i++) {
+				if (do_csc) {
+					ntv2_route_sdi_to_csc(vid_reg,
+										  inp_index + i, 0, in_rgb,
+										  csc_index + i, 0);
+					ntv2_route_csc_to_fs(vid_reg,
+										 csc_index + i, 0, !in_rgb,
+										 chn_index + i, 0);
+				} else {
+					ntv2_route_sdi_to_fs(vid_reg,
+										 inp_index + i, 0, in_rgb,
+										 chn_index + i, 0);
+				}
 			}
 		}
 	}
 
 	if (stream->input_format.type == ntv2_input_type_hdmi) {
 		if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
-			if (do_csc) {
-				for (i = 0; i < 4; i++) {
+			/* route hdmi tsi input */
+			for (i = 0; i < 4; i++) {
+				if (do_csc) {
 					ntv2_route_hdmi_to_csc(vid_reg,
 										   inp_index, i, in_rgb,
 										   csc_index + i, 0);
@@ -331,9 +399,7 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 					ntv2_route_mux_to_fs(vid_reg,
 										 chn_index + (i/2), i%2, fs_rgb,
 										 chn_index + (i/2), i%2);
-				}				
-			} else {
-				for (i = 0; i < 4; i++) {
+				} else {
 					ntv2_route_hdmi_to_mux(vid_reg,
 										   inp_index, i, in_rgb,
 										   chn_index + (i/2), i%2);
@@ -343,10 +409,10 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				}
 			}
 		} else if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) {
-			/* configure qrc for uhd input */
+			/* configure qrc for sqd input */
 			ntv2_qrc_4k_enable(vid_reg, true, false);
 
-			/* route hdmi to frame store direct */
+			/* route hdmi sqd input */
 			for (i = 0; i < stream->input_format.num_streams; i++) {
 				if (do_csc) {
 					ntv2_route_hdmi_to_csc(vid_reg,
@@ -362,9 +428,10 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				}
 			}
 		} else {
-			/* configure qrc for hd */
+			/* configure qrc for 3g and hd */
 			ntv2_qrc_4k_enable(vid_reg, false, false);
 
+			/* route 3g and hd input */
 			if (do_csc) {
 				ntv2_route_hdmi_to_csc(vid_reg,
 									   inp_index, 0, in_rgb,
@@ -496,42 +563,51 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
 
 	/* acquire inputs */
 	if (stream->input_format.type == ntv2_input_type_sdi) {
-		result = ntv2_features_acquire_sdi_inputs(features,
+		result = ntv2_features_acquire_components(features,
+												  ntv2_component_sdi,
 												  stream->input_format.input_index,
 												  stream->input_format.num_inputs,
 												  (unsigned long)stream);
 	} else 	if (stream->input_format.type == ntv2_input_type_hdmi) {
-		result = ntv2_features_acquire_hdmi_inputs(features,
-												   stream->input_format.input_index,
-												   stream->input_format.num_inputs,
-												   (unsigned long)stream);
+		result = ntv2_features_acquire_components(features,
+												  ntv2_component_hdmi,
+												  stream->input_format.input_index,
+												  stream->input_format.num_inputs,
+												  (unsigned long)stream);
 	}
 	if (result != 0)
-		return result;
+		goto release;
 
 	/* look for smpte 372 high rate on 2 wires */
 	if ((stream->input_format.num_inputs == 2) &&
-		((stream->input_format.frame_flags & ntv2_kona_frame_hd) != 0) &&
+		((stream->input_format.frame_flags & ntv2_kona_frame_3g) != 0) &&
 		((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0)) {
-		num_channels = ntv2_features_num_line_interleave_channels(features);
+		num_channels = ntv2_features_req_line_interleave_channels(features);
 	}
 	/* look for two sample interleave */
 	else if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
-		num_channels = ntv2_features_num_sample_interleave_channels(features);
+		num_channels = ntv2_features_req_sample_interleave_channels(features);
 	}
 	/* look for square division */
 	else if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) {
-		num_channels = ntv2_features_num_square_division_channels(features);
+		num_channels = ntv2_features_req_square_division_channels(features);
 	}
-	if (num_channels < 1)
-		return -EPERM;
+	if (num_channels < 1) {
+		result = -EPERM;
+		goto release;
+	}
 
-	result = ntv2_features_acquire_channels(features, index, num_channels, (unsigned long)stream);
+	result = ntv2_features_acquire_components(features, ntv2_component_video, 
+											  index, num_channels, (unsigned long)stream);
 	if (result != 0)
-		return result;
+		goto release;
 
 	*channel_first = index;
 	*channel_last = index + num_channels - 1;
 
 	return 0;
+
+release:
+	ntv2_features_release_video_components(features, (unsigned long)stream);
+	return result;
 }
