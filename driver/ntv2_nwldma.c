@@ -36,7 +36,11 @@
 static void ntv2_nwldma_task(unsigned long data);
 static int ntv2_nwldma_dodma(struct ntv2_nwldma_task *ntv2_task);
 static void ntv2_nwldma_dpc(unsigned long data);
+#ifdef NTV2_USE_TIMER_SETUP
+static void ntv2_nwldma_timeout(struct timer_list *timer);
+#else
 static void ntv2_nwldma_timeout(unsigned long data);
+#endif
 static void ntv2_nwldma_cleanup(struct ntv2_nwldma *ntv2_nwl);
 static void ntv2_nwldma_stop(struct ntv2_nwldma *ntv2_nwl);
 
@@ -73,10 +77,16 @@ struct ntv2_nwldma *ntv2_nwldma_open(struct ntv2_object *ntv2_obj,
 				 (unsigned long)ntv2_nwl);
 
 	/* timeout timer */
+#ifdef NTV2_USE_TIMER_SETUP
+	timer_setup(&ntv2_nwl->engine_timer,
+				ntv2_nwldma_timeout,
+				0);
+#else
 	setup_timer(&ntv2_nwl->engine_timer,
 				ntv2_nwldma_timeout,
 				(unsigned long)ntv2_nwl);
-
+#endif
+	
 	return ntv2_nwl;
 }
 
@@ -813,9 +823,15 @@ static void ntv2_nwldma_dpc(unsigned long data)
 	tasklet_schedule(&ntv2_nwl->engine_task);
 }
 
+#ifdef NTV2_USE_TIMER_SETUP
+static void ntv2_nwldma_timeout(struct timer_list *timer)
+{
+	struct ntv2_nwldma		*ntv2_nwl = container_of(timer, struct ntv2_nwldma, engine_timer);
+#else
 static void ntv2_nwldma_timeout(unsigned long data)
 {
 	struct ntv2_nwldma		*ntv2_nwl = (struct ntv2_nwldma *)data;
+#endif	
 	enum ntv2_nwldma_state	state;
 	unsigned long			flags;
 	u32						control;

@@ -27,7 +27,11 @@
 #define NTV2_INPUT_UNLOCK_COUNT			2
 #define NTV2_INPUT_MONITOR_INTERVAL		100000
 
+#ifdef NTV2_USE_TIMER_SETUP
+static void ntv2_input_monitor(struct timer_list *timer);
+#else
 static void ntv2_input_monitor(unsigned long data);
+#endif
 static bool ntv2_compare_sdi_input_status(struct ntv2_sdi_input_status *status_a,
 										  struct ntv2_sdi_input_status *status_b);
 static int ntv2_sdi_single_stream_to_format(struct ntv2_sdi_input_status *status,
@@ -59,10 +63,16 @@ struct ntv2_input *ntv2_input_open(struct ntv2_object *ntv2_obj,
 	ntv2_inp->ntv2_dev = ntv2_obj->ntv2_dev;
 
 	/* hardware monitor */
+#ifdef NTV2_USE_TIMER_SETUP
+	timer_setup(&ntv2_inp->monitor_timer,
+				ntv2_input_monitor,
+				0);
+#else
 	setup_timer(&ntv2_inp->monitor_timer,
 				ntv2_input_monitor,
 				(unsigned long)ntv2_inp);
-
+#endif
+	
 	spin_lock_init(&ntv2_inp->state_lock);
 
 	NTV2_MSG_INPUT_INFO("%s: open ntv2_input\n", ntv2_inp->name);
@@ -451,9 +461,15 @@ done:
 	return result;
 }
 
+#ifdef NTV2_USE_TIMER_SETUP
+static void ntv2_input_monitor(struct timer_list *timer)
+{
+	struct ntv2_input *ntv2_inp = container_of(timer, struct ntv2_input, monitor_timer);
+#else
 static void ntv2_input_monitor(unsigned long data)
 {
 	struct ntv2_input *ntv2_inp = (struct ntv2_input *)data;
+#endif	
 	struct ntv2_sdi_input_state *state;
 	struct ntv2_sdi_input_status input;
 	unsigned long flags;

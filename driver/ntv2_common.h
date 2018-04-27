@@ -83,6 +83,9 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,8,0))
 #define NTV2_USE_QUEUE_SETUP_DEVICE			/* 4.8.0 required */
 #endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
+#define NTV2_USE_TIMER_SETUP				/* 4.15.0 required */
+#endif
 /* 4.14.0 does build */
 
 #ifdef NTV2_USE_VB2_V4L2_BUFFER
