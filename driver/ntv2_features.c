@@ -518,7 +518,8 @@ int ntv2_features_acquire_components(struct ntv2_features *features, enum ntv2_c
 	spin_lock_irqsave(&features->state_lock, flags);
 
 	for (i = 0; i < num; i++) {
-		if (features->component_owner[com][index + i] != 0) {
+		if ((features->component_owner[com][index + i] != 0) &&
+			(features->component_owner[com][index + i] != owner)) {
 			spin_unlock_irqrestore(&features->state_lock, flags);
 			return -EBUSY;
 		}

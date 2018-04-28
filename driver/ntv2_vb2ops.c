@@ -67,7 +67,7 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 #endif
 #endif
 	unsigned long flags;
-	int result;
+//	int result;
 
 	if (ntv2_vid == NULL)
 		return -EPERM;
@@ -109,9 +109,9 @@ static int ntv2_queue_setup(struct vb2_queue *vq, const struct v4l2_format *fmt,
 	spin_unlock_irqrestore(&ntv2_vid->vb2_lock, flags);
 
 	/* enable video */
-	result = ntv2_video_enable(ntv2_vid);
-	if (result != 0)
-		return result;
+//	result = ntv2_video_enable(ntv2_vid);
+//	if (result != 0)
+//		return result;
 
 	return 0;
 }
@@ -322,6 +322,11 @@ static int ntv2_start_streaming(struct vb2_queue *vq, unsigned int count)
 	if (false)
 		return -ENOBUFS;
 	
+	/* enable video */
+	result = ntv2_video_enable(ntv2_vid);
+	if (result != 0)
+		return result;
+
 	/* start video */
 	result = ntv2_video_start(ntv2_vid);
 	if (result != 0) {
