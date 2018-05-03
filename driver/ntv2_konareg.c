@@ -84,6 +84,14 @@ u32 ntv2_frame_rate_scale(u32 frame_rate)
 	return frame_fraction[frame_rate][1];
 }
 
+bool ntv2_frame_rate_drop(u32 frame_rate)
+{
+	if (frame_rate >= NTV2_MAX_FRAME_RATES)
+		return 1;
+
+	return (frame_fraction[frame_rate][0] != 1);
+}
+
 static u32 frame_geometry_dimension[NTV2_MAX_FRAME_GEOMETRIES][2] = {
 	/* ntv2_kona_frame_geometry_1920x1080 */	{ 1920, 1080 },
 	/* ntv2_kona_frame_geometry_1280x720 */		{ 1280,  720 },

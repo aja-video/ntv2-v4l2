@@ -126,7 +126,8 @@ static struct ntv2_pixel_format
 static struct ntv2_video_format
 *ntv2_find_video_format(struct ntv2_features *features,
 						u32 channel_index,
-						struct v4l2_dv_timings* v4l2_timings)
+						struct v4l2_dv_timings* v4l2_timings,
+						bool drop_frame)
 {
 	struct ntv2_video_format *vidf;
 	int i;
@@ -135,7 +136,8 @@ static struct ntv2_video_format
 		vidf = ntv2_features_get_video_format(features, channel_index, i);
 		if (vidf == NULL)
 			return NULL;
-		if (ntv2_features_match_dv_timings(v4l2_timings, &vidf->v4l2_timings, 0))
+		if (ntv2_features_match_dv_timings(v4l2_timings, &vidf->v4l2_timings, 0) &&
+			(drop_frame == ntv2_frame_rate_drop(vidf->frame_rate)))
 			return vidf;
 	}
 
@@ -386,12 +388,12 @@ static int ntv2_s_dv_timings(struct file *file,
 		return -EINVAL;
 	}
 
-	/* test for new timings */
-	if (ntv2_features_match_dv_timings(v4l2_timings, &ntv2_vid->v4l2_timings, 0))
-		return 0;
-
 	/* no timing changes while streaming */
 	if (vb2_is_busy(&ntv2_vid->vb2_queue)) {
+		/* test for new timings */
+		if (ntv2_features_match_dv_timings(v4l2_timings, &ntv2_vid->v4l2_timings, 0))
+			return 0;
+
 		NTV2_MSG_VIDEO_ERROR("%s: *error* timings change while streaming\n",
 							 ntv2_vid->name);
 		return -EBUSY;
@@ -400,7 +402,8 @@ static int ntv2_s_dv_timings(struct file *file,
 	/* find ntv2 video format to match v4l2 timings */
 	vidf = ntv2_find_video_format(ntv2_vid->features,
 								  ntv2_vid->ntv2_chn->index,
-								  v4l2_timings);
+								  v4l2_timings,
+								  ntv2_vid->drop_frame);
 	if (vidf == NULL) {
 		NTV2_MSG_VIDEO_STATE("%s: s_dv_timings reject timing  width %d  height %d  interlaced %d\n",
 							 ntv2_vid->name,
@@ -523,8 +526,11 @@ static int ntv2_query_dv_timings(struct file *file,
 		return -ERANGE;
 	}
 
-	// fill in v4l2 timings */
+	/* fill in v4l2 timings */
 	*v4l2_timings = vidf->v4l2_timings;
+
+	/* save the drop frame hint */
+	ntv2_vid->drop_frame = ntv2_frame_rate_drop(vidf->frame_rate);
 
 	return 0;
 }
@@ -638,6 +644,9 @@ static int ntv2_s_input(struct file *file, void *fh, unsigned int input)
 	/* update ntv2 video format and v4l2 timing */
 	ntv2_vid->video_format = *vidf;
 	ntv2_vid->v4l2_timings = vidf->v4l2_timings;
+
+	/* save the drop frame hint */
+	ntv2_vid->drop_frame = ntv2_frame_rate_drop(vidf->frame_rate);
 
 done:
 	/* update v4l2 pixel format */

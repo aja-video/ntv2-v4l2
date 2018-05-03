@@ -81,6 +81,9 @@ struct ntv2_video_stream {
 	u32								frame_size;
 	bool							hardware_enable[NTV2_MAX_CHANNELS];
 
+	int								csc_index;
+	int								num_cscs;
+
 	struct ntv2_stream_data			*frame_active;
 	struct ntv2_stream_data			*frame_next;
 
@@ -128,8 +131,8 @@ struct ntv2_channel_stream {
 	enum ntv2_stream_type			type;
 	struct ntv2_channel 			*ntv2_chn;
 
-	u32								channel_first;
-	u32								channel_last;
+	int								channel_index;
+	int								num_channels;
 	
 	bool							capture;
 	bool							queue_enable;

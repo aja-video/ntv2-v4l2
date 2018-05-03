@@ -263,21 +263,21 @@ struct ntv2_input_format {
 	u32							frame_rate;
 	u32							frame_flags;
 	u32							pixel_flags;
-	u32							input_index;
-	u32							num_inputs;
-	u32							num_streams;
+	int							input_index;
+	int							num_inputs;
+	int							num_streams;
 };
 
 struct ntv2_source_format {
 	enum ntv2_input_type		type;
 	u32							audio_source;
 	u32							audio_detect;
-	u32							input_index;
-	u32							num_inputs;
+	int							input_index;
+	int							num_inputs;
 };
 
 struct ntv2_sdi_input_status {
-	u32							input_index;
+	int							input_index;
 	u32							input_geometry;
 	u32							frame_rate;
 	bool						progressive;
@@ -288,7 +288,7 @@ struct ntv2_sdi_input_status {
 };
 
 struct ntv2_aes_input_status {
-	u32							input_index;
+	int							input_index;
 	u32							audio_detect;
 };
 

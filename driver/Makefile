@@ -86,7 +86,7 @@ all: $(DRIVERSRCS) $(DRIVERINCS)
 .PHONY: clean cleandeps realclean
 
 clean:
-	rm -f $(BINDIR)/*.ko *.ko *.o *.o.ur-safe .*o.cmd *.mod.c *~ errors.txt semantic.cache
+	rm -f $(BINDIR)/*.ko *.ko *.o .*o.cmd *.o.ur-safe *.mod.c *~ errors.txt semantic.cache
 	rm -rf .tmp_versions
 	rm -f *.markers *.symvers *.order
 

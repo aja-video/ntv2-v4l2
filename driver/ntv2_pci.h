@@ -39,7 +39,7 @@ struct ntv2_pci {
 
 	struct ntv2_nwldma				*nwl_engine[NTV2_MAX_DMA_ENGINES];
 	struct ntv2_xlxdma				*xlx_engine[NTV2_MAX_DMA_ENGINES];
-	u32								num_engines;
+	int								num_engines;
 };
 
 

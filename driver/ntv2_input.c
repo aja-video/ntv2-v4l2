@@ -708,7 +708,7 @@ static int ntv2_sdi_dual_stream_to_format(struct ntv2_sdi_input_status *status,
 	u32 vpid_1 = NTV2_FLD_GET(ntv2_kona_fld_vpid_byte1_standard, status->vpid_ds1);
 	u32 frame_flags = 0;
 	u32 pixel_flags = 0;
-	u32 num_streams = 0;
+	int num_streams = 0;
 
 	if (status->input_geometry != ntv2_kona_input_geometry_1125)
 		goto bad_status;

@@ -61,7 +61,7 @@ struct ntv2_input_config {
 	u32							frame_flags;
 	int							reg_index;
 	int							input_index;
-	u32							num_inputs;
+	int							num_inputs;
 };
 
 struct ntv2_source_config {
@@ -71,12 +71,13 @@ struct ntv2_source_config {
 	u32							audio_source;
 	u32							num_channels;
 	int							input_index;
-	u32							num_inputs;
+	int							num_inputs;
 };
 
-struct ntv2_csc_config {
+struct ntv2_widget_config {
 	const char*					name;
-	u32							reg_index;
+	int							widget_index;
+	int							num_widgets;
 };
 
 struct ntv2_features {
@@ -90,23 +91,23 @@ struct ntv2_features {
 	const char					*device_name;
 	const char					*pcm_name;
 
-	u32							num_video_channels;
-	u32							num_audio_channels;
-	u32							num_csc_channels;
-	u32							num_sdi_inputs;
-	u32							num_hdmi_inputs;
-	u32							num_aes_inputs;
-	u32							num_analog_inputs;
-	u32							num_reference_inputs;
+	int							num_video_channels;
+	int							num_audio_channels;
+	int							num_csc_channels;
+	int							num_sdi_inputs;
+	int							num_hdmi_inputs;
+	int							num_aes_inputs;
+	int							num_analog_inputs;
+	int							num_reference_inputs;
+	int							num_serial_ports;
 	u32							frame_buffer_size;
-	u32							num_serial_ports;
-	u32							req_line_interleave_channels;
-	u32							req_sample_interleave_channels;
-	u32							req_square_division_channels;
+	int							req_line_interleave_channels;
+	int							req_sample_interleave_channels;
+	int							req_square_division_channels;
 
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
-	struct ntv2_csc_config		*csc_config[NTV2_MAX_CHANNELS][NTV2_MAX_CSC_CONFIGS];
+	struct ntv2_widget_config	*csc_config[NTV2_MAX_CHANNELS][NTV2_MAX_CSC_CONFIGS];
 
 	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
 	struct ntv2_source_config	*source_config[NTV2_MAX_CHANNELS][NTV2_MAX_SOURCE_CONFIGS];
@@ -139,7 +140,7 @@ struct ntv2_input_config
 *ntv2_features_get_input_config(struct ntv2_features *features,
 								int channel_index,
 								int input_index);
-u32 ntv2_features_num_input_configs(struct ntv2_features *features,
+int ntv2_features_num_input_configs(struct ntv2_features *features,
 									int channel_index);
 struct ntv2_input_config
 *ntv2_features_get_default_input_config(struct ntv2_features *features,
@@ -149,7 +150,7 @@ struct ntv2_source_config
 *ntv2_features_get_source_config(struct ntv2_features *features,
 								 int channel_index,
 								 int source_index);
-u32 ntv2_features_num_source_configs(struct ntv2_features *features,
+int ntv2_features_num_source_configs(struct ntv2_features *features,
 									 int channel_index);
 struct ntv2_source_config
 *ntv2_features_get_default_source_config(struct ntv2_features *features,
@@ -159,7 +160,7 @@ struct ntv2_pixel_format
 *ntv2_features_get_pixel_format(struct ntv2_features *features,
 								int channel_index,
 								int format_index);
-u32 ntv2_features_num_pixel_formats(struct ntv2_features *features,
+int ntv2_features_num_pixel_formats(struct ntv2_features *features,
 									int channel_index);
 struct ntv2_pixel_format
 *ntv2_features_get_default_pixel_format(struct ntv2_features *features,
@@ -169,7 +170,7 @@ struct ntv2_video_format
 *ntv2_features_get_video_format(struct ntv2_features *features,
 								int channel_index,
 								int format_index);
-u32 ntv2_features_num_video_formats(struct ntv2_features *features,
+int ntv2_features_num_video_formats(struct ntv2_features *features,
 									int channel_index);
 struct ntv2_video_format
 *ntv2_features_get_default_video_format(struct ntv2_features *features,
@@ -181,9 +182,9 @@ struct ntv2_source_config
 								  enum ntv2_input_type input_type,
 								  int input_index);
 
-struct ntv2_csc_config
+struct ntv2_widget_config
 *ntv2_features_find_csc_config(struct ntv2_features *features,
-							   int channel_index);
+							   int channel_index, int num_cscs);
 
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,
@@ -204,7 +205,7 @@ u32 ntv2_features_v4l2_frame_size(struct ntv2_video_format *vidf,
 int ntv2_features_get_frame_range(struct ntv2_features *features,
 								  struct ntv2_video_format *vidf,
 								  struct ntv2_pixel_format *pixf,
-								  u32 index,
+								  int index,
 								  u32 *first,
 								  u32 *last,
 								  u32 *size);

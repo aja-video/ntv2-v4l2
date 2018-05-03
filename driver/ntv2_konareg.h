@@ -1576,6 +1576,7 @@ u32 ntv2_audio_frame_samples(u32 frame_rate, u32 cadence);
 
 u32 ntv2_frame_rate_duration(u32 frame_rate);
 u32 ntv2_frame_rate_scale(u32 frame_rate);
+bool ntv2_frame_rate_drop(u32 frame_rate);
 
 u32 ntv2_frame_geometry_width(u32 frame_geometry);
 u32 ntv2_frame_geometry_height(u32 frame_geometry);

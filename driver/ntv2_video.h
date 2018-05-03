@@ -76,6 +76,7 @@ struct ntv2_video {
 	struct ntv2_pixel_format	pixel_format;
 	struct ntv2_video_format	video_format;
 	struct ntv2_input_format	input_format;
+	bool						drop_frame;
 
 	struct vb2_queue			vb2_queue;
 	struct mutex				vb2_mutex;

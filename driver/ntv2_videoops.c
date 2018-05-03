@@ -23,8 +23,7 @@
 #include "ntv2_register.h"
 #include "ntv2_features.h"
 
-int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
-								   u32* channel_first, u32* channel_last);
+int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream);
 
 
 int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
@@ -36,10 +35,8 @@ int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 	int result;
 	int i;
 
-	/* acquire hardware resources */
-	result = ntv2_videoops_acquire_hardware(stream,
-											&stream->channel_first,
-											&stream->channel_last);
+	/* acquire video hardware resources */
+	result = ntv2_videoops_acquire_hardware(stream);
 	if (result != 0)
 		return result;
 	
@@ -85,11 +82,6 @@ int ntv2_videoops_setup_capture(struct ntv2_channel_stream *stream)
 	stream->video.frame_next = list_first_entry(&stream->data_done_list, struct ntv2_stream_data, list);
 	list_del_init(&stream->video.frame_next->list);
 
-	/* setup hardware */
-//	stream->ops.update_timing(stream);
-//	stream->ops.update_format(stream);
-//	stream->ops.update_route(stream);
-
 	return 0;
 }
 
@@ -113,7 +105,7 @@ int ntv2_videoops_update_mode(struct ntv2_channel_stream *stream)
 
 	/* enable/disable frame store capture mode */
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
-		if ((i >= stream->channel_first) && (i <= stream->channel_last)) {
+		if ((i >= stream->channel_index) && (i < (stream->channel_index + stream->num_channels))) {
 			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val, mask);
 			stream->video.hardware_enable[i] = stream->queue_enable;
 //			NTV2_MSG_INFO("%s: write frame control[%d]  enable\n", ntv2_chn->name, i);
@@ -138,7 +130,7 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_frame_buffer_format_b0123);
 
 	/* set frame store pixel format */
-	for (i = stream->channel_first; i <= stream->channel_last; i++) {
+	for (i = stream->channel_index; i < (stream->channel_index + stream->num_channels); i++) {
 		if (ntv2_chn->state == ntv2_channel_state_run) {
 			ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_frame_control, i, val, mask);
 		} else {
@@ -147,25 +139,17 @@ int ntv2_videoops_update_format(struct ntv2_channel_stream *stream)
 //		NTV2_MSG_INFO("%s: write frame control[%d]  %08x\n", ntv2_chn->name, index + i, val);
 	}
 
-	/* update the video frame buffer frame size */
-//	ntv2_features_get_frame_range(ntv2_chn->features,
-//								  &stream->video_format,
-//								  &stream->pixel_format,
-//								  stream->channel_first,
-//								  &stream->video.frame_first,
-//								  &stream->video.frame_last,
-//								  &stream->video.frame_size);
 	return 0;
 }
 
 int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
-	int index = stream->channel_first;
+	int index = stream->channel_index;
 	int mode_372 = 0;
 	int mode_sync = ntv2_kona_reg_sync_field;
-	int mode_tsi = 0;
-	int mode_quad = 0;
+	bool mode_tsi = false;
+	bool mode_quad = false;
 	u32 standard;
 	u32 rate;
 	u32 val;
@@ -215,30 +199,70 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control, index, val);
 //	NTV2_MSG_INFO("%s: write global control  %08x\n", ntv2_chn->name, val);
 
-	/* set quad bit for square division video */
 	val = 0;
 	msk = 0;
-	if ((stream->channel_first / 4) == 0) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, mode_quad);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
-	} else if ((stream->channel_first / 4) == 1) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, mode_quad);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
-	}
-
-	/* set 425 bit for two sample interleave video */
-	if ((stream->channel_first / 2) == 0) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, mode_tsi);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb12_425mode_enable);
-	} else if ((stream->channel_first / 2) == 1) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, mode_tsi);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb34_425mode_enable);
-	} else if ((stream->channel_first / 2) == 2) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, mode_tsi);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb56_425mode_enable);
-	} else if ((stream->channel_first / 2) == 3) {
-		val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, mode_tsi);
-		msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb78_425mode_enable);
+	if (mode_quad) {
+		/* set quad bit for square division video */
+		if ((stream->channel_index / 4) == 0) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb12_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb34_425mode_enable);
+		} else if ((stream->channel_index / 4) == 1) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb56_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb78_425mode_enable);
+		}
+	} else if (mode_tsi) {
+		/* set 425 bit for two sample interleave video */
+		if ((stream->channel_index / 2) == 0) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb12_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
+		} else if ((stream->channel_index / 2) == 1) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb34_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
+		} else if ((stream->channel_index / 2) == 2) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb56_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
+		} else if ((stream->channel_index / 2) == 3) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, 1);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb78_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
+		}
+	} else {
+		if ((stream->channel_index / 2) == 0) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb12_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb12_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
+		} else if ((stream->channel_index / 2) == 1) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb34_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb34_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs1234_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs1234_quad_mode);
+		} else if ((stream->channel_index / 2) == 2) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb56_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb56_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
+		} else if ((stream->channel_index / 2) == 3) {
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fb78_425mode_enable, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fb78_425mode_enable);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_fs5678_quad_mode, 0);
+			msk |= NTV2_FLD_MASK(ntv2_kona_fld_fs5678_quad_mode);
+		}
 	}
 	
 	/* channels independent */
@@ -252,14 +276,6 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, 0, val, msk);
 //	NTV2_MSG_INFO("%s: write global control2 %08x/%08x\n", ntv2_chn->name, val, msk);
 
-	/* update the video frame buffer range */
-	ntv2_features_get_frame_range(ntv2_chn->features,
-								  &stream->video_format,
-								  &stream->pixel_format,
-								  index,
-								  &stream->video.frame_first,
-								  &stream->video.frame_last,
-								  &stream->video.frame_size);
 	return 0;
 }
 
@@ -267,7 +283,6 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
-	struct ntv2_csc_config *ntv2_csc;
 	int chn_index = 0;
 	int inp_index = 0;
 	int csc_index = 0;
@@ -280,9 +295,7 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	/* get hardware components */
 	chn_index = ntv2_chn->index;
 	inp_index = stream->input_format.input_index;
-	ntv2_csc = ntv2_features_find_csc_config(ntv2_chn->features, ntv2_chn->index);
-	if (ntv2_csc != NULL)
-		csc_index = ntv2_csc->reg_index;
+	csc_index = stream->video.csc_index;
 	
 	/* determine input and pixel rgbness */
 	in_rgb = (stream->input_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
@@ -552,16 +565,20 @@ int ntv2_videoops_interrupt_capture(struct ntv2_channel_stream *stream)
 	return 0;
 }
 
-int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
-								   u32* channel_first, u32* channel_last)
+int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	struct ntv2_features *features = ntv2_chn->features;
+	struct ntv2_widget_config *csc_config = NULL;
 	int index = ntv2_chn->index;
 	int num_channels = 1;
+	int num_cscs = 1;
 	int result = 0;
+	bool in_rgb = false;
+	bool fs_rgb = false;
+	bool do_csc = false;
 
-	/* acquire inputs */
+	/* acquire input(s) */
 	if (stream->input_format.type == ntv2_input_type_sdi) {
 		result = ntv2_features_acquire_components(features,
 												  ntv2_component_sdi,
@@ -578,19 +595,23 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
 	if (result != 0)
 		goto release;
 
+	/* acquire frame store(s) */
 	/* look for smpte 372 high rate on 2 wires */
 	if ((stream->input_format.num_inputs == 2) &&
 		((stream->input_format.frame_flags & ntv2_kona_frame_3g) != 0) &&
 		((stream->input_format.frame_flags & ntv2_kona_frame_line_interleave) != 0)) {
 		num_channels = ntv2_features_req_line_interleave_channels(features);
+		num_cscs = num_channels;
 	}
 	/* look for two sample interleave */
 	else if ((stream->input_format.frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
 		num_channels = ntv2_features_req_sample_interleave_channels(features);
+		num_cscs = num_channels * 2;
 	}
 	/* look for square division */
 	else if ((stream->input_format.frame_flags & ntv2_kona_frame_square_division) != 0) {
 		num_channels = ntv2_features_req_square_division_channels(features);
+		num_cscs = num_channels;
 	}
 	if (num_channels < 1) {
 		result = -EPERM;
@@ -602,8 +623,35 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream,
 	if (result != 0)
 		goto release;
 
-	*channel_first = index;
-	*channel_last = index + num_channels - 1;
+	stream->channel_index = index;
+	stream->num_channels = num_channels;
+
+	/* acquire csc(s) if needed */
+	in_rgb = (stream->input_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
+	fs_rgb = (stream->pixel_format.pixel_flags & ntv2_kona_pixel_rgb) != 0;
+	do_csc = (in_rgb && !fs_rgb) || (!in_rgb && fs_rgb);
+
+	NTV2_MSG_INFO("%s: acquire  in %d  fs %d  do %d\n", ntv2_chn->name,
+				  in_rgb, fs_rgb, do_csc);
+
+	if (do_csc) {
+		csc_config = ntv2_features_find_csc_config(features, index, num_cscs);
+		if (csc_config == NULL) {
+			result = -EPERM;
+			goto release;
+		}
+
+		result = ntv2_features_acquire_components(features, ntv2_component_csc, 
+												  csc_config->widget_index, csc_config->num_widgets, (unsigned long)stream);
+		if (result != 0)
+			goto release;
+
+		stream->video.csc_index = csc_config->widget_index;
+		stream->video.num_cscs = csc_config->num_widgets;
+
+		NTV2_MSG_INFO("%s: acquire  csc %d  num %d\n", ntv2_chn->name,
+					  stream->video.csc_index, stream->video.num_cscs);
+	}
 
 	return 0;
 
