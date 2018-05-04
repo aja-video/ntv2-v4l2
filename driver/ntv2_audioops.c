@@ -90,8 +90,6 @@ int ntv2_audioops_setup_capture(struct ntv2_channel_stream *stream)
 
 	stream->audio.embedded_clock = false;
 
-	stream->ops.update_route(stream);
-
 	return 0;
 }
 
@@ -125,6 +123,10 @@ int ntv2_audioops_update_mode(struct ntv2_channel_stream *stream)
 int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_channel_stream *video_stream = NULL;
+	struct ntv2_source_config *source_config = NULL;
+	struct ntv2_source_format source_format;
+	struct ntv2_features *features = ntv2_chn->features;
 	int index = ntv2_chn->index;
 	u32 org_source = ntv2_kona_audio_source_aes;
 	u32 org_bit0 = 0;
@@ -141,16 +143,39 @@ int ntv2_audioops_update_route(struct ntv2_channel_stream *stream)
 	org_bit0 = NTV2_FLD_GET(ntv2_kona_fld_audio_embedded_input_b0, val);
 	org_bit1 = NTV2_FLD_GET(ntv2_kona_fld_audio_embedded_input_b1, val);
 
-	/* route audio */
-	if (stream->source_format.type == ntv2_input_type_sdi) {
-		new_source = ntv2_kona_audio_source_embedded;
-		new_bit0 = stream->source_format.input_index & 0x1;
-		new_bit1 = (stream->source_format.input_index & 0x2) >> 1;
-	} else if (stream->source_format.type == ntv2_input_type_hdmi) {
-		new_source = ntv2_kona_audio_source_hdmi;
-		new_bit0 = stream->source_format.input_index & 0x1;
-		new_bit1 = (stream->source_format.input_index & 0x2) >> 1;
+	/* handle auto source */
+	if (stream->audio.source_format.type == ntv2_input_type_auto) {
+		/* if video source use for audio */
+		video_stream = ntv2_chn->streams[ntv2_stream_type_vidin];
+		if (video_stream != NULL) {
+			source_config = ntv2_features_find_source_config(
+				features,
+				index,
+				video_stream->video.input_format.type,
+				video_stream->video.input_format.input_index);
+			if (source_config != NULL) {
+				ntv2_features_gen_source_format(source_config, &source_format);
+				NTV2_MSG_CHANNEL_STATE("%s: audio auto route to video %s\n",
+									   ntv2_chn->name, source_config->name);
+			} else {
+				/* if no audio source use default */
+				source_format = stream->audio.auto_format;
+				NTV2_MSG_CHANNEL_STATE("%s: audio auto route default\n",
+									   ntv2_chn->name);
+			}
+		} else {
+			/* if no video source use default */
+			source_format = stream->audio.auto_format;
+			NTV2_MSG_CHANNEL_STATE("%s: audio auto route default\n",
+								   ntv2_chn->name);
+		}
+	} else {
+		source_format = stream->audio.source_format;
 	}
+
+	new_source = source_format.audio_source;
+	new_bit0 = source_format.input_index & 0x1;
+	new_bit1 = (source_format.input_index & 0x2) >> 1;
 
 	/* set audio source */
 	val = NTV2_FLD_SET(ntv2_kona_fld_audio_input_ch12, new_source);
@@ -213,8 +238,8 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 		input_clock = true;
 
 	/* for sdi and hdmi inputs use the generated embedded audio clock */
-	if ((video_stream->input_format.type == ntv2_input_type_sdi) ||
-		(video_stream->input_format.type == ntv2_input_type_hdmi))
+	if ((video_stream->video.input_format.type == ntv2_input_type_sdi) ||
+		(video_stream->video.input_format.type == ntv2_input_type_hdmi))
 		embedded_clock = true;
 
 	/* if there are no reference inputs use the input interrupt */

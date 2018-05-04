@@ -239,6 +239,9 @@ static int ntv2_s_fmt_vid_cap(struct file *file,
 								 &ntv2_vid->pixel_format,
 								 &ntv2_vid->v4l2_format);
 
+	/* update video state */
+	ntv2_video_update(ntv2_vid);
+
 	return 0;
 }
 
@@ -430,6 +433,9 @@ static int ntv2_s_dv_timings(struct file *file,
 	ntv2_v4l2ops_fill_pix_format(&ntv2_vid->video_format,
 								 &ntv2_vid->pixel_format,
 								 &ntv2_vid->v4l2_format);
+
+	/* update video state */
+	ntv2_video_update(ntv2_vid);
 
 	return 0;
 }
@@ -653,6 +659,10 @@ done:
 	ntv2_v4l2ops_fill_pix_format(&ntv2_vid->video_format,
 								 &ntv2_vid->pixel_format,
 								 &ntv2_vid->v4l2_format);
+
+	/* update video state */
+	ntv2_video_update(ntv2_vid);
+
 	return 0;
 }
 

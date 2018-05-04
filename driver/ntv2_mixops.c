@@ -24,7 +24,7 @@
 
 
 static int ntv2_mixops_info_source_control(struct snd_kcontrol *kcontrol,
-										  struct snd_ctl_elem_info *info)
+										   struct snd_ctl_elem_info *info)
 {
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_kcontrol_chip(kcontrol);
 	struct ntv2_features *features;
@@ -63,48 +63,42 @@ static int ntv2_mixops_get_source_control(struct snd_kcontrol *kcontrol,
 										 struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_kcontrol_chip(kcontrol);
-	struct ntv2_source_config *config;
 
-	config = ntv2_features_get_source_config(ntv2_aud->features,
-											 ntv2_aud->ntv2_chn->index,
-											 ntv2_aud->source_index);
-	if (config == NULL) {
-		ntv2_aud->source_index = 0;
-		config = ntv2_features_get_source_config(ntv2_aud->features,
-												 ntv2_aud->ntv2_chn->index,
-												 ntv2_aud->source_index);
-	}
+	/* return current index */
+	elem->value.enumerated.item[0] = ntv2_aud->snd_input;
 
-	elem->value.enumerated.item[0] = ntv2_aud->source_index;
-
-	NTV2_MSG_AUDIO_STATE("%s: get audio item %d - %s\n",
-						 ntv2_aud->name, elem->value.enumerated.item[0], config->name);
+	NTV2_MSG_AUDIO_STATE("%s: get audio input %d\n",
+						 ntv2_aud->name, ntv2_aud->snd_input);
 
 	return 0;
 }
 
 static int ntv2_mixops_put_source_control(struct snd_kcontrol *kcontrol,
-										 struct snd_ctl_elem_value *elem)
+										  struct snd_ctl_elem_value *elem)
 {
 	struct ntv2_audio *ntv2_aud = (struct ntv2_audio *)snd_kcontrol_chip(kcontrol);
 	struct ntv2_source_config *config;
 
-	ntv2_aud->source_index = elem->value.enumerated.item[0];
+	ntv2_aud->snd_input = elem->value.enumerated.item[0];
 
+	/* check for valid index */
 	config = ntv2_features_get_source_config(ntv2_aud->features,
 											 ntv2_aud->ntv2_chn->index, 
-											 ntv2_aud->source_index);
+											 ntv2_aud->snd_input);
 	if (config == NULL) {
-		ntv2_aud->source_index = 0;
+		ntv2_aud->snd_input = 0;
 		config = ntv2_features_get_source_config(ntv2_aud->features,
 												 ntv2_aud->ntv2_chn->index,
-												 ntv2_aud->source_index);
+												 ntv2_aud->snd_input);
 	}
 
-	NTV2_MSG_AUDIO_STATE("%s: put audio item %d - %s\n",
-						 ntv2_aud->name, elem->value.enumerated.item[0], config->name);
+	/* set source format */
+	ntv2_features_gen_source_format(config, &ntv2_aud->source_format);
 
-	return ntv2_audio_set_source(ntv2_aud, config);
+	NTV2_MSG_AUDIO_STATE("%s: put audio input %d - %s\n",
+						 ntv2_aud->name, ntv2_aud->snd_input, config->name);
+
+	return 0;
 }
 
 int ntv2_mixops_capture_configure(struct ntv2_audio *ntv2_aud)

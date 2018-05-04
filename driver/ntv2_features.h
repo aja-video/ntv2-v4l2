@@ -154,7 +154,8 @@ int ntv2_features_num_source_configs(struct ntv2_features *features,
 									 int channel_index);
 struct ntv2_source_config
 *ntv2_features_get_default_source_config(struct ntv2_features *features,
-										 int channel_index);
+										 int channel_index,
+										 bool noauto);
 
 struct ntv2_pixel_format
 *ntv2_features_get_pixel_format(struct ntv2_features *features,

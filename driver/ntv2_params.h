@@ -69,11 +69,9 @@
 #define NTV2_REG(reg, ...) \
 	const u32 reg[] = { NTV2_REG_ARGS(__VA_ARGS__, 8, 7, 6, 5, 4, 3, 2, 1), __VA_ARGS__ }
 #define NTV2_FLD(field, size, shift) const u32 field = (((size) << 16) | (shift))
-//#define NTV2_CON(con, value) const u32 con = (value)
 #else
 #define NTV2_REG(reg, ...) extern const u32 reg[]
 #define NTV2_FLD(field, size, shift) extern const u32 field
-//#define NTV2_CON(con, value) extern const u32 con
 #endif
 
 #define NTV2_CON(con, value) enum { con = (value) }

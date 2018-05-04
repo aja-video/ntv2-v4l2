@@ -17,9 +17,7 @@
  * SOFTWARE.
  */
 
-#define NTV2_REG_CONST
 #include "ntv2_xlxdma.h"
-#undef NTV2_REG_CONST
 #include "ntv2_register.h"
 #include "ntv2_xlxreg.h"
 

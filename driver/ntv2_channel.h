@@ -76,6 +76,10 @@ struct ntv2_stream_data {
 };
 
 struct ntv2_video_stream {
+	struct ntv2_video_format		video_format;
+	struct ntv2_pixel_format		pixel_format;
+	struct ntv2_input_format		input_format;
+
 	u32								frame_first;
 	u32								frame_last;
 	u32								frame_size;
@@ -95,6 +99,9 @@ struct ntv2_video_stream {
 };
 
 struct ntv2_audio_stream {
+	struct ntv2_source_format		source_format;
+	struct ntv2_source_format		auto_format;
+
 	u32								sample_rate;
 	u32								num_channels;
 	u32								sample_size;
@@ -141,11 +148,6 @@ struct ntv2_channel_stream {
 	ntv2_channel_callback			frame_callback_func;
 	unsigned long					frame_callback_data;
 	v4l2_time_t						timestamp;
-
-	struct ntv2_video_format		video_format;
-	struct ntv2_pixel_format		pixel_format;
-	struct ntv2_input_format		input_format;
-	struct ntv2_source_format		source_format;
 
 	struct ntv2_stream_data			data_array[NTV2_MAX_CHANNEL_BUFFERS];
 	struct list_head 				data_ready_list;

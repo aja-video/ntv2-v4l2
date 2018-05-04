@@ -106,6 +106,8 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 						 struct ntv2_input *ntv2_inp,
 						 struct ntv2_pci *ntv2_pci);
 
+void ntv2_video_update(struct ntv2_video *ntv2_vid);
+
 int ntv2_video_enable(struct ntv2_video *ntv2_vid);
 int ntv2_video_disable(struct ntv2_video *ntv2_vid);
 

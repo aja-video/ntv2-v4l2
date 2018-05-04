@@ -887,20 +887,20 @@ bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin)
 	/* use line rate to set frame rate class */
 	switch (line_rate) {
 	case ntv2_kona_con_hdmiin4_linerate_5940mhz:
-	case ntv2_kona_con_hdmiin4_linerate_4455mhz:
-	case ntv2_kona_con_hdmiin4_linerate_3712mhz:
 		f_flags |= ntv2_kona_frame_12g;
 		break;
+	case ntv2_kona_con_hdmiin4_linerate_4455mhz:
+	case ntv2_kona_con_hdmiin4_linerate_3712mhz:
 	case ntv2_kona_con_hdmiin4_linerate_2970mhz:
-	case ntv2_kona_con_hdmiin4_linerate_2227mhz:
-	case ntv2_kona_con_hdmiin4_linerate_1856mhz:
 		f_flags |= ntv2_kona_frame_6g;
 		break;
+	case ntv2_kona_con_hdmiin4_linerate_2227mhz:
+	case ntv2_kona_con_hdmiin4_linerate_1856mhz:
 	case ntv2_kona_con_hdmiin4_linerate_1485mhz:
-	case ntv2_kona_con_hdmiin4_linerate_1113mhz:
-	case ntv2_kona_con_hdmiin4_linerate_928mhz:
 		f_flags |= ntv2_kona_frame_3g;
 		break;
+	case ntv2_kona_con_hdmiin4_linerate_1113mhz:
+	case ntv2_kona_con_hdmiin4_linerate_928mhz:
 	case ntv2_kona_con_hdmiin4_linerate_742mhz:
 	case ntv2_kona_con_hdmiin4_linerate_556mhz:
 	case ntv2_kona_con_hdmiin4_linerate_540mhz:

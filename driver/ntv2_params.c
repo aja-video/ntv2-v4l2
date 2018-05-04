@@ -17,7 +17,12 @@
  * SOFTWARE.
  */
 
+#define NTV2_REG_CONST
 #include "ntv2_common.h"
+#undef NTV2_REG_CONST
+#include "ntv2_register.h"
+#include "ntv2_nwlreg.h"
+#include "ntv2_xlxreg.h"
 
 static struct ntv2_module ntv2_mod_info;
 
@@ -57,7 +62,7 @@ void ntv2_module_initialize(void)
 //		NTV2_DEBUG_DMA_STATE |
 //		NTV2_DEBUG_DMA_STREAM |
 //		NTV2_DEBUG_DMA_DESCRIPTOR |
-//		NTV2_DEBUG_AUDIO_STATE |
+		NTV2_DEBUG_AUDIO_STATE |
 		NTV2_DEBUG_DMA_STATISTICS |
 		NTV2_DEBUG_INFO |
 		NTV2_DEBUG_ERROR;

@@ -68,7 +68,10 @@ struct ntv2_audio {
 	struct ntv2_input			*ntv2_inp;
 	struct ntv2_pci				*ntv2_pci;
 	bool						init;
-	int							source_index;
+
+	u32							snd_input;
+	
+	struct ntv2_source_format	source_format;
 
 	struct snd_pcm 				*pcm;
 	struct ntv2_pcm_stream		*capture;

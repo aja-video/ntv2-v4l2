@@ -138,6 +138,10 @@ int ntv2_audio_configure(struct ntv2_audio *ntv2_aud,
 						ntv2_aud->name, features->pcm_name);
 
 	if (capture) {
+		ntv2_features_gen_source_format(
+			ntv2_features_get_default_source_config(features, ntv2_chn->index, true),
+			&ntv2_aud->source_format);
+
 		stream = kzalloc(sizeof(struct ntv2_pcm_stream), GFP_KERNEL);
 		if (stream == NULL)
 			return -ENOMEM;
@@ -336,6 +340,9 @@ int ntv2_audio_enable(struct ntv2_pcm_stream *stream)
 	stream->dma_result = 0;
 	stream->transfer_state = ntv2_task_state_enable;
 	spin_unlock_irqrestore(&stream->state_lock, flags);
+
+	/* set the audio source */
+	ntv2_channel_set_source_format(ntv2_aud->capture->chn_str, &ntv2_aud->source_format);
 
 	/* enable the channel */
 	ntv2_channel_set_frame_callback(stream->chn_str,

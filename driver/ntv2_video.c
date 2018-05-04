@@ -207,6 +207,19 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 	return 0;
 }
 
+void ntv2_video_update(struct ntv2_video *ntv2_vid)
+{
+	if (ntv2_vid == NULL)
+		return;
+	
+	ntv2_channel_set_input_format(ntv2_vid->vid_str,
+								  &ntv2_vid->input_format);
+	ntv2_channel_set_video_format(ntv2_vid->vid_str,
+								  &ntv2_vid->video_format);
+	ntv2_channel_set_pixel_format(ntv2_vid->vid_str,
+								  &ntv2_vid->pixel_format);
+}
+
 int ntv2_video_enable(struct ntv2_video *ntv2_vid)
 {
 	unsigned long flags;

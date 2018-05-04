@@ -17,12 +17,9 @@
  * SOFTWARE.
  */
 
-#define NTV2_REG_CONST
 #include "ntv2_nwldma.h"
-#undef NTV2_REG_CONST
 #include "ntv2_register.h"
 #include "ntv2_nwlreg.h"
-
 
 #define NTV2_NWLDMA_MAX_TRANSFER_SIZE		(64 * 1024 * 1024)
 #define NTV2_NWLDMA_MAX_SEGMENT_SIZE		(15*4096)
