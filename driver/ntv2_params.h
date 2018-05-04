@@ -223,6 +223,13 @@ enum ntv2_transfer_mode {
 	ntv2_transfer_mode_size
 };
 
+enum ntv2_edid_type {
+	ntv2_edid_type_unknown,
+	ntv2_edid_type_konahdmi_20,
+	ntv2_edid_type_konahdmi_13,
+	ntv2_edid_type_size
+};
+
 #ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
 typedef u64					v4l2_time_t;
 #else

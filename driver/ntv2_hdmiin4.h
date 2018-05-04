@@ -46,6 +46,7 @@ struct ntv2_hdmiin4 {
 
 	struct ntv2_features			*features;
 	struct ntv2_register			*vid_reg;
+	u32								port_index;
 	spinlock_t 						state_lock;
 
 	struct ntv2_hdmiin4_format	 	input_format;
