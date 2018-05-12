@@ -402,7 +402,8 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 		}
 	}
 
-	if (input_format->type == ntv2_input_type_hdmi) {
+	if ((input_format->type == ntv2_input_type_hdmi_adv) ||
+		(input_format->type == ntv2_input_type_hdmi_aja)) {
 		if ((input_format->frame_flags & ntv2_kona_frame_sample_interleave) != 0) {
 			/* route hdmi tsi input */
 			for (i = 0; i < 4; i++) {
@@ -591,7 +592,8 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 												  input_format->input_index,
 												  input_format->num_inputs,
 												  (unsigned long)stream);
-	} else 	if (input_format->type == ntv2_input_type_hdmi) {
+	} else 	if ((input_format->type == ntv2_input_type_hdmi_adv) ||
+				(input_format->type == ntv2_input_type_hdmi_aja)) {
 		result = ntv2_features_acquire_components(features,
 												  ntv2_component_hdmi,
 												  input_format->input_index,

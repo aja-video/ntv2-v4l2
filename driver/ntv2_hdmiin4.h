@@ -26,6 +26,7 @@ struct ntv2_features;
 struct ntv2_register;
 struct ntv2_input_config;
 struct ntv2_konai2c;
+struct ntv2_hdmiedid;
 
 #define NTV2_HDMIIN4_STRING_SIZE	80
 
@@ -46,7 +47,7 @@ struct ntv2_hdmiin4 {
 
 	struct ntv2_features			*features;
 	struct ntv2_register			*vid_reg;
-	u32								port_index;
+	struct ntv2_hdmiedid			*edid;
 	spinlock_t 						state_lock;
 
 	struct ntv2_hdmiin4_format	 	input_format;
@@ -84,7 +85,8 @@ void ntv2_hdmiin4_close(struct ntv2_hdmiin4 *ntv2_hin);
 
 int ntv2_hdmiin4_configure(struct ntv2_hdmiin4 *ntv2_hin,
 						   struct ntv2_features *features,
-						   struct ntv2_register *vid_reg);
+						   struct ntv2_register *vid_reg,
+						   int port_index);
 
 int ntv2_hdmiin4_enable(struct ntv2_hdmiin4 *ntv2_hin);
 int ntv2_hdmiin4_disable(struct ntv2_hdmiin4 *ntv2_hin);

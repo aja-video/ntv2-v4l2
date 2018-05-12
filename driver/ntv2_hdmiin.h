@@ -26,6 +26,7 @@ struct ntv2_features;
 struct ntv2_register;
 struct ntv2_input_config;
 struct ntv2_konai2c;
+struct ntv2_hdmiedid;
 
 struct ntv2_hdmiin_format {
 	u32								video_standard;
@@ -44,9 +45,8 @@ struct ntv2_hdmiin {
 	struct ntv2_features			*features;
 	struct ntv2_register			*vid_reg;
 	struct ntv2_konai2c				*i2c_reg;
+	struct ntv2_hdmiedid			*edid;
 	spinlock_t 						state_lock;
-	struct ntv2_reg_value			*edid_reg;
-	u32								edid_size;
 
 	u8								i2c_hpa_default;
 	u8								i2c_color_default;
@@ -108,7 +108,8 @@ void ntv2_hdmiin_close(struct ntv2_hdmiin *ntv2_hin);
 
 int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 						  struct ntv2_features *features,
-						  struct ntv2_register *vid_reg);
+						  struct ntv2_register *vid_reg,
+						  int port_index);
 
 int ntv2_hdmiin_enable(struct ntv2_hdmiin *ntv2_hin);
 int ntv2_hdmiin_disable(struct ntv2_hdmiin *ntv2_hin);

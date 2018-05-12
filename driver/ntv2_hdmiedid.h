@@ -22,7 +22,7 @@
 
 #include "ntv2_common.h"
 
-#define NTV2_HDMI_EDID_SIZE			512
+#define NTV2_HDMI_EDID_SIZE			256
 
 
 struct ntv2_hdmiedid {
@@ -32,7 +32,7 @@ struct ntv2_hdmiedid {
 	struct ntv2_device				*ntv2_dev;
 
 	enum ntv2_edid_type				edid_type;
-	u32								port_index;
+	int								port_index;
 
 	u8								edid_data[NTV2_HDMI_EDID_SIZE];
 	u32								edid_size;
@@ -45,7 +45,7 @@ void ntv2_hdmiedid_close(struct ntv2_hdmiedid *ntv2_hed);
 
 int ntv2_hdmiedid_configure(struct ntv2_hdmiedid *ntv2_hed,
 							enum ntv2_edid_type type,
-							u32	port_index);
+							int	port_index);
 
 u8 *ntv2_hdmi_get_edid_data(struct ntv2_hdmiedid *ntv2_hed);
 u32 ntv2_hdmi_get_edid_size(struct ntv2_hdmiedid *ntv2_hed);

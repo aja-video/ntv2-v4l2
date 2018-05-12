@@ -203,7 +203,8 @@ enum ntv2_input_type {
 	ntv2_input_type_unknown,
 	ntv2_input_type_auto,
 	ntv2_input_type_sdi,
-	ntv2_input_type_hdmi,
+	ntv2_input_type_hdmi_adv,
+	ntv2_input_type_hdmi_aja,
 	ntv2_input_type_aes,
 	ntv2_input_type_analog,
 	ntv2_input_type_size
@@ -227,6 +228,7 @@ enum ntv2_edid_type {
 	ntv2_edid_type_unknown,
 	ntv2_edid_type_konahdmi_20,
 	ntv2_edid_type_konahdmi_13,
+	ntv2_edid_type_corvidhdbt,
 	ntv2_edid_type_size
 };
 

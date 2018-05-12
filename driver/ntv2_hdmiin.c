@@ -23,6 +23,7 @@
 #include "ntv2_konareg.h"
 #include "ntv2_register.h"
 #include "ntv2_konai2c.h"
+#include "ntv2_hdmiedid.h"
 
 /* 
    Bits to flag reporting of measurements. These are all set in mRelockReports whenever
@@ -74,6 +75,9 @@ static int ntv2_hdmiin_read_verify(struct ntv2_hdmiin *ntv2_hin,
 								   u8 device,
 								   struct ntv2_reg_value *reg_value,
 								   int count);
+static int ntv2_hdmiin_write_edid(struct ntv2_hdmiin *ntv2_hin,
+								  struct ntv2_hdmiedid *ntv2_edid,
+								  u8 device);
 static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin);
 static void ntv2_hdmiin_hot_plug(struct ntv2_hdmiin *ntv2_hin);
 static int ntv2_hdmiin_set_color_mode(struct ntv2_hdmiin *ntv2_hin, bool yuv_input, bool yuv_output);
@@ -91,6 +95,7 @@ static u32 ntv2_hdmiin_pixel_double(struct ntv2_hdmiin *ntv2_hin, u32 pixels);
 static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 										struct ntv2_hdmiin_format *format);
 static void ntv2_hdmiin_set_no_video(struct ntv2_hdmiin *ntv2_hin);
+
 
 struct ntv2_hdmiin *ntv2_hdmiin_open(struct ntv2_object *ntv2_obj,
 									 const char *name, int index)
@@ -124,6 +129,7 @@ void ntv2_hdmiin_close(struct ntv2_hdmiin *ntv2_hin)
 
 	ntv2_hdmiin_disable(ntv2_hin);
 
+	ntv2_hdmiedid_close(ntv2_hin->edid);
 	ntv2_konai2c_close(ntv2_hin->i2c_reg);
 
 	memset(ntv2_hin, 0, sizeof(struct ntv2_hdmiin));
@@ -132,7 +138,8 @@ void ntv2_hdmiin_close(struct ntv2_hdmiin *ntv2_hin)
 
 int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 						  struct ntv2_features *features,
-						  struct ntv2_register *vid_reg)
+						  struct ntv2_register *vid_reg,
+						  int port_index)
 {
 	int result;
 	int i;
@@ -147,6 +154,7 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 	ntv2_hin->features = features;
 	ntv2_hin->vid_reg = vid_reg;
 
+	/* configure i2c */
 	ntv2_hin->i2c_reg = ntv2_konai2c_open((struct ntv2_object*)ntv2_hin, "i2c", ntv2_hin->index);
 	if (ntv2_hin->i2c_reg == NULL)
 		return -ENOMEM;
@@ -158,15 +166,16 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 	if (result < 0)
 		return result;
 
-	if (features->device_id == NTV2_DEVICE_ID_CORVIDHDBT) {
-		ntv2_hin->edid_reg = init_edid_g;
-		ntv2_hin->edid_size = init_edid_g_size;
-	}
+	/* confgure edid */
+	ntv2_hin->edid = ntv2_hdmiedid_open((struct ntv2_object*)ntv2_hin, "edid", 0); 
+	if (ntv2_hin->edid == NULL)
+		return -ENOMEM;
 
-	if (features->device_id == NTV2_DEVICE_ID_KONAHDMI) {
-		ntv2_hin->edid_reg = init_edid_g;
-		ntv2_hin->edid_size = init_edid_g_size;
-	}
+	result = ntv2_hdmiedid_configure(ntv2_hin->edid,
+									 ntv2_features_hdmi_edid_type(ntv2_hin->features, port_index),
+									 port_index);
+	if (result < 0)
+		return result;
 
 	/* initialize hdmi avi vic to ntv2 standard and rate table */
 	for (i = 0; i < NTV2_AVI_VIC_INFO_SIZE; i++) {
@@ -414,7 +423,7 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 		goto bad_write;
 
 	/* load edid */
-	res = ntv2_hdmiin_write_multi(ntv2_hin, device_edid_bank, ntv2_hin->edid_reg, ntv2_hin->edid_size);
+	res = ntv2_hdmiin_write_edid(ntv2_hin, ntv2_hin->edid, device_edid_bank);
 	if (res < 0)
 		goto bad_write;
 
@@ -475,6 +484,29 @@ static int ntv2_hdmiin_read_verify(struct ntv2_hdmiin *ntv2_hin,
 		if (val != reg_value[i].value) {
 			NTV2_MSG_HDMIIN_ERROR("%s: *error* read verify failed  device %02x  address %02x  read %02x  expected %02x\n",
 								  ntv2_hin->name, device, reg_value[i].address, val, reg_value[i].value);
+		}
+	}
+
+	return 0;
+}
+
+static int ntv2_hdmiin_write_edid(struct ntv2_hdmiin *ntv2_hin,
+								  struct ntv2_hdmiedid *ntv2_edid,
+								  u8 device)
+{
+	struct ntv2_konai2c *i2c_reg = ntv2_hin->i2c_reg;
+	u8* data = ntv2_hdmi_get_edid_data(ntv2_edid);
+	u32 count = ntv2_hdmi_get_edid_size(ntv2_edid);
+	u32 address = 0;
+	int res;
+
+	ntv2_konai2c_set_device(i2c_reg, device);
+	for (address = 0; address < count; address++) {
+		res = ntv2_konai2c_write(i2c_reg, (u8)address, data[address]);
+		if (res < 0) {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* write multi failed  device %02x  address %02x\n",
+								  ntv2_hin->name, device, address);
+			return res;
 		}
 	}
 

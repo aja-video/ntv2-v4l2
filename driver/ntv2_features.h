@@ -56,7 +56,7 @@ struct ntv2_serial_config {
 struct ntv2_input_config {
 	const char*					name;
 	enum ntv2_input_type		type;
-	u32							version;
+	enum ntv2_edid_type			edid;
 	struct v4l2_dv_timings_cap	v4l2_timings_cap;
 	u32							frame_flags;
 	int							reg_index;
@@ -67,7 +67,6 @@ struct ntv2_input_config {
 struct ntv2_source_config {
 	const char*					name;
 	enum ntv2_input_type		type;
-	u32							version;
 	u32							audio_source;
 	u32							num_channels;
 	int							input_index;
@@ -119,6 +118,7 @@ struct ntv2_features {
 	unsigned long				component_owner[ntv2_component_size][NTV2_MAX_CHANNELS];
 
 	struct ntv2_serial_config	*serial_config[NTV2_MAX_CHANNELS];
+	enum ntv2_edid_type			hdmi_edid[NTV2_MAX_CHANNELS];
 };
 
 
@@ -241,5 +241,8 @@ bool ntv2_features_match_dv_timings(const struct v4l2_dv_timings *measured,
 int ntv2_features_req_line_interleave_channels(struct ntv2_features *features);
 int ntv2_features_req_sample_interleave_channels(struct ntv2_features *features);
 int ntv2_features_req_square_division_channels(struct ntv2_features *features);
+
+enum ntv2_edid_type
+ntv2_features_hdmi_edid_type(struct ntv2_features *features, int index);
 
 #endif

@@ -134,36 +134,38 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 	for (i = 0; i < NTV2_MAX_INPUT_CONFIGS; i++) {
 		input_config = ntv2_features_get_input_config(features, i, 0);
 		if (input_config == NULL) continue;
-		if (input_config->type == ntv2_input_type_hdmi) {
-			if (input_config->version < 4) {
-				in0 = input_config->input_index;
-				if (in0 < NTV2_MAX_HDMI_INPUTS) {
-					ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, 
-																  "hin0", input_config->reg_index); 
-					if (ntv2_inp->hdmi0_input[in0] == NULL)
-						return -ENOMEM;
-					result = ntv2_hdmiin_configure(ntv2_inp->hdmi0_input[in0],
-												   ntv2_inp->features,
-												   ntv2_inp->vid_reg);
-					if (result < 0)
-						return result;
-					ntv2_inp->num_hdmi0_inputs++;
-				}
+
+		if (input_config->type == ntv2_input_type_hdmi_adv) {
+			in0 = input_config->input_index;
+			if (in0 < NTV2_MAX_HDMI_INPUTS) {
+				ntv2_inp->hdmi0_input[in0] = ntv2_hdmiin_open((struct ntv2_object*)ntv2_inp, 
+															  "hin0", input_config->reg_index); 
+				if (ntv2_inp->hdmi0_input[in0] == NULL)
+					return -ENOMEM;
+				result = ntv2_hdmiin_configure(ntv2_inp->hdmi0_input[in0],
+											   ntv2_inp->features,
+											   ntv2_inp->vid_reg,
+											   in0);
+				if (result < 0)
+					return result;
+				ntv2_inp->num_hdmi0_inputs++;
 			}
-			if (input_config->version == 4) {
-				in4 = input_config->input_index;
-				if (in4 < NTV2_MAX_HDMI_INPUTS) {
-					ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, 
-																   "hin4", input_config->reg_index); 
-					if (ntv2_inp->hdmi4_input[in4] == NULL)
-						return -ENOMEM;
-					result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
-													ntv2_inp->features,
-													ntv2_inp->vid_reg);
-					if (result < 0)
-						return result;
-					ntv2_inp->num_hdmi4_inputs++;
-				}
+		}
+
+		if (input_config->type == ntv2_input_type_hdmi_aja) {
+			in4 = input_config->input_index;
+			if (in4 < NTV2_MAX_HDMI_INPUTS) {
+				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, 
+															   "hin4", input_config->reg_index); 
+				if (ntv2_inp->hdmi4_input[in4] == NULL)
+					return -ENOMEM;
+				result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
+												ntv2_inp->features,
+												ntv2_inp->vid_reg,
+												in4);
+				if (result < 0)
+					return result;
+				ntv2_inp->num_hdmi4_inputs++;
 			}
 		}
 	}
@@ -295,50 +297,53 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 		}
 	}
 
-	if (config->type == ntv2_input_type_hdmi) {
-		if (config->version < 4) {
-			/* validate config parameters */
-			if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
-				(ntv2_inp->hdmi0_input[config->input_index] == NULL) ||
-				(config->num_inputs != 1))
-				goto done;
+	else if (config->type == ntv2_input_type_hdmi_adv) {
 
-			/* get current hdmi input format */
-			ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
+		/* validate config parameters */
+		if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
+			(ntv2_inp->hdmi0_input[config->input_index] == NULL) ||
+			(config->num_inputs != 1))
+			goto done;
+		
+		/* get current hdmi input format */
+		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
 
-			format->type = config->type;
-			format->video_standard = hdmi_format.video_standard;
-			format->frame_rate = hdmi_format.frame_rate;
-			format->frame_flags = hdmi_format.frame_flags;
-			format->pixel_flags = hdmi_format.pixel_flags;
+		format->type = config->type;
+		format->video_standard = hdmi_format.video_standard;
+		format->frame_rate = hdmi_format.frame_rate;
+		format->frame_flags = hdmi_format.frame_flags;
+		format->pixel_flags = hdmi_format.pixel_flags;
 
-			if (config->version == 0) 
-				result = ntv2_hdmi_stream_to_sqd_format(config, format);
-			else
-				result = ntv2_hdmi_stream_to_tsi_format(config, format);
-		}
-		if (config->version == 4) {
-			/* validate config parameters */
-			if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
-				(ntv2_inp->hdmi4_input[config->input_index] == NULL) ||
-				(config->num_inputs != 1))
-				goto done;
+		result = ntv2_hdmi_stream_to_sqd_format(config, format);
+	}
+	
+	else if (config->type == ntv2_input_type_hdmi_aja) {
 
-			/* get current hdmi input format */
-			ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+		/* validate config parameters */
+		if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
+			(ntv2_inp->hdmi4_input[config->input_index] == NULL) ||
+			(config->num_inputs != 1))
+			goto done;
 
-			format->type = config->type;
-			format->video_standard = hdmi4_format.video_standard;
-			format->frame_rate = hdmi4_format.frame_rate;
-			format->frame_flags = hdmi4_format.frame_flags;
-			format->pixel_flags = hdmi4_format.pixel_flags;
+		/* get current hdmi input format */
+		ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+		
+		format->type = config->type;
+		format->video_standard = hdmi4_format.video_standard;
+		format->frame_rate = hdmi4_format.frame_rate;
+		format->frame_flags = hdmi4_format.frame_flags;
+		format->pixel_flags = hdmi4_format.pixel_flags;
 
-			result = ntv2_hdmi_stream_to_tsi_format(config, format);
+		result = ntv2_hdmi_stream_to_tsi_format(config, format);
 
-//			NTV2_MSG_INPUT_STATE("%s: hdmi input standard %d  rate %d  frame %08x  pixel %08x\n", 
-//								 ntv2_inp->name, format->video_standard, format->frame_rate,
-//								 format->frame_flags, format->pixel_flags);
-		}
+//		NTV2_MSG_INPUT_STATE("%s: hdmi input standard %d  rate %d  frame %08x  pixel %08x\n", 
+//							 ntv2_inp->name, format->video_standard, format->frame_rate,
+//							 format->frame_flags, format->pixel_flags);
+	}
+
+	else {
+		NTV2_MSG_INPUT_ERROR("%s: *error*  unknown video input type %d\n", ntv2_inp->name, config->type);
+		result = -EPERM;
 	}
 
 done:
@@ -406,38 +411,39 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 		result = 0;
 	}
 
-	if (config->type == ntv2_input_type_hdmi) {
-		if (config->version < 4) {
-			/* validate config parameters */
-			if ((config->input_index >= ntv2_inp->num_hdmi0_inputs) ||
-				(config->num_inputs != 1))
-				goto done;
+	if (config->type == ntv2_input_type_hdmi_adv) {
 
-			/* get current hdmi input format */
-			ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_hdmi0_inputs) ||
+			(config->num_inputs != 1))
+			goto done;
 
-			/* set audio detection bits */
-			format->audio_detect = hdmi_format.audio_detect;
+		/* get current hdmi input format */
+		ntv2_hdmiin_get_input_format(ntv2_inp->hdmi0_input[config->input_index], &hdmi_format);
 
-			result = 0;
-		}
-		if (config->version == 4) {
-			/* validate config parameters */
-			if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
-				(config->num_inputs != 1))
-				goto done;
-
-			/* get current hdmi input format */
-			ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
-
-			/* set audio detection bits */
-			format->audio_detect = hdmi4_format.audio_detect;
-
-			result = 0;
-		}
+		/* set audio detection bits */
+		format->audio_detect = hdmi_format.audio_detect;
+		
+		result = 0;
 	}
 
-	if (config->type == ntv2_input_type_aes) {
+	else if (config->type == ntv2_input_type_hdmi_aja) {
+
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
+			(config->num_inputs != 1))
+			goto done;
+
+		/* get current hdmi input format */
+		ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+
+		/* set audio detection bits */
+		format->audio_detect = hdmi4_format.audio_detect;
+
+		result = 0;
+	}
+
+	else if (config->type == ntv2_input_type_aes) {
 
 		/* validate config parameters */
 		if ((config->input_index >= ntv2_inp->num_aes_inputs) ||
@@ -451,6 +457,11 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 		format->audio_detect = aes_status.audio_detect;
 
 		result = 0;
+	}
+
+	else {
+		NTV2_MSG_INPUT_ERROR("%s: *error*  unknown audio input type %d\n", ntv2_inp->name, config->type);
+		result = -EPERM;
 	}
 
 done:
