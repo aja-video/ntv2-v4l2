@@ -123,6 +123,9 @@ int ntv2_hdmiedid_configure(struct ntv2_hdmiedid *ntv2_hed,
 {
 	u8 *edid;
 	u32 size;
+	u32 start;
+	u32 end;
+	u32 count;
 	u32 prefix_size;
 	u32 edid_size;
 	u32 sum;
@@ -189,13 +192,18 @@ int ntv2_hdmiedid_configure(struct ntv2_hdmiedid *ntv2_hed,
 			NTV2_MSG_HDMIIN_ERROR("%s: *error* cannot modify port number\n", ntv2_hed->name);
 		}
 	
-		/* compute new checksum */
-		sum = 0;
-		size = ntv2_hed->edid_size - 1;
-		for (i = 0; i < size; i++) {
-			sum += ntv2_hed->edid_data[i];
+		/* compute new checksums */
+		count = ntv2_hed->edid_size / 128;
+		for (i = 0; i < count; i++) {
+			sum = 0;
+			start = i * 128;
+			end = start + 127;
+			for (j = start; j < end; j++) {
+				sum += ntv2_hed->edid_data[j];
+			}
+			ntv2_hed->edid_data[end] = (u8)((~sum + 1) & 0xff);
+			NTV2_MSG_HDMIIN_STATE("%s: new checksum %02x   size = %d\n", ntv2_hed->name, ntv2_hed->edid_data[end], end);
 		}
-		ntv2_hed->edid_data[size] = (u8)((~sum + 1) & 0xff);
 	}
 
 	return 0;
