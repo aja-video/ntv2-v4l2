@@ -229,6 +229,8 @@ enum ntv2_edid_type {
 	ntv2_edid_type_konahdmi_20,
 	ntv2_edid_type_konahdmi_13,
 	ntv2_edid_type_corvidhdbt,
+	ntv2_edid_type_io4k,
+	ntv2_edid_type_io4kplus,
 	ntv2_edid_type_size
 };
 
