@@ -141,7 +141,8 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 						  struct ntv2_register *vid_reg,
 						  int port_index)
 {
-	int result;
+	enum ntv2_edid_type edid_type = ntv2_edid_type_unknown;
+	int result = 0;
 	int i;
 
 	if ((ntv2_hin == NULL) ||
@@ -166,16 +167,21 @@ int ntv2_hdmiin_configure(struct ntv2_hdmiin *ntv2_hin,
 	if (result < 0)
 		return result;
 
-	/* confgure edid */
-	ntv2_hin->edid = ntv2_hdmiedid_open((struct ntv2_object*)ntv2_hin, "edid", 0); 
-	if (ntv2_hin->edid == NULL)
-		return -ENOMEM;
-
-	result = ntv2_hdmiedid_configure(ntv2_hin->edid,
-									 ntv2_features_hdmi_edid_type(ntv2_hin->features, port_index),
-									 port_index);
-	if (result < 0)
-		return result;
+	/* configure edid */
+	edid_type = ntv2_features_hdmi_edid_type(ntv2_hin->features, port_index);
+	if (edid_type != ntv2_edid_type_unknown) {
+		ntv2_hin->edid = ntv2_hdmiedid_open((struct ntv2_object*)ntv2_hin, "edid", 0); 
+		if (ntv2_hin->edid != NULL) {
+			result = ntv2_hdmiedid_configure(ntv2_hin->edid, edid_type, port_index);
+			if (result < 0) {
+				ntv2_hdmiedid_close(ntv2_hin->edid);
+				ntv2_hin->edid = NULL;
+				NTV2_MSG_HDMIIN_ERROR("%s: *error* configure edid failed\n", ntv2_hin->name);
+			}
+		} else {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* open edid failed\n", ntv2_hin->name);
+		}
+	}
 
 	/* initialize hdmi avi vic to ntv2 standard and rate table */
 	for (i = 0; i < NTV2_AVI_VIC_INFO_SIZE; i++) {
@@ -423,9 +429,11 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 		goto bad_write;
 
 	/* load edid */
-	res = ntv2_hdmiin_write_edid(ntv2_hin, ntv2_hin->edid, device_edid_bank);
-	if (res < 0)
-		goto bad_write;
+	if (ntv2_hin->edid != NULL) {
+		res = ntv2_hdmiin_write_edid(ntv2_hin, ntv2_hin->edid, device_edid_bank);
+		if (res < 0)
+			goto bad_write;
+	}
 
 	/* final config */
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_hdmi_bank, init_hdmi8, init_hdmi8_size);
@@ -496,15 +504,15 @@ static int ntv2_hdmiin_write_edid(struct ntv2_hdmiin *ntv2_hin,
 {
 	struct ntv2_konai2c *i2c_reg = ntv2_hin->i2c_reg;
 	u8* data = ntv2_hdmi_get_edid_data(ntv2_edid);
-	u32 count = ntv2_hdmi_get_edid_size(ntv2_edid);
+	u32 size = ntv2_hdmi_get_edid_size(ntv2_edid);
 	u32 address = 0;
 	int res;
 
 	ntv2_konai2c_set_device(i2c_reg, device);
-	for (address = 0; address < count; address++) {
+	for (address = 0; address < size; address++) {
 		res = ntv2_konai2c_write(i2c_reg, (u8)address, data[address]);
 		if (res < 0) {
-			NTV2_MSG_HDMIIN_ERROR("%s: *error* write multi failed  device %02x  address %02x\n",
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* write edid failed  device %02x  address %02x\n",
 								  ntv2_hin->name, device, address);
 			return res;
 		}

@@ -211,6 +211,10 @@ static bool update_input_state(struct ntv2_hdmiin4 *ntv2_hin);
 static bool has_audio_control_changed(struct ntv2_hdmiin4 *ntv2_hin);
 static bool config_audio_control(struct ntv2_hdmiin4 *ntv2_hin);
 static void set_no_video(struct ntv2_hdmiin4 *ntv2_hin);
+static bool edid_write(struct ntv2_hdmiin4 *ntv2_hin, struct ntv2_hdmiedid* edid);
+static bool edid_write_data(struct ntv2_hdmiin4 *ntv2_hin, u8 address, u8 data);
+static bool edid_read_data(struct ntv2_hdmiin4 *ntv2_hin, u8 address, u8* data);
+static bool edid_wait_not_busy(struct ntv2_hdmiin4 *ntv2_hin);
 
 static struct ntv2_hdmi_format_data* find_format_data(u32 h_sync_start,
 													 u32 h_sync_end,
@@ -273,7 +277,8 @@ int ntv2_hdmiin4_configure(struct ntv2_hdmiin4 *ntv2_hin,
 						   struct ntv2_register *vid_reg,
 						   int port_index)
 {
-	int result;
+	enum ntv2_edid_type edid_type = ntv2_edid_type_unknown;
+	int result = 0;
 	
 	if ((ntv2_hin == NULL) ||
 		(features == NULL) ||
@@ -285,18 +290,23 @@ int ntv2_hdmiin4_configure(struct ntv2_hdmiin4 *ntv2_hin,
 	ntv2_hin->features = features;
 	ntv2_hin->vid_reg = vid_reg;
 
-	/* confgure edid */
-	ntv2_hin->edid = ntv2_hdmiedid_open((struct ntv2_object*)ntv2_hin, "edid", 0); 
-	if (ntv2_hin->edid == NULL)
-		return -ENOMEM;
+	/* configure edid */
+	edid_type = ntv2_features_hdmi_edid_type(ntv2_hin->features, port_index);
+	if (edid_type != ntv2_edid_type_unknown) {
+		ntv2_hin->edid = ntv2_hdmiedid_open((struct ntv2_object*)ntv2_hin, "edid", 0); 
+		if (ntv2_hin->edid != NULL) {
+			result = ntv2_hdmiedid_configure(ntv2_hin->edid, edid_type, port_index);
+			if (result < 0) {
+				ntv2_hdmiedid_close(ntv2_hin->edid);
+				ntv2_hin->edid = NULL;
+				NTV2_MSG_HDMIIN_ERROR("%s: *error* configure edid failed\n", ntv2_hin->name);
+			}
+		} else {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* open edid failed\n", ntv2_hin->name);
+		}
+	}
 
-	result = ntv2_hdmiedid_configure(ntv2_hin->edid,
-									 ntv2_features_hdmi_edid_type(ntv2_hin->features, port_index),
-									 port_index);
-	if (result < 0)
-		return result;
-
-	return result;
+	return 0;
 }
 
 int ntv2_hdmiin4_enable(struct ntv2_hdmiin4 *ntv2_hin)
@@ -480,7 +490,10 @@ static void ntv2_hdmiin4_initialize(struct ntv2_hdmiin4 *ntv2_hin)
 
 	ntv2_hin->audio_swap		= true;
 
-	/* configure edid */
+	/* write edid */
+	if (ntv2_hin->edid != NULL) {
+		edid_write(ntv2_hin, ntv2_hin->edid);
+	}
 
 	/* configure hot plug and audio swap */
 	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_videocontrol_hotplugmode, ntv2_kona_con_hdmiin4_hotplugmode_enable);
@@ -1153,3 +1166,88 @@ static bool compare_tmds_rate(u32 tmdsRate, u32 tmdsRef)
 	return false;
 }
 
+static bool edid_write(struct ntv2_hdmiin4 *ntv2_hin, struct ntv2_hdmiedid* ntv2_edid)
+{
+	u8* data = ntv2_hdmi_get_edid_data(ntv2_edid);
+	u32 count = ntv2_hdmi_get_edid_size(ntv2_edid);
+	u32 address = 0;
+	u8 value;
+	
+	for (address = 0; address < count; address++) {
+		if (!edid_write_data(ntv2_hin, (u8)address, data[address])) {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* write edid failed  address %02x\n",
+								  ntv2_hin->name, address);
+			return false;
+		}
+	}
+
+	for (address = 0; address < count; address++) {
+		if (!edid_read_data(ntv2_hin, (u8)address, &value)) {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* read edid failed  address %02x\n",
+								  ntv2_hin->name, address);
+			return false;
+		}
+		if (value != data[address]) {
+			NTV2_MSG_HDMIIN_ERROR("%s: *error* verify edid failed  address %02x  exp %02x  act %02x\n",
+								  ntv2_hin->name, address, data[address], value);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static bool edid_write_data(struct ntv2_hdmiin4 *ntv2_hin, u8 address, u8 data)
+{
+	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
+	u32 value;
+
+	/* wait for not busy */
+	if (!edid_wait_not_busy(ntv2_hin)) return false;
+
+	/* write edid data */
+	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_edid_address, address);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_edid_write_data, data);
+	value |= NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_edid_write_enable, 1);
+	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin4_edid, ntv2_hin->index, value);
+
+	return true;
+}
+
+static bool edid_read_data(struct ntv2_hdmiin4 *ntv2_hin, u8 address, u8* data)
+{
+	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
+	u32 value;
+
+	/* wait for not busy */
+	if (!edid_wait_not_busy(ntv2_hin)) return false;
+
+	/* request edid read */
+	value = NTV2_FLD_SET(ntv2_kona_fld_hdmiin4_edid_address, address);
+	ntv2_reg_write(vid_reg, ntv2_kona_reg_hdmiin4_edid, ntv2_hin->index, value);
+
+	/* wait for read */
+	if (!edid_wait_not_busy(ntv2_hin)) return false;
+
+	/* read data */
+	value = ntv2_reg_read(vid_reg, ntv2_kona_reg_hdmiin4_edid, ntv2_hin->index);
+	*data = (u8)NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_edid_read_data, value);
+
+	return true;
+}
+
+static bool edid_wait_not_busy(struct ntv2_hdmiin4 *ntv2_hin)
+{
+	struct ntv2_register *vid_reg = ntv2_hin->vid_reg;
+	int i;
+	u32 value;
+
+	/* spin until not busy */
+	for (i = 0; i < 1000; i++) {
+		value =  ntv2_reg_read(vid_reg, ntv2_kona_reg_hdmiin4_edid, ntv2_hin->index);
+		value = NTV2_FLD_GET(ntv2_kona_fld_hdmiin4_edid_busy, value);
+		if (value == 0) return true;
+	}
+
+	return false;
+}

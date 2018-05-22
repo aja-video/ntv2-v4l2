@@ -1284,6 +1284,14 @@ NTV2_CON(ntv2_kona_con_hdmiin4_mode_none,					0x0);		/* no oversampling */
 NTV2_CON(ntv2_kona_con_hdmiin4_mode_asynchronous,			0x1);		/* asynchronous oversampling */
 NTV2_CON(ntv2_kona_con_hdmiin4_mode_synchronous,			0x2);		/* synchronous oversampling */
 
+/* hdmi4 edid ram port */
+NTV2_REG(ntv2_kona_reg_hdmiin4_edid,						0x1d1d, 0x1d1d, 0x251d);
+NTV2_FLD(ntv2_kona_fld_hdmiin4_edid_write_data,				8,	 0);
+NTV2_FLD(ntv2_kona_fld_hdmiin4_edid_read_data,				8,	 8);
+NTV2_FLD(ntv2_kona_fld_hdmiin4_edid_address,				8,	 16);
+NTV2_FLD(ntv2_kona_fld_hdmiin4_edid_write_enable,			1,	 24);
+NTV2_FLD(ntv2_kona_fld_hdmiin4_edid_busy,					1,	 25);
+
 /* hdmi4 input crop location */
 NTV2_REG(ntv2_kona_reg_hdmiin4_croplocation,				0x1d1e, 0x1d1e, 0x251e);
 NTV2_FLD(ntv2_kona_fld_hdmiin4_croplocation_start,			16,	 0);	/* crop start location */
