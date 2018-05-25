@@ -27,13 +27,13 @@
 #define NTV2_PCI_DEVID_KONA4		0xeb0b
 #define NTV2_PCI_DEVID_CORVID88		0xeb0d
 #define NTV2_PCI_DEVID_CORVID44		0xeb0e
-#define NTV2_PCI_DEVID_CORVIDHDBT	0xeb18
+#define NTV2_PCI_DEVID_CORVIDHBR	0xeb18
 #define NTV2_PCI_DEVID_KONAHDMI		0xeb24
 
 #define NTV2_DEVICE_ID_KONA4		0x10518400
 #define NTV2_DEVICE_ID_CORVID88		0x10538200
 #define NTV2_DEVICE_ID_CORVID44		0x10565400
-#define NTV2_DEVICE_ID_CORVIDHDBT	0x10668200
+#define NTV2_DEVICE_ID_CORVIDHBR	0x10668200
 #define NTV2_DEVICE_ID_KONAHDMI		0x10767400
 
 #define NTV2_PCI_BAR_NWL			0
@@ -228,7 +228,7 @@ enum ntv2_edid_type {
 	ntv2_edid_type_unknown,
 	ntv2_edid_type_konahdmi_20,
 	ntv2_edid_type_konahdmi_13,
-	ntv2_edid_type_corvidhdbt,
+	ntv2_edid_type_corvidhbr,
 	ntv2_edid_type_io4k,
 	ntv2_edid_type_io4kplus,
 	ntv2_edid_type_size

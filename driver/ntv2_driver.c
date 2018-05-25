@@ -182,7 +182,7 @@ static const struct pci_device_id ntv2_pci_tbl[] = {
 	   0
 	},
 	{
-	   NTV2_PCI_VENID, NTV2_PCI_DEVID_CORVIDHDBT,
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_CORVIDHBR,
 	   PCI_ANY_ID, PCI_ANY_ID,
 	   0, 0,
 	   0

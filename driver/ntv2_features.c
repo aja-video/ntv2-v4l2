@@ -26,7 +26,7 @@ static void ntv2_features_initialize(void);
 static void ntv2_features_corvid44(struct ntv2_features *features);
 static void ntv2_features_corvid88(struct ntv2_features *features);
 static void ntv2_features_kona4(struct ntv2_features *features);
-static void ntv2_features_corvidhdbt(struct ntv2_features *features);
+static void ntv2_features_corvidhbr(struct ntv2_features *features);
 static void ntv2_features_konahdmi(struct ntv2_features *features);
 
 
@@ -78,7 +78,7 @@ int ntv2_features_configure(struct ntv2_features *features, u32 id)
 	case NTV2_DEVICE_ID_CORVID44:	ntv2_features_corvid44(features);		break;
 	case NTV2_DEVICE_ID_CORVID88:	ntv2_features_corvid88(features);		break;
 	case NTV2_DEVICE_ID_KONA4:		ntv2_features_kona4(features);			break;
-	case NTV2_DEVICE_ID_CORVIDHDBT:	ntv2_features_corvidhdbt(features);		break;
+	case NTV2_DEVICE_ID_CORVIDHBR:	ntv2_features_corvidhbr(features);		break;
 	case NTV2_DEVICE_ID_KONAHDMI:	ntv2_features_konahdmi(features);		break;
 	default:
 		return -ENODEV;
@@ -2202,7 +2202,7 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	build_v4l2_timings(features);
 }
 
-static void ntv2_features_corvidhdbt(struct ntv2_features *features) 
+static void ntv2_features_corvidhbr(struct ntv2_features *features) 
 {
 	features->device_name = "CorvidHB-R";
 	features->pcm_name = "CorvidHB-R PCM";
@@ -2251,7 +2251,7 @@ static void ntv2_features_corvidhdbt(struct ntv2_features *features)
 	features->source_config[0][1] = &asc_aes;
 	features->source_config[0][2] = &asc_hdmi_adv_1;
 
-	features->hdmi_edid[0] = ntv2_edid_type_corvidhdbt;
+	features->hdmi_edid[0] = ntv2_edid_type_corvidhbr;
 
 	all_pixel_formats(features);
 	build_v4l2_timings(features);
