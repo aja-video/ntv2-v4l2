@@ -822,6 +822,23 @@ NTV2_CON(ntv2_kona_con_vpid_channel_6,						0x5);
 NTV2_CON(ntv2_kona_con_vpid_channel_7,						0x6);
 NTV2_CON(ntv2_kona_con_vpid_channel_8,						0x7);
 
+/* sdi input timecode registers */
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_rp188_dbb,			29, 64, 268, 273, 342, 418, 427, 436);
+NTV2_FLD(ntv2_kona_fld_sdiin_rp188_dbb,						8,	0);
+NTV2_FLD(ntv2_kona_fld_sdiin_rp188_select_present,			1,	17);
+NTV2_FLD(ntv2_kona_fld_sdiin_rp188_ltc_present,				1,	18);
+NTV2_FLD(ntv2_kona_fld_sdiin_rp188_vitc1_present,			1,	19);
+NTV2_FLD(ntv2_kona_fld_sdiin_rp188_select,					8,	24);
+
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_rp188_low,			30, 65, 269, 274, 340, 416, 425, 434);
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_rp188_high,			31, 66, 270, 275, 341, 417, 426, 435);
+
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_ltc_low,				110, 252, 316, 318, 344, 419, 428, 437);
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_ltc_high,				111, 253, 317, 319, 345, 420, 429, 438);
+
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_vitc1_low,			202, 204, 206, 208, 210, 212, 214, 216);
+NTV2_REG(ntv2_kona_reg_sdiin_timecode_vitc1_high,			203, 205, 207, 209, 211, 213, 215, 217);
+
 /* audio detection bits */
 NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch12,				1,	0);
 NTV2_FLD(ntv2_kona_fld_audio_detect_gr1ch34,				1,	1);
