@@ -25,6 +25,7 @@
 #include "ntv2_pci.h"
 #include "ntv2_input.h"
 #include "ntv2_konareg.h"
+#include "ntv2_timecode.h"
 
 
 #define NTV2_VIDEO_TRANSFER_TIMEOUT		(100000)
@@ -34,6 +35,9 @@ static bool ntv2_video_compare_input_format(struct ntv2_input_format *format_a,
 static void ntv2_video_transfer_task(unsigned long data);
 static void ntv2_video_dma_callback(unsigned long data, int result);
 static void ntv2_video_channel_callback(unsigned long data);
+static void ntv2_video_stream_to_buffer(struct ntv2_video *ntv2_vid,
+										struct ntv2_stream_data *data,
+										struct ntv2_vb2buf *buffer);
 
 struct ntv2_video *ntv2_video_open(struct ntv2_object *ntv2_obj,
 								   const char *name, int index)
@@ -399,22 +403,15 @@ static void ntv2_video_transfer_task(unsigned long data)
 	if ((ntv2_vid->dma_done) &&
 		(ntv2_vid->dma_vidbuf != NULL) &&
 		(ntv2_vid->dma_vb2buf != NULL)) {
-#ifdef NTV2_USE_VB2_V4L2_BUFFER
-#ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
-		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.vb2_buf.timestamp = ntv2_vid->dma_vidbuf->timestamp;
-#else
-		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.timestamp = ntv2_vid->dma_vidbuf->timestamp;
-#endif
-		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.sequence = ntv2_vid->vb2buf_sequence++;
-		ntv2_vid->dma_vb2buf->vb2_v4l2_buffer.field = ntv2_vid->v4l2_format.field;
-#else
-		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.timestamp = ntv2_vid->dma_vidbuf->timestamp;
-		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.bytesused = ntv2_vid->v4l2_format.sizeimage;
-		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.sequence = ntv2_vid->vb2buf_sequence++;
-		ntv2_vid->dma_vb2buf->vb2_buffer.v4l2_buf.field = ntv2_vid->v4l2_format.field;
-#endif
+
+		/* copy stream data to vb2 buffer */
+		ntv2_video_stream_to_buffer(ntv2_vid, ntv2_vid->dma_vidbuf, ntv2_vid->dma_vb2buf);
+
+		/* mark buffers as done */
 		ntv2_channel_data_done(ntv2_vid->dma_vidbuf);
 		ntv2_vb2ops_vb2buf_done(ntv2_vid->dma_vb2buf);
+
+		/* clear current dma buffers */
 		ntv2_vid->dma_vb2buf = NULL;
 		ntv2_vid->dma_vidbuf = NULL;
 		ntv2_vid->dma_start = false;
@@ -510,4 +507,81 @@ static void ntv2_video_channel_callback(unsigned long data)
 
 	/* schedule the dma task */
 	tasklet_schedule(&ntv2_vid->transfer_task);
+}
+
+static void ntv2_video_stream_to_buffer(struct ntv2_video *ntv2_vid,
+										struct ntv2_stream_data *data,
+										struct ntv2_vb2buf *buffer)
+{
+	struct v4l2_timecode *timecode;
+	struct ntv2_timecode_packed pk;
+	struct ntv2_timecode_data dt;
+	u32 fps = 0;
+	u32 type = 0;
+
+	/* copy stream data to vb2 buffer */
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+#ifdef NTV2_USE_VB2_BUFFER_TIMESTAMP
+	buffer->vb2_v4l2_buffer.vb2_buf.timestamp = data->timestamp;
+#else
+	buffer->vb2_v4l2_buffer.timestamp = data->timestamp;
+#endif
+	buffer->vb2_v4l2_buffer.sequence = ntv2_vid->vb2buf_sequence++;
+	buffer->vb2_v4l2_buffer.field = ntv2_vid->v4l2_format.field;
+#else
+	buffer->vb2_buffer.v4l2_buf.timestamp = data->timestamp;
+	buffer->vb2_buffer.v4l2_buf.bytesused = ntv2_vid->v4l2_format.sizeimage;
+	buffer->vb2_buffer.v4l2_buf.sequence = ntv2_vid->vb2buf_sequence++;
+	buffer->vb2_buffer.v4l2_buf.field = ntv2_vid->v4l2_format.field;
+#endif	
+
+	/* copy timecode if present */
+	if (data->video.timecode_present) {
+
+		/* get timecode frame rate */
+		fps = ntv2_timecode_rate(ntv2_vid->input_format.frame_rate);
+
+		switch (fps) {
+		case 24:
+			type = V4L2_TC_TYPE_24FPS;
+			break;
+		case 25:
+			type = V4L2_TC_TYPE_25FPS;
+			break;
+		case 30:
+			type = V4L2_TC_TYPE_30FPS;
+			break;
+		default:
+			break;
+		}
+
+		/* must have a good timecode type */
+		if (type != 0) {
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+			timecode = &buffer->vb2_v4l2_buffer.timecode;
+			buffer->vb2_v4l2_buffer.flags |= V4L2_BUF_FLAG_TIMECODE;
+#else
+			timecode = &buffer->vb2_buffer.v4l2_buf.timecode;
+			buffer->vb2_buffer.v4l2_buf.flags |= V4L2_BUF_FLAG_TIMECODE;
+#endif
+			/* unpack hardware timecode */
+			pk.timecode_low = data->video.timecode_low;
+			pk.timecode_high = data->video.timecode_high;
+			ntv2_timecode_unpack(&dt, &pk, fps, false);
+
+			/* fill in timecode info */
+			timecode->type = type;
+			timecode->flags = dt.drop_frame? V4L2_TC_FLAG_DROPFRAME : 0;
+			timecode->frames = (u8)dt.frames;
+			timecode->seconds = (u8)dt.seconds;
+			timecode->minutes = (u8)dt.minutes;
+			timecode->hours = (u8)dt.hours;
+			timecode->userbits[0] = (u8)(dt.user_bits & 0xff);
+			timecode->userbits[1] = (u8)((dt.user_bits >> 8) & 0xff);
+			timecode->userbits[2] = (u8)((dt.user_bits >> 16) & 0xff);
+			timecode->userbits[3] = (u8)((dt.user_bits >> 24) & 0xff);
+		}
+	}
+
+	return;
 }

@@ -34,6 +34,7 @@ DRIVERSRCS 		=	ntv2_driver.c \
 					ntv2_nwldma.c \
 					ntv2_xlxdma.c \
 					ntv2_konareg.c \
+					ntv2_timecode.c \
 					ntv2_features.c \
 					ntv2_videoops.c \
 					ntv2_audioops.c \
@@ -64,6 +65,7 @@ DRIVERINCS		=	ntv2_common.h \
 					ntv2_xlxdma.h \
 					ntv2_xlxreg.h \
 					ntv2_konareg.h \
+					ntv2_timecode.h \
 					ntv2_features.h \
 					ntv2_videoops.h \
 					ntv2_audioops.h \

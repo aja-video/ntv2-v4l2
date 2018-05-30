@@ -445,6 +445,7 @@ struct ntv2_vb2buf *ntv2_vb2ops_vb2buf_ready(struct ntv2_video *ntv2_vid)
 void ntv2_vb2ops_vb2buf_done(struct ntv2_vb2buf *ntv2_buf)
 {
 	struct ntv2_video *ntv2_vid;
+	struct v4l2_timecode *timecode;
 	unsigned long flags;
 
 	if (ntv2_buf == NULL)
@@ -456,6 +457,27 @@ void ntv2_vb2ops_vb2buf_done(struct ntv2_vb2buf *ntv2_buf)
 
 	NTV2_MSG_VIDEO_STREAM("%s: vb2 buffer done %d\n",
 						  ntv2_vid->name, ntv2_buf->index);
+
+#ifdef NTV2_USE_VB2_V4L2_BUFFER
+	if ((ntv2_buf->vb2_v4l2_buffer.flags & V4L2_BUF_FLAG_TIMECODE) != 0) {
+		timecode = &ntv2_buf->vb2_v4l2_buffer.timecode;
+#else
+	if ((ntv2_buf->vb2_buffer.v4l2_buf.flags & V4L2_BUF_FLAG_TIMECODE) != 0) {
+		timecode = &ntv2_buf->vb2_buffer.v4l2_buf.timecode;
+#endif
+		NTV2_MSG_VIDEO_STREAM("%s: vb2 timecode type %d  drop %s  time %02d:%02d:%02d:%02d  user %02x %02x %02x %02x\n",
+							  ntv2_vid->name,
+							  timecode->type,
+							  (((timecode->flags & V4L2_TC_FLAG_DROPFRAME) != 0)? "y" : "n"),
+							  timecode->hours, 
+							  timecode->minutes,
+							  timecode->seconds,
+							  timecode->frames,
+							  timecode->userbits[0],
+							  timecode->userbits[1],
+							  timecode->userbits[2],
+							  timecode->userbits[3]);
+	}
 
 	/* remove from list */
 	spin_lock_irqsave(&ntv2_vid->vb2_lock, flags);

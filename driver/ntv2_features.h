@@ -69,6 +69,7 @@ struct ntv2_source_config {
 	enum ntv2_input_type		type;
 	u32							audio_source;
 	u32							num_channels;
+	int							reg_index;
 	int							input_index;
 	int							num_inputs;
 };
@@ -139,7 +140,7 @@ struct ntv2_audio_config
 struct ntv2_input_config
 *ntv2_features_get_input_config(struct ntv2_features *features,
 								int channel_index,
-								int input_index);
+								int config_index);
 int ntv2_features_num_input_configs(struct ntv2_features *features,
 									int channel_index);
 struct ntv2_input_config

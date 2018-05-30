@@ -487,7 +487,10 @@ int ntv2_videoops_interrupt_capture(struct ntv2_channel_stream *stream)
 	struct ntv2_stream_data *data_ready;
 	s64 stat_time = ntv2_chn->dpc_status.stat_time;
 	s64 time_us;
-
+	u32 val;
+	int chn_index = ntv2_chn->index;
+	int reg_index = 0;
+	
 	if (!stream->queue_enable)
 		return 0;
 
@@ -532,8 +535,29 @@ int ntv2_videoops_interrupt_capture(struct ntv2_channel_stream *stream)
 		if ((stream->video.total_frame_count != 0) &&
 			(data_ready != NULL) &&
 			(data_ready->video.frame_number != stream->video.frame_active->video.frame_number)) {
+			
+			/* get frame address and size */
 			data_ready->video.address = data_ready->video.frame_number * stream->video.frame_size;
 			data_ready->video.data_size = stream->video.frame_size;
+
+			/* get frame timecode */
+			data_ready->video.timecode_present = false;
+			data_ready->video.timecode_low = 0;
+			data_ready->video.timecode_high = 0;
+			if (stream->video.input_format.type == ntv2_input_type_sdi) {
+				reg_index = stream->video.input_format.reg_index;
+				val = ntv2_reg_read(ntv2_chn->vid_reg, ntv2_kona_reg_sdiin_timecode_rp188_dbb, reg_index);
+				val = NTV2_FLD_GET(ntv2_kona_fld_sdiin_rp188_select_present, val);
+				if (val == 1) {
+					data_ready->video.timecode_present = true;
+					data_ready->video.timecode_low =
+						ntv2_reg_read(ntv2_chn->vid_reg, ntv2_kona_reg_sdiin_timecode_rp188_low, reg_index);
+					data_ready->video.timecode_high =
+						ntv2_reg_read(ntv2_chn->vid_reg, ntv2_kona_reg_sdiin_timecode_rp188_high, reg_index);
+				}
+			}
+
+			/* add frame to ready list */
 			list_add_tail(&data_ready->list, &stream->data_ready_list);
 			NTV2_MSG_CHANNEL_STREAM("%s: video capture data queue %d  buffer %d\n",
 									ntv2_chn->name,
@@ -543,7 +567,9 @@ int ntv2_videoops_interrupt_capture(struct ntv2_channel_stream *stream)
 	}
 			
 	/* frame store fills frame next */
-	stream->ops.update_frame(stream);
+	ntv2_reg_write(ntv2_chn->vid_reg,
+				   ntv2_kona_reg_frame_input, chn_index,
+				   stream->video.frame_next->video.frame_number);
 
 	/* cache last enable state */
 	stream->queue_last = stream->queue_run;

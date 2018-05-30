@@ -272,6 +272,7 @@ struct ntv2_input_format {
 	u32							frame_rate;
 	u32							frame_flags;
 	u32							pixel_flags;
+	int							reg_index;
 	int							input_index;
 	int							num_inputs;
 	int							num_streams;
@@ -281,6 +282,7 @@ struct ntv2_source_format {
 	enum ntv2_input_type		type;
 	u32							audio_source;
 	u32							audio_detect;
+	int							reg_index;
 	int							input_index;
 	int							num_inputs;
 };

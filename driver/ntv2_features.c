@@ -112,14 +112,14 @@ struct ntv2_audio_config
 struct ntv2_input_config
 *ntv2_features_get_input_config(struct ntv2_features *features,
 								int channel_index,
-								int input_index)
+								int config_index)
 {
 	if ((features == NULL) ||
 		(channel_index < 0) || (channel_index >= NTV2_MAX_CHANNELS) ||
-		(input_index < 0) || (input_index >= NTV2_MAX_INPUT_CONFIGS))
+		(config_index < 0) || (config_index >= NTV2_MAX_INPUT_CONFIGS))
 		return NULL;
 
-	return features->input_config[channel_index][input_index];
+	return features->input_config[channel_index][config_index];
 }
 
 int ntv2_features_num_input_configs(struct ntv2_features *features,
@@ -1353,6 +1353,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_auto;
 	nss->audio_source = 0;
 	nss->num_channels = 0;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 0;
 
@@ -1363,6 +1364,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_aes;
 	nss->audio_source = ntv2_kona_audio_source_aes;
 	nss->num_channels = 16;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
@@ -1373,6 +1375,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
@@ -1382,6 +1385,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 1;
 	nss->input_index = 1;
 	nss->num_inputs = 1;
 
@@ -1391,6 +1395,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 2;
 	nss->input_index = 2;
 	nss->num_inputs = 1;
 
@@ -1400,6 +1405,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 3;
 	nss->input_index = 3;
 	nss->num_inputs = 1;
 
@@ -1409,6 +1415,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 4;
 	nss->input_index = 4;
 	nss->num_inputs = 1;
 
@@ -1418,6 +1425,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 5;
 	nss->input_index = 5;
 	nss->num_inputs = 1;
 
@@ -1427,6 +1435,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 6;
 	nss->input_index = 6;
 	nss->num_inputs = 1;
 
@@ -1436,6 +1445,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_sdi;
 	nss->audio_source = ntv2_kona_audio_source_embedded;
 	nss->num_channels = 16;
+	nss->reg_index = 7;
 	nss->input_index = 7;
 	nss->num_inputs = 1;
 
@@ -1446,6 +1456,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_analog;
 	nss->audio_source = ntv2_kona_audio_source_analog;
 	nss->num_channels = 2;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
@@ -1456,6 +1467,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_hdmi_adv;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
@@ -1465,6 +1477,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_hdmi_aja;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
+	nss->reg_index = 0;
 	nss->input_index = 0;
 	nss->num_inputs = 1;
 
@@ -1474,6 +1487,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_hdmi_aja;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
+	nss->reg_index = 1;
 	nss->input_index = 1;
 	nss->num_inputs = 1;
 
@@ -1483,6 +1497,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_hdmi_adv;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
+	nss->reg_index = 0;
 	nss->input_index = 2;
 	nss->num_inputs = 1;
 
@@ -1492,6 +1507,7 @@ static void ntv2_features_initialize(void) {
 	nss->type = ntv2_input_type_hdmi_adv;
 	nss->audio_source = ntv2_kona_audio_source_hdmi;
 	nss->num_channels = 8;
+	nss->reg_index = 1;
 	nss->input_index = 3;
 	nss->num_inputs = 1;
 
@@ -2033,7 +2049,7 @@ static void ntv2_features_corvid44(struct ntv2_features *features)
 	features->source_config[3][4] = &asc_sdi_4;
 
 	all_video_formats(features);
-	all_yuv_pixel_formats(features);
+	all_pixel_formats(features);
 	build_v4l2_timings(features);
 }
 
@@ -2133,7 +2149,7 @@ static void ntv2_features_corvid88(struct ntv2_features *features)
 	features->source_config[7][4] = &asc_sdi_8;
 
 	all_video_formats(features);
-	all_yuv_pixel_formats(features);
+	all_pixel_formats(features);
 	build_v4l2_timings(features);
 }
 

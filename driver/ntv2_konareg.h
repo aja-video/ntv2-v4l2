@@ -666,7 +666,7 @@ NTV2_FLD(ntv2_kona_fld_sdiin6_frame_rate_b3,				1,	29);
 NTV2_FLD(ntv2_kona_fld_sdiin5_geometry_b3,					1,	30);
 NTV2_FLD(ntv2_kona_fld_sdiin6_geometry_b3,					1,	31);
 
-NTV2_REG(ntv2_kona_reg_input_status4,						458);
+NTV2_REG(ntv2_kona_reg_input_status4,						459);
 NTV2_FLD(ntv2_kona_fld_sdiin7_frame_rate_b012,				3,	0);
 NTV2_FLD(ntv2_kona_fld_sdiin7_geometry_b012,				3,	4);
 NTV2_FLD(ntv2_kona_fld_sdiin7_progressive,					1,	7);
@@ -1602,6 +1602,9 @@ u32 ntv2_audio_frame_samples(u32 frame_rate, u32 cadence);
 u32 ntv2_frame_rate_duration(u32 frame_rate);
 u32 ntv2_frame_rate_scale(u32 frame_rate);
 bool ntv2_frame_rate_drop(u32 frame_rate);
+
+u32 ntv2_timecode_rate(u32 frame_rate);
+bool ntv2_timecode_drop(u32 frame_rate);
 
 u32 ntv2_frame_geometry_width(u32 frame_geometry);
 u32 ntv2_frame_geometry_height(u32 frame_geometry);

@@ -22,6 +22,7 @@
 #include "ntv2_konareg.h"
 #include "ntv2_hdmiin.h"
 #include "ntv2_hdmiin4.h"
+#include "ntv2_register.h"
 
 #define NTV2_INPUT_LOCK_COUNT			3
 #define NTV2_INPUT_UNLOCK_COUNT			2
@@ -135,6 +136,10 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 		input_config = ntv2_features_get_input_config(features, i, 0);
 		if (input_config == NULL) continue;
 
+		if (input_config->type == ntv2_input_type_sdi) {
+			ntv2_input_set_timecode_dbb(ntv2_inp, input_config, 0);
+		}
+
 		if (input_config->type == ntv2_input_type_hdmi_adv) {
 			in0 = input_config->input_index;
 			if (in0 < NTV2_MAX_HDMI_INPUTS) {
@@ -241,6 +246,27 @@ int ntv2_input_disable(struct ntv2_input *ntv2_inp)
 	return 0;
 }
 
+int ntv2_input_set_timecode_dbb(struct ntv2_input *ntv2_inp,
+								struct ntv2_input_config *config,
+								u32 dbb)
+{
+	u32 val;
+
+	if ((ntv2_inp == NULL) ||
+		(config == NULL))
+		return -EPERM;
+
+	if (config->type != ntv2_input_type_sdi)
+		return -EINVAL;
+	
+	/* configure timecode capture */
+	val = NTV2_FLD_SET(ntv2_kona_fld_sdiin_rp188_select, dbb);
+	ntv2_reg_write(ntv2_inp->vid_reg, ntv2_kona_reg_sdiin_timecode_rp188_dbb,
+				   config->reg_index, val);
+
+	return 0;
+}
+
 int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 								struct ntv2_input_config *config,
 								struct ntv2_input_format *format)
@@ -258,6 +284,7 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 		return -EPERM;
 
 	format->type = config->type;
+	format->reg_index = config->reg_index;
 	format->input_index = config->input_index;
 	format->num_inputs = config->num_inputs;
 
@@ -373,6 +400,7 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 
 	format->type = config->type;
 	format->audio_source = config->audio_source;
+	format->reg_index = config->reg_index;
 	format->input_index = config->input_index;
 	format->num_inputs = config->num_inputs;
 	format->audio_detect = 0;

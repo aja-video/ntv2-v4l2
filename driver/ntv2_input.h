@@ -73,6 +73,10 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 int ntv2_input_enable(struct ntv2_input *ntv2_inp);
 int ntv2_input_disable(struct ntv2_input *ntv2_inp);
 
+int ntv2_input_set_timecode_dbb(struct ntv2_input *ntv2_inp,
+								struct ntv2_input_config *config,
+								u32 dbb);
+
 int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 								struct ntv2_input_config *config,
 								struct ntv2_input_format *format);

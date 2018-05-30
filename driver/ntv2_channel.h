@@ -51,6 +51,9 @@ struct ntv2_video_data {
 	u32								frame_number;
 	u32								address;
 	u32								data_size;
+	u32								timecode_low;
+	u32								timecode_high;
+	bool							timecode_present;
 };
 
 struct ntv2_audio_data {
@@ -130,7 +133,6 @@ struct ntv2_stream_ops {
 	int (*update_timing)(struct ntv2_channel_stream *stream);
 	int (*update_format)(struct ntv2_channel_stream *stream);
 	int (*update_route)(struct ntv2_channel_stream *stream);
-	int (*update_frame)(struct ntv2_channel_stream *stream);
 	int (*interrupt)(struct ntv2_channel_stream *stream);
 };
 

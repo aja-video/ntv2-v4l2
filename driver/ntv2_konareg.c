@@ -49,23 +49,23 @@ u32 ntv2_audio_frame_samples(u32 frame_rate, u32 cadence)
 	return audio_cadence_48[frame_rate][cadence%5];
 }
 
-static u32 frame_fraction[NTV2_MAX_FRAME_RATES][2] = {
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 },
-	/* ntv2_kona_frame_rate_6000 */		{    1,    60 },
-	/* ntv2_kona_frame_rate_5994 */		{ 1001, 60000 },
-	/* ntv2_kona_frame_rate_3000 */		{    1,    30 },
-	/* ntv2_kona_frame_rate_2997 */		{ 1001, 30000 },
-	/* ntv2_kona_frame_rate_2500 */		{    1,    25 },
-	/* ntv2_kona_frame_rate_2400 */		{    1,    24 },
-	/* ntv2_kona_frame_rate_2398 */		{ 1001, 24000 },
-	/* ntv2_kona_frame_rate_5000 */		{    1,    50 },
-	/* ntv2_kona_frame_rate_4800 */		{    1,    48 },
-	/* ntv2_kona_frame_rate_4795 */		{ 1001, 48000 },
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 },
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 },
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 },
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 },
-	/* ntv2_kona_frame_rate_unknown */	{    1,     1 }
+static u32 frame_fraction[NTV2_MAX_FRAME_RATES][4] = {
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 },
+	/* ntv2_kona_frame_rate_6000 */		{    1,    60,    30,     0 },
+	/* ntv2_kona_frame_rate_5994 */		{ 1001, 60000,    30,     1 },
+	/* ntv2_kona_frame_rate_3000 */		{    1,    30,    30,     0 },
+	/* ntv2_kona_frame_rate_2997 */		{ 1001, 30000,    30,     1 },
+	/* ntv2_kona_frame_rate_2500 */		{    1,    25,    25,     0 },
+	/* ntv2_kona_frame_rate_2400 */		{    1,    24,    24,     0 },
+	/* ntv2_kona_frame_rate_2398 */		{ 1001, 24000,    24,     0 },
+	/* ntv2_kona_frame_rate_5000 */		{    1,    50,    25,     0 },
+	/* ntv2_kona_frame_rate_4800 */		{    1,    48,    24,     0 },
+	/* ntv2_kona_frame_rate_4795 */		{ 1001, 48000,    24,     0 },
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 },
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 },
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 },
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 },
+	/* ntv2_kona_frame_rate_unknown */	{    1,     1,     1,     0 }
 };
 
 u32 ntv2_frame_rate_duration(u32 frame_rate)
@@ -90,6 +90,22 @@ bool ntv2_frame_rate_drop(u32 frame_rate)
 		return 1;
 
 	return (frame_fraction[frame_rate][0] != 1);
+}
+
+u32 ntv2_timecode_rate(u32 frame_rate)
+{
+	if (frame_rate >= NTV2_MAX_FRAME_RATES)
+		return 1;
+
+	return frame_fraction[frame_rate][2];
+}
+
+bool ntv2_timecode_drop(u32 frame_rate)
+{
+	if (frame_rate >= NTV2_MAX_FRAME_RATES)
+		return 1;
+
+	return (frame_fraction[frame_rate][3] == 1);
 }
 
 static u32 frame_geometry_dimension[NTV2_MAX_FRAME_GEOMETRIES][2] = {

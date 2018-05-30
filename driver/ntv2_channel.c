@@ -109,7 +109,6 @@ int ntv2_channel_configure(struct ntv2_channel *ntv2_chn,
 	stream->ops.update_timing = ntv2_videoops_update_timing;
 	stream->ops.update_format = ntv2_videoops_update_format;
 	stream->ops.update_route = ntv2_videoops_update_route;
-	stream->ops.update_frame = ntv2_videoops_update_frame;
 	stream->ops.interrupt = ntv2_videoops_interrupt_capture;
 	stream->video.video_format = *ntv2_features_get_default_video_format(features, ntv2_chn->index);
 	stream->video.pixel_format = *ntv2_features_get_default_pixel_format(features, ntv2_chn->index);
@@ -691,6 +690,5 @@ static void ntv2_streamops_initialize(struct ntv2_stream_ops *ops)
 	ops->update_timing = ntv2_streamops_nop;
 	ops->update_format = ntv2_streamops_nop;
 	ops->update_route = ntv2_streamops_nop;
-	ops->update_frame = ntv2_streamops_nop;
 	ops->interrupt = ntv2_streamops_nop;
 }
