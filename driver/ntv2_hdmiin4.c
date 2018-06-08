@@ -192,7 +192,7 @@ static struct ntv2_hdmi_clock_data c_hdmi_clock_data[] = {
 
 static const u32 c_default_timeout		= 250;
 static const u32 c_redriver_time		= 10;
-static const u32 c_plug_time			= 10;
+static const u32 c_plug_time			= 250;
 static const u32 c_lock_wait_max		= 2;
 static const u32 c_unlock_wait_max		= 4;
 static const u32 c_plug_wait_max		= 32;
@@ -517,6 +517,9 @@ static void ntv2_hdmiin4_initialize(struct ntv2_hdmiin4 *ntv2_hin)
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_hdmiin4_redrivercontrol_power);
 	ntv2_reg_rmw(vid_reg, ntv2_kona_reg_hdmiin4_redrivercontrol, ntv2_hin->index, value, mask);
 
+	/* hot plug */
+	hot_plug(ntv2_hin);
+	
 	return;
 }
 

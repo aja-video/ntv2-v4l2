@@ -390,7 +390,7 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	/* reset the hdmi input chip */
 	ntv2_konai2c_set_device(i2c_reg, device_io_bank);
 	ntv2_konai2c_write(i2c_reg, 0xff, 0x80);
-	usleep_range(10000, 10000);
+	usleep_range(50000, 50000);
 
 	/* configure hdmi input chip default state */
 	res = ntv2_hdmiin_write_multi(ntv2_hin, device_io_bank, init_io0, init_io0_size);
@@ -440,7 +440,10 @@ static int ntv2_hdmiin_initialize(struct ntv2_hdmiin *ntv2_hin)
 	if (res < 0)
 		goto bad_write;
 	ntv2_hin->i2c_hpa_default = 0x04;  // must match init settings
-	
+
+	/* hot plug */
+	ntv2_hdmiin_hot_plug(ntv2_hin);
+
 	return 0;
 
 bad_write:
