@@ -55,7 +55,10 @@
 #include <sound/pcm.h>
 #include <sound/control.h>
 
-/* build pararameters (approximate ubuntu kernel versions) */
+/*
+   build pararameters for approximate ubuntu kernel versions 
+*/
+
 /* 3.10.0 does build */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,15,0))
 #define NTV2_USE_VB2_VOID_FINISH			/* 3.15.0 required */
@@ -86,7 +89,13 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
 #define NTV2_USE_TIMER_SETUP				/* 4.15.0 required */
 #endif
-/* 4.14.0 does build */
+/* 4.15.0 does build */
+
+/*
+   build pararameter for Centos 7 or any system with a pre 3.16 
+   kernel that crashes on driver load
+*/
+//#define NTV2_USE_SND_CARD_NEW
 
 #ifdef NTV2_USE_VB2_V4L2_BUFFER
 #include <media/videobuf2-v4l2.h>

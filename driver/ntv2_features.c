@@ -28,6 +28,7 @@ static void ntv2_features_corvid88(struct ntv2_features *features);
 static void ntv2_features_kona4(struct ntv2_features *features);
 static void ntv2_features_corvidhbr(struct ntv2_features *features);
 static void ntv2_features_konahdmi(struct ntv2_features *features);
+static void ntv2_features_kona1(struct ntv2_features *features);
 
 
 struct ntv2_features *ntv2_features_open(struct ntv2_object *ntv2_obj,
@@ -80,6 +81,7 @@ int ntv2_features_configure(struct ntv2_features *features, u32 id)
 	case NTV2_DEVICE_ID_KONA4:		ntv2_features_kona4(features);			break;
 	case NTV2_DEVICE_ID_CORVIDHBR:	ntv2_features_corvidhbr(features);		break;
 	case NTV2_DEVICE_ID_KONAHDMI:	ntv2_features_konahdmi(features);		break;
+	case NTV2_DEVICE_ID_KONA1:		ntv2_features_kona1(features);			break;
 	default:
 		return -ENODEV;
 	}
@@ -2328,6 +2330,47 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->hdmi_edid[3] = ntv2_edid_type_konahdmi_13;
 
 	all_video_formats(features);
+	all_pixel_formats(features);
+	build_v4l2_timings(features);
+}
+
+static void ntv2_features_kona1(struct ntv2_features *features) 
+{
+	features->device_name = "Kona1";
+	features->pcm_name = "Kona1 PCM";
+	features->num_video_channels = 1;
+	features->num_audio_channels = 1;
+	features->num_csc_channels = 1;
+	features->num_sdi_inputs = 1;
+	features->num_reference_inputs = 1;
+	features->frame_buffer_size = 0x40000000;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
+
+	features->video_config[0] = &nvc_capture;
+	features->audio_config[0] = &nac_capture;
+	features->input_config[0][0] = &nic_sdi_single_1;
+	features->csc_config[0][0] = &nwc_csc_1_1;
+	features->source_config[0][0] = &asc_sdi_1;
+
+	features->video_formats[0] = &nvf_525i5994;
+	features->video_formats[1] = &nvf_625i5000;
+	features->video_formats[2] = &nvf_720p5000;
+	features->video_formats[3] = &nvf_720p5994;
+	features->video_formats[4] = &nvf_720p6000;
+	features->video_formats[5] = &nvf_1080p2398;
+	features->video_formats[6] = &nvf_1080p2400;
+	features->video_formats[7] = &nvf_1080p2500;
+	features->video_formats[8] = &nvf_1080p2997;
+	features->video_formats[9] = &nvf_1080p3000;
+	features->video_formats[10] = &nvf_1080p5000;
+	features->video_formats[11] = &nvf_1080p5994;
+	features->video_formats[12] = &nvf_1080p6000;
+	features->video_formats[13] = &nvf_1080i5000;
+	features->video_formats[14] = &nvf_1080i5994;
+	features->video_formats[15] = &nvf_1080i6000;
+
 	all_pixel_formats(features);
 	build_v4l2_timings(features);
 }

@@ -193,6 +193,12 @@ static const struct pci_device_id ntv2_pci_tbl[] = {
 	   0, 0,
 	   0
 	},
+	{
+	   NTV2_PCI_VENID, NTV2_PCI_DEVID_KONA1,
+	   PCI_ANY_ID, PCI_ANY_ID,
+	   0, 0,
+	   0
+	},
 	{ 0, 0, 0, 0, 0, 0, 0 }
 };
 MODULE_DEVICE_TABLE(pci, ntv2_pci_tbl);

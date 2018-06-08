@@ -6,23 +6,26 @@ This repository contains the AJA NTV2 V4L2/ALSA driver.
 
 ## Version (tag)
 
-	v1.0.0		initial release - video/audio capture
-	v1.1.0		add serial port for rovocam
-	v1.2.0		add audio mixer
-	v1.2.1		support kernels to 4.6
-	v1.2.2		support kernels to 4.14
+    v1.0.0    initial release - video/audio capture
+    v1.1.0    add serial port for rovocam
+    v1.2.0    add audio mixer
+    v1.2.1    support kernels to 4.6
+    v1.2.2    support kernels to 4.14
+    v2.0.0    support Kona HDMI and Kona 1
+	          UHD/4K SDI two sample interleave input
+              SDI embedded LTC timecode
 
 ## Requirements
 
-Builds in 3.10.0 <= linux (64 bit) <= 4.14.0 (approximately)
-
-The driver has been tested on Ubuntu 14 and Centos 7.
+Builds in 3.10.0 <= linux (64 bit) <= 4.15.0 (approximately)
 
 AJA Video IO board support:
 - Kona 4
 - Corvid 44
 - Corvid 88
 - Corvid HB-R
+- Kona HDMI
+- Kona 1
 
 ## Building the Driver
 
@@ -31,6 +34,15 @@ the driver.  If there are build errors they may be due to v4l2 interface
 changes.  To manage this there are several kernel version #ifdef(s)
 in ntv2_common.h.  The kernel versions are approximate; you may need
 to adjust them for your kernel.
+
+The driver has been tested on several Ubuntu versions and Centos 7.  Recent
+updates of Centos 7 require that NTV2_USE_SND_CARD_NEW to be defined in
+ntv2_common.h.  Uncomment (remove //) this line near the end of the file:
+
+//#define NTV2_USE_SND_CARD_NEW
+
+If any system with a pre 3.16 kernel crashes when the driver loads this
+may be the solution.
 
 ## Loading the Driver
 
@@ -41,12 +53,12 @@ that has opened the driver including the system audio mixer (pulseaudio).
 
 ## Running Some Tests
 
-	qv4l2		/* simple v4l2 capture */
-	cheese		/* can do frame grabs */
-	audacity	/* capture audio */
+    qv4l2       /* simple v4l2 capture */
+    cheese      /* can do frame grabs */
+    audacity    /* capture audio */
 
-	vlc alsa:// --input-slave v4l2://	/* capture video and audio */
-	ffplay -f v4l2 -i /dev/video0		/* capture video */
+    vlc alsa:// --input-slave v4l2://   /* capture video and audio */
+    ffplay -f v4l2 -i /dev/video0       /* capture video */
 
 ## License
 

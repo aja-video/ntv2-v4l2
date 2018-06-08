@@ -517,6 +517,7 @@ static int ntv2_device_pci_configure(struct ntv2_device *ntv2_dev, struct pci_de
 	case NTV2_PCI_DEVID_CORVID88:
 	case NTV2_PCI_DEVID_CORVID44:
 	case NTV2_PCI_DEVID_CORVIDHBR:
+	case NTV2_PCI_DEVID_KONA1:
 		pci_type = ntv2_pci_type_nwl;
 		pci_region = true;
 		vid_region = true;
