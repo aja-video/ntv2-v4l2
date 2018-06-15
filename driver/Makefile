@@ -10,7 +10,6 @@ CPU_ARCH		?= $(shell uname -m)
 LINUX_DISTRO	?= GENERIC
 DRIVERDIR		?= $(PWD)
 KDIR			?= /lib/modules/$(shell uname -r)/build
-BINDIR			= .
 CC				= gcc
 DRIVERNAME		= ntv2video
 
@@ -135,9 +134,9 @@ unload:
 
 .PHONY: clean
 clean:
-	rm -f $(BINDIR)/*.ko *.ko *.o .*o.cmd *.o.ur-safe *.mod.c *~ errors.txt semantic.cache
+	rm -f *.ko *.o .*o.cmd *.o.ur-safe *.mod.c *~ errors.txt semantic.cache
 	rm -rf .tmp_versions
-	rm -f *.markers *.symvers *.order
+	rm -f *.markers *.symvers *.order .cache.mk
 
 .PHONY: cleandeps
 cleandeps: clean

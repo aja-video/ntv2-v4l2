@@ -534,6 +534,9 @@ static struct ntv2_reg_value init_hdmi6[] =
 						/* 11 Raw SPDIF (IEC60958) mode */
 						/* I2SBITWIDTH[4:0], Address 0x03[4:0] */
 						/* 11000 24 bits */
+    { 0x14, 0x31 },		/* Audio mute triggers: turn off MT_MSK_PARITY_ERROR and also */
+    { 0x15, 0xff },		/* turn off bits 7,6,3,2 in r14 which are undocumented */
+    { 0x16, 0xff },		/* but must be 1 per defaults; this fixes iOS audio input. */
 	{ 0x6c, 0x01 },		/* HPA_MANUAL, Address 0x6C[0] */
 						/* Manual control enable for the HPA output pins */
 						/* Manual control is determined by the HPA_MAN_VALUE_A */
