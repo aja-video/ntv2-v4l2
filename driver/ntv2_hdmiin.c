@@ -734,7 +734,6 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		ntv2_hin->relock_reports |= NTV2_REPORT_INFO;
 		goto bad_lock;
 	}
-	ntv2_hin->lock_error_count = 0;
 
 	/* update timing values */
 	if (ntv2_hin->relock_reports & NTV2_REPORT_TIMING) {
@@ -776,6 +775,7 @@ int ntv2_hdmiin_periodic_update(struct ntv2_hdmiin *ntv2_hin)
 		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
 		goto bad_lock;
 	}
+	ntv2_hin->lock_error_count = 0;
 
 	/* switch modes for uhd */
 	if ((ntv2_hin->v_total_lines0 > 1125) &&
@@ -936,7 +936,7 @@ bad_lock:
 	ntv2_hdmiin_set_no_video(ntv2_hin);
 
 	ntv2_hin->lock_error_count++;
-	if (ntv2_hin->lock_error_count > 10) {
+	if (ntv2_hin->lock_error_count > 32) {
 		ntv2_hin->relock_reports = NTV2_REPORT_ANY;
 		ntv2_hdmiin_hot_plug(ntv2_hin);
 
