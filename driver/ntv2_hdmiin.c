@@ -1499,7 +1499,7 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 										 
 		h_active = ntv2_hdmiin_pixel_double(ntv2_hin, ntv2_hin->h_active_pixels);
 
-		if (format->video_standard == ntv2_video_standard_525i)
+		if (format->video_standard == ntv2_kona_video_standard_525i)
 		{
 			v_sync_offset_lines0 = 1;
 			v_sync_offset_lines1 = 2;
