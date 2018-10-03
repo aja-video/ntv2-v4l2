@@ -1444,6 +1444,10 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 	u32 vertical_data_fld2;
 	u32 input_status;
 	u32 input_mask;
+	u32 v_sync_offset_lines0 = 0;
+	u32 v_sync_offset_lines1 = 0;
+	u32 v_active_offset_lines0 = 0;
+	u32 v_active_offset_lines1 = 0;
 
 	/* good format ??? */
 	if ((hdmiin_standard == ntv2_kona_hdmiin_video_standard_none) ||
@@ -1495,25 +1499,37 @@ static int ntv2_hdmiin_set_video_format(struct ntv2_hdmiin *ntv2_hin,
 										 
 		h_active = ntv2_hdmiin_pixel_double(ntv2_hin, ntv2_hin->h_active_pixels);
 
+		if (format->video_standard == ntv2_video_standard_525i)
+		{
+			v_sync_offset_lines0 = 1;
+			v_sync_offset_lines1 = 2;
+			v_active_offset_lines0 = 3;
+			v_active_offset_lines1 = 3;
+		}
+
 		v_sync_bp_fld1 = ntv2_hdmiin_pixel_double(ntv2_hin,
 												  ntv2_hin->h_total_pixels *
-												  (ntv2_hin->v_sync_lines0 +
+												  (ntv2_hin->v_sync_lines0 - 
+												   v_sync_offset_lines0 +
 												   ntv2_hin->v_back_porch_lines0) -
 												  ntv2_hin->h_front_porch_pixels);
 
 		v_sync_bp_fld2 = ntv2_hdmiin_pixel_double(ntv2_hin,
 												  ntv2_hin->h_total_pixels *
-												  (ntv2_hin->v_sync_lines1 +
+												  (ntv2_hin->v_sync_lines1 -
+												   v_sync_offset_lines1 +
 												   ntv2_hin->v_back_porch_lines1) -
 												  ntv2_hin->h_front_porch_pixels +
 												  ntv2_hin->h_total_pixels/2);
 
 		v_active_fld1 = ntv2_hdmiin_pixel_double(ntv2_hin,
-												 ntv2_hin->v_active_lines0 *
+												 (ntv2_hin->v_active_lines0 +
+												  v_active_offset_lines0) *
 												 ntv2_hin->h_total_pixels);
 
 		v_active_fld2 = ntv2_hdmiin_pixel_double(ntv2_hin,
-												 ntv2_hin->v_active_lines1 *
+												 (ntv2_hin->v_active_lines1 +
+												  v_active_offset_lines1) *
 												 ntv2_hin->h_total_pixels);
 	}										
 
