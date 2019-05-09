@@ -305,6 +305,49 @@ static int ntv2_querystd(struct file *file, void *fh, v4l2_std_id *std)
 	/* if there is no signal, then *std = 0 */
 }
 
+#ifdef NTV2_USE_PIXEL_ASPECT
+static int ntv2_pixelaspect(struct file *file,
+							void *priv,
+							int type,
+							struct v4l2_fract *f)
+{
+	struct ntv2_video *ntv2_vid = video_drvdata(file);
+	u32 standard = ntv2_vid->input_format.video_standard;
+	u32 flags = ntv2_vid->input_format.frame_flags;
+
+	if (type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
+		return -EINVAL;
+
+	/* aspect ratio x/y x:y doc says y/x but confuses vlc */
+	if (standard == ntv2_kona_video_standard_525i) {
+		if ((flags & ntv2_kona_frame_16x9) != 0) {
+			f->numerator = 40;
+			f->denominator = 33;
+		} else {
+			f->numerator = 10;
+			f->denominator = 11;
+		}
+	} else if (standard == ntv2_kona_video_standard_625i) {
+		if ((flags & ntv2_kona_frame_16x9) != 0) {
+			f->numerator = 118;
+			f->denominator = 81;
+		} else {
+			f->numerator = 59;
+			f->denominator = 54;
+		}
+	} else {
+		f->numerator = 1;
+		f->denominator = 1;
+	}
+
+	NTV2_MSG_VIDEO_STATE("%s: pixelaspect pixel aspect %d:%d\n",
+						 ntv2_vid->name,
+						 f->numerator,
+						 f->denominator);
+
+	return 0;
+}
+#else
 static int ntv2_cropcap(struct file *file,
 						void *fh,
 						struct v4l2_cropcap *cap)
@@ -354,6 +397,7 @@ static int ntv2_cropcap(struct file *file,
 
 	return 0;
 }
+#endif
 
 static int ntv2_s_dv_timings(struct file *file,
 							 void *fh,
@@ -794,8 +838,11 @@ static const struct v4l2_ioctl_ops ntv2_ioctl_ops = {
 	.vidioc_s_std = ntv2_s_std,
 	.vidioc_querystd = ntv2_querystd,
 
+#ifdef NTV2_USE_PIXEL_ASPECT
+	.vidioc_g_pixelaspect = ntv2_pixelaspect,
+#else	
 	.vidioc_cropcap = ntv2_cropcap,
-
+#endif
 	.vidioc_s_dv_timings = ntv2_s_dv_timings,
 	.vidioc_g_dv_timings = ntv2_g_dv_timings,
 	.vidioc_enum_dv_timings = ntv2_enum_dv_timings,

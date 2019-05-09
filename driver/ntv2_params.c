@@ -89,10 +89,17 @@ struct ntv2_module *ntv2_module_info(void)
 
 s64 ntv2_system_time(void)
 {
+#ifdef NTV2_USE_KTIME
+	struct timespec64 ts64;
+	ktime_get_real_ts64(&ts64);
+
+	return ((s64)ts64.tv_sec * 1000000) + (ts64.tv_nsec / 1000);
+#else	
 	struct timeval tv;
 	do_gettimeofday(&tv);
 
 	return ((s64)tv.tv_sec * 1000000 + tv.tv_usec);
+#endif	
 }
 
 int ntv2_wait(int *event, int state, int timeout)

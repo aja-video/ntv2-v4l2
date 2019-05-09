@@ -89,7 +89,11 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,15,0))
 #define NTV2_USE_TIMER_SETUP				/* 4.15.0 required */
 #endif
-/* 4.15.0 does build */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,0,0))
+#define NTV2_USE_KTIME						/* 5.0.0 required */
+#define NTV2_USE_PIXEL_ASPECT				/* 5.0.0 required */
+#endif
+/* 5.0.0 does build */
 
 /*
    build pararameter for Centos 7 or any system with a pre 3.16 
