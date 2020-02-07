@@ -97,7 +97,8 @@ load: mod var nod
 mod:
 	@if [ $$USER != 'root' ]; then echo "Load requires elevated privileges (try again with sudo?)" && exit 127;fi
 	/sbin/modprobe v4l2-common
-	/sbin/modprobe videobuf2-core
+	find /lib/modules/$(shell uname -r) -name videobuf2-core.ko -exec /sbin/modprobe videobuf2-core \;
+	find /lib/modules/$(shell uname -r) -name videobuf2-common.ko -exec /sbin/modprobe videobuf2-common \;
 	/sbin/modprobe videobuf2-vmalloc
 	find /lib/modules/$(shell uname -r) -name videobuf2-v4l2.ko -exec /sbin/modprobe videobuf2-v4l2 \;
 	/sbin/rmmod ntv2video.ko && /sbin/insmod ntv2video.ko || /sbin/insmod ntv2video.ko
