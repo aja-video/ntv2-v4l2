@@ -2166,6 +2166,7 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->num_csc_channels = 4;
 	features->num_sdi_inputs = 4;
 	features->num_reference_inputs = 1;
+	features->num_aes_inputs = 1;
 	features->frame_buffer_size = 0x37800000;
 	features->req_line_interleave_channels = 2;
 	features->req_sample_interleave_channels = 2;
@@ -2199,21 +2200,25 @@ static void ntv2_features_kona4(struct ntv2_features *features)
 	features->source_config[0][2] = &asc_sdi_2;
 	features->source_config[0][3] = &asc_sdi_3;
 	features->source_config[0][4] = &asc_sdi_4;
+	features->source_config[0][5] = &asc_aes;
 	features->source_config[1][0] = &asc_auto;
 	features->source_config[1][1] = &asc_sdi_1;
 	features->source_config[1][2] = &asc_sdi_2;
 	features->source_config[1][3] = &asc_sdi_3;
 	features->source_config[1][4] = &asc_sdi_4;
+	features->source_config[1][5] = &asc_aes;
 	features->source_config[2][0] = &asc_auto;
 	features->source_config[2][1] = &asc_sdi_1;
 	features->source_config[2][2] = &asc_sdi_2;
 	features->source_config[2][3] = &asc_sdi_3;
 	features->source_config[2][4] = &asc_sdi_4;
+	features->source_config[2][5] = &asc_aes;
 	features->source_config[3][0] = &asc_auto;
 	features->source_config[3][1] = &asc_sdi_1;
 	features->source_config[3][2] = &asc_sdi_2;
 	features->source_config[3][3] = &asc_sdi_3;
 	features->source_config[3][4] = &asc_sdi_4;
+	features->source_config[3][5] = &asc_aes;
 
 	all_video_formats(features);
 	all_pixel_formats(features);
