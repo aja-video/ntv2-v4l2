@@ -93,6 +93,9 @@
 #define NTV2_USE_KTIME						/* 5.0.0 required */
 #define NTV2_USE_PIXEL_ASPECT				/* 5.0.0 required */
 #endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,4,0))
+#define NTV2_VIDEO_DEVICE_CAPABILITES			/* 5.4.0 required */
+#endif
 /* 5.0.0 does build */
 
 /*

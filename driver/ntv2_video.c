@@ -182,7 +182,11 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 #endif
 	/* null release function for now */
 	video_dev->release = video_device_release_empty;
-
+#ifdef NTV2_VIDEO_DEVICE_CAPABILITES	
+	video_dev->device_caps = V4L2_CAP_VIDEO_CAPTURE |
+		V4L2_CAP_READWRITE |
+		V4L2_CAP_STREAMING;
+#endif
 	/* assign queue and v4l2 device */
 	video_dev->queue = &ntv2_vid->vb2_queue;
 	video_dev->v4l2_dev = &ntv2_vid->v4l2_dev;

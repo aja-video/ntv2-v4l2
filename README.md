@@ -15,6 +15,7 @@ This repository contains the AJA NTV2 V4L2/ALSA driver.
 	          UHD/4K SDI two sample interleave input
               SDI embedded LTC timecode
     v2.0.1    support kernels to 5.1
+	v2.0.2    support kernels to 5.4
 	
 ## Requirements
 
