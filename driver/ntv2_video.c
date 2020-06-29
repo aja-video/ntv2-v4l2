@@ -203,7 +203,11 @@ int ntv2_video_configure(struct ntv2_video *ntv2_vid,
 						ntv2_vid->name, video_dev->name);
 
 	/* register the video device */
+#ifdef NTV2_USE_VFL_TYPE_VIDEO
+	result = video_register_device(video_dev, VFL_TYPE_VIDEO, -1);
+#else	
 	result = video_register_device(video_dev, VFL_TYPE_GRABBER, -1);
+#endif	
 	if (result) {
 		NTV2_MSG_VIDEO_ERROR("%s: *error* register_video_device() failed code %d\n",
 							 ntv2_vid->name, result);

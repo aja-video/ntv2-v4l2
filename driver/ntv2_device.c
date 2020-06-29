@@ -576,10 +576,15 @@ static int ntv2_device_pci_configure(struct ntv2_device *ntv2_dev, struct pci_de
 
 	/* map video bar */
 	if (vid_region) {
+#ifdef NTV2_USE_IOREMAP
+		ntv2_dev->vid_base = ioremap(pci_resource_start(pdev, vid_bar),
+									 pci_resource_len(pdev, vid_bar));
+#else	
 		ntv2_dev->vid_base = ioremap_nocache(pci_resource_start(pdev, vid_bar),
 											 pci_resource_len(pdev, vid_bar));
+#endif		
 		if (ntv2_dev->vid_base == 0) {
-			NTV2_MSG_ERROR("%s: *error* video ioremap_nocache failed\n", ntv2_dev->name);
+			NTV2_MSG_ERROR("%s: *error* video ioremap failed\n", ntv2_dev->name);
 			return -ENOMEM;
 		}
 		ntv2_dev->vid_size = pci_resource_len(pdev, vid_bar);
@@ -594,10 +599,15 @@ static int ntv2_device_pci_configure(struct ntv2_device *ntv2_dev, struct pci_de
 	
 	/* map dma bar */
 	if (pci_region) {
+#ifdef NTV2_USE_IOREMAP
+		ntv2_dev->pci_base = ioremap(pci_resource_start(pdev, pci_bar),
+									 pci_resource_len(pdev, pci_bar));
+#else
 		ntv2_dev->pci_base = ioremap_nocache(pci_resource_start(pdev, pci_bar),
 											 pci_resource_len(pdev, pci_bar));
+#endif		
 		if (ntv2_dev->pci_base == 0) {
-			NTV2_MSG_ERROR("%s: *error* %s ioremap_nocache failed\n", ntv2_dev->name, ntv2_pci_name(pci_type));
+			NTV2_MSG_ERROR("%s: *error* %s ioremap failed\n", ntv2_dev->name, ntv2_pci_name(pci_type));
 			return -ENOMEM;
 		}
 		ntv2_dev->pci_size = (u32)pci_resource_len(pdev, pci_bar);
