@@ -12,15 +12,15 @@ This repository contains the AJA NTV2 V4L2/ALSA driver.
     v1.2.1    support kernels to 4.6
     v1.2.2    support kernels to 4.14
     v2.0.0    support Kona HDMI and Kona 1
-	          UHD/4K SDI two sample interleave input
+              UHD/4K SDI two sample interleave input
               SDI embedded LTC timecode
     v2.0.1    support kernels to 5.1
-	v2.0.2    support kernels to 5.4
-	v2.0.3	  support kernels to 5.6
+    v2.0.2    support kernels to 5.4
+    v2.0.3    support kernels to 5.6
 	
 ## Requirements
 
-Builds in 3.10.0 <= linux (64 bit) <= 5.1.0 (approximately)
+Builds in 3.10.0 <= linux (64 bit) <= 5.6.0 (approximately)
 
 AJA Video IO board support:
 - Kona 4
