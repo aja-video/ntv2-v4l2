@@ -101,6 +101,8 @@ mod:
 	find /lib/modules/$(shell uname -r) -name videobuf2-common.ko -exec /sbin/modprobe videobuf2-common \;
 	find /lib/modules/$(shell uname -r) -name videobuf2-vmalloc.ko -exec /sbin/modprobe videobuf2-vmalloc \;
 	find /lib/modules/$(shell uname -r) -name videobuf2-v4l2.ko -exec /sbin/modprobe videobuf2-v4l2 \;
+	find /lib/modules/$(shell uname -r) -name snd.ko -exec /sbin/modprobe snd \;
+	find /lib/modules/$(shell uname -r) -name snd-pcm.ko -exec /sbin/modprobe snd-pcm \;
 	/sbin/rmmod ntv2video.ko && /sbin/insmod ntv2video.ko || /sbin/insmod ntv2video.ko
 
 # find ntv2dev major number

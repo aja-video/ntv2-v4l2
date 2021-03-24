@@ -125,7 +125,11 @@ static void ntv2_shutdown(struct pci_dev *pdev)
 	NTV2_MSG_INFO("%s: shutdown\n", ntv2_dev->name);
 }
 
+#ifdef NTV2_USE_PCI_CHANNEL_STATE_T
+static pci_ers_result_t ntv2_pci_error_detected(struct pci_dev *pdev, pci_channel_state_t state)
+#else
 static pci_ers_result_t ntv2_pci_error_detected(struct pci_dev *pdev, enum pci_channel_state state)
+#endif	
 {
 	struct ntv2_device *ntv2_dev = dev_get_drvdata(&pdev->dev);
 
