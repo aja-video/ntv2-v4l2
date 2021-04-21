@@ -28,6 +28,7 @@ static void ntv2_features_corvid88(struct ntv2_features *features);
 static void ntv2_features_kona4(struct ntv2_features *features);
 static void ntv2_features_corvidhbr(struct ntv2_features *features);
 static void ntv2_features_konahdmi(struct ntv2_features *features);
+static void ntv2_features_konahdmi2rx(struct ntv2_features *features);
 static void ntv2_features_kona1(struct ntv2_features *features);
 
 
@@ -81,6 +82,7 @@ int ntv2_features_configure(struct ntv2_features *features, u32 id)
 	case NTV2_DEVICE_ID_KONA4:		ntv2_features_kona4(features);			break;
 	case NTV2_DEVICE_ID_CORVIDHBR:	ntv2_features_corvidhbr(features);		break;
 	case NTV2_DEVICE_ID_KONAHDMI:	ntv2_features_konahdmi(features);		break;
+	case NTV2_DEVICE_ID_KONAHDMI2RX:ntv2_features_konahdmi2rx(features);	break;
 	case NTV2_DEVICE_ID_KONA1:		ntv2_features_kona1(features);			break;
 	default:
 		return -ENODEV;
@@ -2333,6 +2335,63 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	features->hdmi_edid[1] = ntv2_edid_type_konahdmi_20;
 	features->hdmi_edid[2] = ntv2_edid_type_konahdmi_13;
 	features->hdmi_edid[3] = ntv2_edid_type_konahdmi_13;
+
+	all_video_formats(features);
+	all_pixel_formats(features);
+	build_v4l2_timings(features);
+}
+
+static void ntv2_features_konahdmi2rx(struct ntv2_features *features) 
+{
+	int i;
+
+	features->device_name = "Kona HDMI 2RX";
+	features->pcm_name = "Kona HDMI 2RX PCM";
+	features->num_video_channels = 2;
+	features->num_audio_channels = 2;
+	features->num_csc_channels = 8;
+	features->num_hdmi_inputs = 2;
+	features->frame_buffer_size = 0x80000000;
+	features->req_line_interleave_channels = 2;
+	features->req_sample_interleave_channels = 2;
+	features->req_square_division_channels = 4;
+
+	for (i = 0; i < features->num_video_channels; i++) {
+		features->video_config[i] = &nvc_capture;
+	}
+	for (i = 0; i < features->num_audio_channels; i++) {
+		features->audio_config[i] = &nac_capture;
+	}
+
+	features->input_config[0][0] = &nic_hdmi_aja_20_1;
+	features->input_config[1][0] = &nic_hdmi_aja_13_2;
+	features->input_config[2][0] = &nic_hdmi_adv_13_3;
+	features->input_config[2][1] = &nic_hdmi_aja_20_2;
+	features->input_config[3][0] = &nic_hdmi_adv_13_4;
+	features->input_config[3][1] = &nic_hdmi_adv_13_3;
+
+	features->csc_config[0][0] = &nwc_csc_1_1;
+	features->csc_config[0][1] = &nwc_csc_1_4;
+	features->csc_config[1][0] = &nwc_csc_2_1;
+	features->csc_config[2][0] = &nwc_csc_5_1;
+	features->csc_config[2][1] = &nwc_csc_5_4;
+	features->csc_config[3][0] = &nwc_csc_6_1;
+
+	features->source_config[0][0] = &asc_auto;
+	features->source_config[0][1] = &asc_hdmi_aja_1;
+	features->source_config[1][0] = &asc_auto;
+	features->source_config[1][1] = &asc_hdmi_aja_2;
+	features->source_config[2][0] = &asc_auto;
+	features->source_config[2][1] = &asc_hdmi_adv_3;
+	features->source_config[2][2] = &asc_hdmi_aja_2;
+	features->source_config[3][0] = &asc_auto;
+	features->source_config[3][1] = &asc_hdmi_adv_4;
+	features->source_config[3][2] = &asc_hdmi_adv_3;
+
+	features->hdmi_edid[0] = ntv2_edid_type_konahdmi_20;
+	features->hdmi_edid[1] = ntv2_edid_type_konahdmi_20;
+	/*features->hdmi_edid[2] = ntv2_edid_type_konahdmi_13;*/
+	/*features->hdmi_edid[3] = ntv2_edid_type_konahdmi_13;*/
 
 	all_video_formats(features);
 	all_pixel_formats(features);

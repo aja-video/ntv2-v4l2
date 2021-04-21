@@ -1,4 +1,4 @@
-/*
+﻿/*
  * AJA NTV2 video for linux driver
  *
  * Copyright 2016 AJA Video Systems Inc. All rights reserved.
