@@ -240,7 +240,8 @@ int ntv2_audioops_interrupt_capture(struct ntv2_channel_stream *stream)
 	/* for sdi and hdmi inputs use the generated embedded audio clock */
 	if ((video_stream->video.input_format.type == ntv2_input_type_sdi) ||
 		(video_stream->video.input_format.type == ntv2_input_type_hdmi_adv) ||
-		(video_stream->video.input_format.type == ntv2_input_type_hdmi_aja))
+		(video_stream->video.input_format.type == ntv2_input_type_hdmi_aja) ||
+		(video_stream->video.input_format.type == ntv2_input_type_hdmi4k_aja))
 		embedded_clock = true;
 
 	/* if there are no reference inputs use the input interrupt */

@@ -566,6 +566,7 @@ NTV2_FLD(ntv2_kona_fld_linkb_p60_mode_ch2,					1,	15);
 NTV2_FLD(ntv2_kona_fld_global_led,							4,	16);
 NTV2_FLD(ntv2_kona_fld_global_reg_sync,						2,	20);
 NTV2_FLD(ntv2_kona_fld_global_frame_rate_b3,			   	1,	22);
+NTV2_FLD(ntv2_kona_fld_global_quad_tsi_enable,				1,  24);
 NTV2_FLD(ntv2_kona_fld_sdiout1_rp188_enable,				1,	28);
 NTV2_FLD(ntv2_kona_fld_sdiout2_rp188_enable,				1,	29);
 

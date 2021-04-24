@@ -190,6 +190,17 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 		}
 	}
 
+	NTV2_MSG_INFO("%s: input - std = %d, rate = %d, reg_idx = %d, input_idx = %d, num_inputs = %d, num_streams = %d",
+				  ntv2_chn->name, input_format->video_standard, input_format->frame_rate, input_format->reg_index,
+				  input_format->input_index, input_format->num_inputs, input_format->num_streams);
+
+	NTV2_MSG_INFO("%s: fmt - name = %s, std = %d, geom = %d, rate = %d",
+				  ntv2_chn->name,video_format->name,video_format->video_standard,video_format->frame_geometry,
+				  video_format->frame_rate)
+
+	NTV2_MSG_INFO("%s: mode_sync = %d, mode_tsi = %d, mode_quad = %d, mode_372 = %d, std = %d, rate = %d",
+				  ntv2_chn->name, mode_sync, mode_tsi, mode_quad, mode_372, standard, rate);
+
 	/* setup video timing, device sync source and sync mode */
 	val = NTV2_FLD_SET(ntv2_kona_fld_global_frame_rate_b012, rate & 0x7);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_global_frame_rate_b3, rate >> 3);
@@ -198,8 +209,9 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	val |= NTV2_FLD_SET(ntv2_kona_fld_reference_source_b012, ntv2_kona_ref_source_sdiin1 & 0x7);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_linkb_p60_mode_ch2, mode_372);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_global_reg_sync, mode_sync);
+	val |= NTV2_FLD_SET(ntv2_kona_fld_global_quad_tsi_enable, mode_tsi);
 	ntv2_reg_write(ntv2_chn->vid_reg, ntv2_kona_reg_global_control, index, val);
-//	NTV2_MSG_INFO("%s: write global control  %08x\n", ntv2_chn->name, val);
+	NTV2_MSG_INFO("%s: write global control  %08x\n", ntv2_chn->name, val);
 
 	val = 0;
 	msk = 0;
@@ -276,7 +288,7 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 	msk |= NTV2_FLD_MASK(ntv2_kona_fld_reference_source_b3);
 	
 	ntv2_reg_rmw(ntv2_chn->vid_reg, ntv2_kona_reg_global_control2, 0, val, msk);
-//	NTV2_MSG_INFO("%s: write global control2 %08x/%08x\n", ntv2_chn->name, val, msk);
+	NTV2_MSG_INFO("%s: write global control2 %08x/%08x\n", ntv2_chn->name, val, msk);
 
 	return 0;
 }
@@ -465,6 +477,26 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 		}
 	}
 
+	if (input_format->type == ntv2_input_type_hdmi4k_aja) {
+
+		/* configure qrc for 3g and hd */
+		ntv2_qrc_4k_enable(vid_reg, false, false);
+
+		/* route 3g, hd, UHD input */
+		if (do_csc) {
+			ntv2_route_hdmi_to_csc(vid_reg,
+								   inp_index, 0, in_rgb,
+								   csc_index, 0);
+			ntv2_route_csc_to_fs(vid_reg,
+								 csc_index, 0, !in_rgb,
+								 chn_index, 0);
+		} else {
+			ntv2_route_hdmi_to_fs(vid_reg,
+								  inp_index, 0, in_rgb,
+								  chn_index, 0);
+		}
+	}
+
 	return 0;
 }
 
@@ -619,7 +651,8 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 												  input_format->num_inputs,
 												  (unsigned long)stream);
 	} else 	if ((input_format->type == ntv2_input_type_hdmi_adv) ||
-				(input_format->type == ntv2_input_type_hdmi_aja)) {
+				(input_format->type == ntv2_input_type_hdmi_aja) ||
+				(input_format->type == ntv2_input_type_hdmi4k_aja)) {
 		result = ntv2_features_acquire_components(features,
 												  ntv2_component_hdmi,
 												  input_format->input_index,

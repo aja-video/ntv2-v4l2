@@ -45,6 +45,8 @@ static int ntv2_hdmi_stream_to_sqd_format(struct ntv2_input_config *config,
 										  struct ntv2_input_format *format);
 static int ntv2_hdmi_stream_to_tsi_format(struct ntv2_input_config *config,
 										  struct ntv2_input_format *format);
+static int ntv2_hdmi4k_stream_to_format(struct ntv2_input_config *config,
+										struct ntv2_input_format *format);
 static bool ntv2_valid_input_pixel_rate(u32 config_flags, u32 format_flags);
 
 struct ntv2_input *ntv2_input_open(struct ntv2_object *ntv2_obj,
@@ -162,6 +164,23 @@ int ntv2_input_configure(struct ntv2_input *ntv2_inp,
 			if (in4 < NTV2_MAX_HDMI_INPUTS) {
 				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp, 
 															   "hin4", input_config->reg_index); 
+				if (ntv2_inp->hdmi4_input[in4] == NULL)
+					return -ENOMEM;
+				result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
+												ntv2_inp->features,
+												ntv2_inp->vid_reg,
+												in4);
+				if (result < 0)
+					return result;
+				ntv2_inp->num_hdmi4_inputs++;
+			}
+		}
+
+		if (input_config->type == ntv2_input_type_hdmi4k_aja) {
+			in4 = input_config->input_index;
+			if (in4 < NTV2_MAX_HDMI_INPUTS) {
+				ntv2_inp->hdmi4_input[in4] = ntv2_hdmiin4_open((struct ntv2_object*)ntv2_inp,
+															   "hin4", input_config->reg_index);
 				if (ntv2_inp->hdmi4_input[in4] == NULL)
 					return -ENOMEM;
 				result = ntv2_hdmiin4_configure(ntv2_inp->hdmi4_input[in4],
@@ -368,6 +387,30 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 //							 format->frame_flags, format->pixel_flags);
 	}
 
+	else if (config->type == ntv2_input_type_hdmi4k_aja) {
+
+		/* validate config parameters */
+		if ((config->input_index >= NTV2_MAX_HDMI_INPUTS) ||
+			(ntv2_inp->hdmi4_input[config->input_index] == NULL) ||
+			(config->num_inputs != 1))
+			goto done;
+
+		/* get current hdmi input format */
+		ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+
+		format->type = config->type;
+		format->video_standard = hdmi4_format.video_standard;
+		format->frame_rate = hdmi4_format.frame_rate;
+		format->frame_flags = hdmi4_format.frame_flags;
+		format->pixel_flags = hdmi4_format.pixel_flags;
+
+		result = ntv2_hdmi4k_stream_to_format(config, format);
+
+		NTV2_MSG_INPUT_STATE("%s: hdmi input standard %d  rate %d  frame %08x  pixel %08x\n",
+							 ntv2_inp->name, format->video_standard, format->frame_rate,
+							 format->frame_flags, format->pixel_flags);
+	}
+
 	else {
 		NTV2_MSG_INPUT_ERROR("%s: *error*  unknown video input type %d\n", ntv2_inp->name, config->type);
 		result = -EPERM;
@@ -456,6 +499,22 @@ int ntv2_input_get_source_format(struct ntv2_input *ntv2_inp,
 	}
 
 	else if (config->type == ntv2_input_type_hdmi_aja) {
+
+		/* validate config parameters */
+		if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
+			(config->num_inputs != 1))
+			goto done;
+
+		/* get current hdmi input format */
+		ntv2_hdmiin4_get_input_format(ntv2_inp->hdmi4_input[config->input_index], &hdmi4_format);
+
+		/* set audio detection bits */
+		format->audio_detect = hdmi4_format.audio_detect;
+
+		result = 0;
+	}
+
+	else if (config->type == ntv2_input_type_hdmi4k_aja) {
 
 		/* validate config parameters */
 		if ((config->input_index >= ntv2_inp->num_hdmi4_inputs) ||
@@ -909,6 +968,29 @@ static int ntv2_hdmi_stream_to_sqd_format(struct ntv2_input_config *config,
 
 static int ntv2_hdmi_stream_to_tsi_format(struct ntv2_input_config *config,
 										  struct ntv2_input_format *format)
+{
+	/* test for valid pixel rate */
+	if (!ntv2_valid_input_pixel_rate(config->frame_flags, format->frame_flags))
+		return -EINVAL;
+
+	/* fpga converts 4k hdmi to two sample interleave */
+	if (format->video_standard == ntv2_kona_video_standard_3840x2160p) {
+		format->video_standard = ntv2_kona_video_standard_1080p;
+		format->num_streams = 4;
+		format->frame_flags |= ntv2_kona_frame_sample_interleave;
+	} else if (format->video_standard == ntv2_kona_video_standard_4096x2160p) {
+		format->video_standard = ntv2_kona_video_standard_2048x1080p;
+		format->num_streams = 4;
+		format->frame_flags |= ntv2_kona_frame_sample_interleave;
+	} else {
+		format->num_streams = 1;
+	}
+
+	return 0;
+}
+
+static int ntv2_hdmi4k_stream_to_format(struct ntv2_input_config *config,
+										struct ntv2_input_format *format)
 {
 	/* test for valid pixel rate */
 	if (!ntv2_valid_input_pixel_rate(config->frame_flags, format->frame_flags))

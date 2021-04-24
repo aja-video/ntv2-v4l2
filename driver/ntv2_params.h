@@ -208,6 +208,7 @@ enum ntv2_input_type {
 	ntv2_input_type_sdi,
 	ntv2_input_type_hdmi_adv,
 	ntv2_input_type_hdmi_aja,
+	ntv2_input_type_hdmi4k_aja,
 	ntv2_input_type_aes,
 	ntv2_input_type_analog,
 	ntv2_input_type_size
