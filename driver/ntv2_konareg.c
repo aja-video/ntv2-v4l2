@@ -238,6 +238,7 @@ static struct sdi_input_status sdi_input_status[NTV2_MAX_CHANNELS];
 static struct video_field video_fs_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static struct video_field video_csc_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static struct video_field video_mux_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
+static struct video_field video_lut_route[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_sdi_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_dl_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_csc_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
@@ -246,6 +247,7 @@ static u32 video_hdmi_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_hdmi_rgb_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_mux_yuv_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_mux_rgb_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
+static u32 video_lut_source[NTV2_MAX_CHANNELS][NTV2_MAX_STREAMS];
 static u32 video_standard_to_hdmi[NTV2_MAX_VIDEO_STANDARDS];
 static u32 frame_rate_to_hdmi[NTV2_MAX_FRAME_RATES];
 static const char *video_standard_name[NTV2_MAX_VIDEO_STANDARDS];
@@ -667,6 +669,24 @@ void ntv2_kona_register_initialize(void)
 	video_mux_route[3][1].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select33, 0);
 	video_mux_route[3][1].fld = ntv2_kona_fld_425mux4_ds2_source;
 
+	memset(video_lut_route, 0, sizeof(video_lut_route));
+	video_lut_route[0][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select1, 0);
+	video_lut_route[0][0].fld = ntv2_kona_fld_lut1_source;
+	video_lut_route[1][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select5, 0);
+	video_lut_route[1][0].fld = ntv2_kona_fld_lut2_source;
+	video_lut_route[2][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select12, 0);
+	video_lut_route[2][0].fld = ntv2_kona_fld_lut3_source;
+	video_lut_route[3][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select12, 0);
+	video_lut_route[3][0].fld = ntv2_kona_fld_lut4_source;
+	video_lut_route[4][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select12, 0);
+	video_lut_route[4][0].fld = ntv2_kona_fld_lut5_source;
+	video_lut_route[5][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select24, 0);
+	video_lut_route[5][0].fld = ntv2_kona_fld_lut6_source;
+	video_lut_route[6][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select24, 0);
+	video_lut_route[6][0].fld = ntv2_kona_fld_lut7_source;
+	video_lut_route[7][0].reg = NTV2_REG_NUM(ntv2_kona_reg_xpt_select24, 0);
+	video_lut_route[7][0].fld = ntv2_kona_fld_lut8_source;
+
 	/* organize video routing sources by channel index */
 	memset(video_sdi_source, 0, sizeof(video_sdi_source));
 	video_sdi_source[0][0] = ntv2_kona_xpt_sdiin1_ds1;
@@ -767,6 +787,16 @@ void ntv2_kona_register_initialize(void)
 	video_mux_rgb_source[2][1] = ntv2_kona_xpt_425mux3_ds2_rgb;
 	video_mux_rgb_source[3][0] = ntv2_kona_xpt_425mux4_ds1_rgb;
 	video_mux_rgb_source[3][1] = ntv2_kona_xpt_425mux4_ds2_rgb;
+
+	memset(video_lut_source, 0, sizeof(video_lut_source));
+	video_lut_source[0][0] = ntv2_kona_xpt_lut1_rgb;
+	video_lut_source[1][0] = ntv2_kona_xpt_lut2_rgb;
+	video_lut_source[2][0] = ntv2_kona_xpt_lut3;
+	video_lut_source[3][0] = ntv2_kona_xpt_lut4;
+	video_lut_source[4][0] = ntv2_kona_xpt_lut5;
+	video_lut_source[5][0] = ntv2_kona_xpt_lut6;
+	video_lut_source[6][0] = ntv2_kona_xpt_lut7;
+	video_lut_source[7][0] = ntv2_kona_xpt_lut8;
 
 	/* ntv2 video standard to hdmi video standard */
 	for (i = 0; i < NTV2_MAX_VIDEO_STANDARDS; i++) {
@@ -1421,6 +1451,30 @@ void ntv2_route_hdmi_to_mux(struct ntv2_register* ntv2_reg,
 	ntv2_register_rmw(ntv2_reg, video_mux_route[mux_index][mux_stream].reg, val, mask);
 }
 
+void ntv2_route_hdmi_to_lut(struct ntv2_register* ntv2_reg,
+							int hdmi_index, int hdmi_stream, bool hdmi_rgb,
+							int lut_index, int lut_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(hdmi_index < 0) || (hdmi_index >= NTV2_MAX_CHANNELS) ||
+		(hdmi_stream < 0) || (hdmi_stream >= NTV2_MAX_STREAMS) ||
+		(lut_index < 0) || (lut_index >= NTV2_MAX_CHANNELS) ||
+		(lut_stream < 0) || (lut_stream >= NTV2_MAX_STREAMS) ||
+		(video_lut_route[lut_index][lut_stream].reg == 0))
+		return;
+
+	if (hdmi_rgb) {
+		val = NTV2_FLD_SET(video_lut_route[lut_index][lut_stream].fld, video_hdmi_rgb_source[hdmi_index][hdmi_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_lut_route[lut_index][lut_stream].fld, video_hdmi_yuv_source[hdmi_index][hdmi_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_lut_route[lut_index][lut_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_lut_route[lut_index][lut_stream].reg, val, mask);
+}
+
 void ntv2_route_csc_to_fs(struct ntv2_register* ntv2_reg,
 						  int csc_index, int csc_stream, bool csc_rgb,
 						  int fs_index, int fs_stream)
@@ -1473,6 +1527,32 @@ void ntv2_route_csc_to_mux(struct ntv2_register* ntv2_reg,
 //				  video_mux_route[mux_index][mux_stream].reg, val, mask);
 }
 
+void ntv2_route_csc_to_lut(struct ntv2_register* ntv2_reg,
+						   int csc_index, int csc_stream, bool csc_rgb,
+						   int lut_index, int lut_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(csc_index < 0) || (csc_index >= NTV2_MAX_CHANNELS) ||
+		(csc_stream < 0) || (csc_stream >= NTV2_MAX_STREAMS) ||
+		(lut_index < 0) || (lut_index >= NTV2_MAX_CHANNELS) ||
+		(lut_stream < 0) || (lut_stream >= NTV2_MAX_STREAMS) ||
+		(video_lut_route[lut_index][lut_stream].reg == 0))
+		return;
+
+	if (csc_rgb) {
+		val = NTV2_FLD_SET(video_lut_route[lut_index][lut_stream].fld, video_csc_rgb_source[csc_index][csc_stream]);
+	} else {
+		val = NTV2_FLD_SET(video_lut_route[lut_index][lut_stream].fld, video_csc_yuv_source[csc_index][csc_stream]);
+	}
+	mask = NTV2_FLD_MASK(video_lut_route[lut_index][lut_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_lut_route[lut_index][lut_stream].reg, val, mask);
+//	NTV2_MSG_INFO("write reg %d  val %08x  mask %08x\n",
+//				  video_mux_route[mux_index][mux_stream].reg, val, mask);
+}
+
 void ntv2_route_mux_to_fs(struct ntv2_register* ntv2_reg,
 						  int mux_index, int mux_stream, bool mux_rgb,
 						  int fs_index, int fs_stream)
@@ -1499,3 +1579,23 @@ void ntv2_route_mux_to_fs(struct ntv2_register* ntv2_reg,
 //				  video_fs_route[fs_index][fs_stream].reg, val, mask);
 }
 
+void ntv2_route_lut_to_csc(struct ntv2_register* ntv2_reg,
+						   int lut_index, int lut_stream,
+						   int csc_index, int csc_stream)
+{
+	u32 val;
+	u32 mask;
+
+	if ((ntv2_reg == NULL) ||
+		(lut_index < 0) || (lut_index >= NTV2_MAX_CHANNELS) ||
+		(lut_stream < 0) || (lut_stream >= NTV2_MAX_STREAMS) ||
+		(csc_index < 0) || (csc_index >= NTV2_MAX_CHANNELS) ||
+		(csc_stream < 0) || (csc_stream >= NTV2_MAX_STREAMS) ||
+		(video_csc_route[csc_index][csc_stream].reg == 0))
+		return;
+
+	val = NTV2_FLD_SET(video_csc_route[csc_index][csc_stream].fld, video_lut_source[lut_index][lut_stream]);
+
+	mask = NTV2_FLD_MASK(video_csc_route[csc_index][csc_stream].fld);
+	ntv2_register_rmw(ntv2_reg, video_csc_route[csc_index][csc_stream].reg, val, mask);
+}

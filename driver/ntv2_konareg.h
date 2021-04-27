@@ -1661,14 +1661,23 @@ void ntv2_route_hdmi_to_csc(struct ntv2_register* ntv2_reg,
 void ntv2_route_hdmi_to_mux(struct ntv2_register* ntv2_reg,
 							int hdmi_index, int hdmi_stream, bool hdmi_rgb,
 							int mux_index, int mux_stream);
+void ntv2_route_hdmi_to_lut(struct ntv2_register* ntv2_reg,
+							int hdmi_index, int hdmi_stream, bool hdmi_rgb,
+							int lut_index, int lut_stream);
 void ntv2_route_csc_to_fs(struct ntv2_register* ntv2_reg,
 						  int csc_index, int csc_stream, bool csc_rgb,
 						  int fs_index, int fs_stream);
 void ntv2_route_csc_to_mux(struct ntv2_register* ntv2_reg,
 						   int csc_index, int csc_stream, bool csc_rgb,
 						   int mux_index, int mux_stream);
+void ntv2_route_csc_to_lut(struct ntv2_register* ntv2_reg,
+						   int csc_index, int csc_stream, bool csc_rgb,
+						   int lut_index, int lut_stream);
 void ntv2_route_mux_to_fs(struct ntv2_register* ntv2_reg,
 						  int mux_index, int mux_stream, bool mux_rgb,
 						  int fs_index, int fs_stream);
+void ntv2_route_lut_to_csc(struct ntv2_register* ntv2_reg,
+						   int lut_index, int lut_stream,
+						   int csc_index, int csc_stream);
 
 #endif

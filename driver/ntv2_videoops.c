@@ -302,6 +302,8 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	int chn_index = 0;
 	int inp_index = 0;
 	int csc_index = 0;
+	int lut_index = 0;
+	int csc2_index = 0;
 	bool do_csc = false;
 	bool convert3gb = false;
 	bool in_rgb;
@@ -312,6 +314,7 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	chn_index = ntv2_chn->index;
 	inp_index = input_format->input_index;
 	csc_index = stream->video.csc_index;
+	lut_index = stream->video.lut_index;
 	
 	/* determine input and pixel rgbness */
 	in_rgb = (input_format->pixel_flags & ntv2_kona_pixel_rgb) != 0;
@@ -478,22 +481,52 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	}
 
 	if (input_format->type == ntv2_input_type_hdmi4k_aja) {
-
 		/* configure qrc for 3g and hd */
 		ntv2_qrc_4k_enable(vid_reg, false, false);
 
-		/* route 3g, hd, UHD input */
-		if (do_csc) {
-			ntv2_route_hdmi_to_csc(vid_reg,
-								   inp_index, 0, in_rgb,
-								   csc_index, 0);
+		if (in_rgb) {
+			/* rgb input
+				Input1 -> LUT1 -> CSC3 -> FrameBuffer1(yuv)
+				Input2 -> LUT2 -> CSC4 -> FrameBuffer2(yuv)
+			*/
+			lut_index = inp_index;
+			csc2_index = csc_index+2;
+
+			ntv2_route_hdmi_to_lut(vid_reg,
+								   inp_index, 0, true,
+								   lut_index, 0);
+
+			ntv2_route_lut_to_csc(vid_reg,
+								  lut_index, 0,
+								  csc2_index, 0);
+
 			ntv2_route_csc_to_fs(vid_reg,
-								 csc_index, 0, !in_rgb,
+								 csc2_index, 0, false,
 								 chn_index, 0);
+
 		} else {
-			ntv2_route_hdmi_to_fs(vid_reg,
-								  inp_index, 0, in_rgb,
-								  chn_index, 0);
+			/* yuv input
+				Input1 -> CSC1 -> LUT1 -> CSC3 -> FrameBuffer1(yuv)
+				Input2 -> CSC2 -> LUT2 -> CSC4 -> FrameBuffer2(yuv)
+			*/
+			lut_index = inp_index;
+			csc2_index = csc_index+2;
+
+			ntv2_route_hdmi_to_csc(vid_reg,
+								   inp_index, 0, false,
+								   csc_index, 0);
+
+			ntv2_route_csc_to_lut(vid_reg,
+								  csc_index, 0, true,
+								  lut_index, 0);
+
+			ntv2_route_lut_to_csc(vid_reg,
+								  lut_index, 0,
+								  csc2_index, 0);
+
+			ntv2_route_csc_to_fs(vid_reg,
+								 csc2_index, 0, false,
+								 chn_index, 0);
 		}
 	}
 
@@ -635,6 +668,7 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 	struct ntv2_input_format *input_format = &stream->video.input_format;
 	struct ntv2_pixel_format *pixel_format = &stream->video.pixel_format;
 	struct ntv2_widget_config *csc_config = NULL;
+	struct ntv2_widget_config *lut_config = NULL;
 	int index = ntv2_chn->index;
 	int num_channels = 1;
 	int num_cscs = 1;
@@ -721,6 +755,30 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 
 		NTV2_MSG_INFO("%s: acquire  csc %d  num %d\n", ntv2_chn->name,
 					  stream->video.csc_index, stream->video.num_cscs);
+	}
+
+	if (features->device_id == NTV2_DEVICE_ID_KONAHDMI2RX) {
+		/* luts */
+		lut_config = ntv2_features_find_lut_config(features, index, 1);
+		if (lut_config == NULL) {
+			result = -EPERM;
+			goto release;
+		}
+
+		result = ntv2_features_acquire_components(features,
+												  ntv2_component_lut,
+												  lut_config->widget_index,
+												  lut_config->num_widgets,
+												  (unsigned long)stream);
+
+		if (result != 0)
+			goto release;
+
+		stream->video.lut_index = lut_config->widget_index;
+		stream->video.num_luts = lut_config->num_widgets;
+
+		NTV2_MSG_INFO("%s: acquire  lut %d  num %d\n", ntv2_chn->name,
+					  stream->video.lut_index, stream->video.num_luts);
 	}
 
 	return 0;

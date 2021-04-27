@@ -90,6 +90,8 @@ struct ntv2_video_stream {
 
 	int								csc_index;
 	int								num_cscs;
+	int								lut_index;
+	int								num_luts;
 
 	struct ntv2_stream_data			*frame_active;
 	struct ntv2_stream_data			*frame_next;

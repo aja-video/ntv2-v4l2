@@ -27,6 +27,7 @@ enum ntv2_component {
 	ntv2_component_sdi,
 	ntv2_component_hdmi,
 	ntv2_component_csc,
+	ntv2_component_lut,
 	ntv2_component_video,
 	ntv2_component_audio,
 	ntv2_component_size,
@@ -108,6 +109,7 @@ struct ntv2_features {
 	struct ntv2_video_config	*video_config[NTV2_MAX_CHANNELS];
 	struct ntv2_input_config	*input_config[NTV2_MAX_CHANNELS][NTV2_MAX_INPUT_CONFIGS];
 	struct ntv2_widget_config	*csc_config[NTV2_MAX_CHANNELS][NTV2_MAX_CSC_CONFIGS];
+	struct ntv2_widget_config	*lut_config[NTV2_MAX_CHANNELS][NTV2_MAX_LUT_CONFIGS];
 
 	struct ntv2_audio_config	*audio_config[NTV2_MAX_CHANNELS];
 	struct ntv2_source_config	*source_config[NTV2_MAX_CHANNELS][NTV2_MAX_SOURCE_CONFIGS];
@@ -187,6 +189,10 @@ struct ntv2_source_config
 struct ntv2_widget_config
 *ntv2_features_find_csc_config(struct ntv2_features *features,
 							   int channel_index, int num_cscs);
+
+struct ntv2_widget_config
+*ntv2_features_find_lut_config(struct ntv2_features *features,
+							   int channel_index, int num_luts);
 
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,

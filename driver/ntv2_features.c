@@ -373,6 +373,26 @@ struct ntv2_widget_config
 	return NULL;
 }
 
+struct ntv2_widget_config
+*ntv2_features_find_lut_config(struct ntv2_features *features,
+							   int channel_index, int num_luts)
+{
+	int i;
+
+	if ((features == NULL) ||
+		(channel_index >= NTV2_MAX_CHANNELS))
+		return NULL;
+
+	for (i = 0; i < NTV2_MAX_LUT_CONFIGS; i++) {
+		if (features->lut_config[channel_index][i] == NULL)
+			break;
+		if (features->lut_config[channel_index][i]->num_widgets == num_luts)
+			return features->lut_config[channel_index][i];
+	}
+
+	return NULL;
+}
+
 void ntv2_features_gen_input_format(struct ntv2_input_config *config,
 									struct ntv2_video_format *vidf,
 									struct ntv2_pixel_format *pixf,
@@ -595,6 +615,10 @@ void ntv2_features_release_video_components(struct ntv2_features *features, unsi
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
 		if (features->component_owner[ntv2_component_csc][i] == owner)
 			features->component_owner[ntv2_component_csc][i] = 0;
+	}
+	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
+		if (features->component_owner[ntv2_component_lut][i] == owner)
+			features->component_owner[ntv2_component_lut][i] = 0;
 	}
 	for (i = 0; i < NTV2_MAX_CHANNELS; i++) {
 		if (features->component_owner[ntv2_component_video][i] == owner)
@@ -940,6 +964,15 @@ static struct ntv2_widget_config	nwc_csc_6_1;
 static struct ntv2_widget_config	nwc_csc_7_1;
 static struct ntv2_widget_config	nwc_csc_7_2;
 static struct ntv2_widget_config	nwc_csc_8_1;
+
+static struct ntv2_widget_config	nwc_lut_1_1;
+static struct ntv2_widget_config	nwc_lut_2_1;
+static struct ntv2_widget_config	nwc_lut_3_1;
+static struct ntv2_widget_config	nwc_lut_4_1;
+static struct ntv2_widget_config	nwc_lut_5_1;
+static struct ntv2_widget_config	nwc_lut_6_1;
+static struct ntv2_widget_config	nwc_lut_7_1;
+static struct ntv2_widget_config	nwc_lut_8_1;
 
 static struct ntv2_source_config	asc_auto;
 static struct ntv2_source_config	asc_sdi_1;
@@ -1373,6 +1406,55 @@ static void ntv2_features_initialize(void) {
 	nwc = &nwc_csc_8_1;
 	memset(nwc, 0, sizeof(struct ntv2_widget_config));
 	nwc->name = "CSC 8";
+	nwc->widget_index = 7;
+	nwc->num_widgets = 1;
+
+	/* luts */
+	nwc = &nwc_lut_1_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 1";
+	nwc->widget_index = 0;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_2_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 2";
+	nwc->widget_index = 1;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_3_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 3";
+	nwc->widget_index = 2;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_4_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 4";
+	nwc->widget_index = 3;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_5_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 5";
+	nwc->widget_index = 4;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_6_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 6";
+	nwc->widget_index = 5;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_7_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 7";
+	nwc->widget_index = 6;
+	nwc->num_widgets = 1;
+
+	nwc = &nwc_lut_8_1;
+	memset(nwc, 0, sizeof(struct ntv2_widget_config));
+	nwc->name = "LUT 8";
 	nwc->widget_index = 7;
 	nwc->num_widgets = 1;
 
@@ -2417,7 +2499,8 @@ static void ntv2_features_konahdmi2rx(struct ntv2_features *features)
 	features->csc_config[2][0] = &nwc_csc_3_1;
 	features->csc_config[3][0] = &nwc_csc_4_1;
 
-	/*todo add luts*/
+	features->lut_config[0][0] = &nwc_lut_1_1;
+	features->lut_config[1][0] = &nwc_lut_2_1;
 
 	features->source_config[0][0] = &asc_auto;
 	features->source_config[0][1] = &asc_hdmi4k_aja_1;
