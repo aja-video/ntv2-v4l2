@@ -780,9 +780,9 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 		stream->video.lut_index = lut_config->widget_index;
 		stream->video.num_luts = lut_config->num_widgets;
 
-		/* sml: should the lut setup go here or in ntv2_videoops_setup_capture? */
+		/* sml: should the lut setup go here or in ntv2_videoops_setup_capture ? */
 		for (i = 0; i < 1024; i++) {
-			stream->video.lut_red[i] = 1024; /* sml: test, looking for something obvious */
+			stream->video.lut_red[i] = i;
 			stream->video.lut_green[i] = i;
 			stream->video.lut_blue[i] = i;
 		}

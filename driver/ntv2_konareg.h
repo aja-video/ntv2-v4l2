@@ -1679,9 +1679,8 @@ void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
 
 void ntv2_lut_set_enable(struct ntv2_register *ntv2_reg, int index, bool enable);
 void ntv2_lut_set_output_bank(struct ntv2_register *ntv2_reg, int index, int bank);
-void ntv2_lut_set_color_correction_host_access_bank_v1(struct ntv2_register *ntv2_reg, int channel, int bank);
 void ntv2_lut_set_color_correction_host_access_bank_v2(struct ntv2_register *ntv2_reg, int channel, int bank);
-void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit, u32 *redLut, u32 *greenLut, u32 *blueLut);
+void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit, u16* redLut, u16* greenLut, u16* blueLut);
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,
 						  int sdi_index, int sdi_stream, bool sdi_rgb,

@@ -1301,7 +1301,9 @@ void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
 
 void ntv2_lut_set_enable(struct ntv2_register *ntv2_reg, int index, bool enable)
 {
+	u32 fld;
 	u32 mask;
+	u32 val;
 
 	if ((ntv2_reg == NULL) ||
 		(index < 0) ||
@@ -1310,21 +1312,25 @@ void ntv2_lut_set_enable(struct ntv2_register *ntv2_reg, int index, bool enable)
 
 	switch(index) {
 		default:
-		case 0: mask = ntv2_kona_fld_lut1_enable; break;
-		case 1: mask = ntv2_kona_fld_lut2_enable; break;
-		case 2: mask = ntv2_kona_fld_lut3_enable; break;
-		case 3: mask = ntv2_kona_fld_lut4_enable; break;
-		case 4: mask = ntv2_kona_fld_lut5_enable; break;
-		case 5: mask = ntv2_kona_fld_lut6_enable; break;
-		case 6: mask = ntv2_kona_fld_lut7_enable; break;
-		case 7: mask = ntv2_kona_fld_lut8_enable; break;
+		case 0: fld = ntv2_kona_fld_lut1_enable; break;
+		case 1: fld = ntv2_kona_fld_lut2_enable; break;
+		case 2: fld = ntv2_kona_fld_lut3_enable; break;
+		case 3: fld = ntv2_kona_fld_lut4_enable; break;
+		case 4: fld = ntv2_kona_fld_lut5_enable; break;
+		case 5: fld = ntv2_kona_fld_lut6_enable; break;
+		case 6: fld = ntv2_kona_fld_lut7_enable; break;
+		case 7: fld = ntv2_kona_fld_lut8_enable; break;
 	}
-	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (int)enable, mask);
+	val = NTV2_FLD_SET(fld, enable ? 1 : 0);
+	mask = NTV2_FLD_MASK(fld);
+	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
 }
 
 void ntv2_lut_set_output_bank(struct ntv2_register *ntv2_reg, int index, int bank)
 {
+	u32 fld;
 	u32 mask;
+	u32 val;
 
 	if ((ntv2_reg == NULL) ||
 		(index < 0) ||
@@ -1334,54 +1340,24 @@ void ntv2_lut_set_output_bank(struct ntv2_register *ntv2_reg, int index, int ban
 
 	switch(index) {
 		default:
-		case 0: mask = ntv2_kona_fld_lut1_out_bank_select; break;
-		case 1: mask = ntv2_kona_fld_lut2_out_bank_select; break;
-		case 2: mask = ntv2_kona_fld_lut3_out_bank_select; break;
-		case 3: mask = ntv2_kona_fld_lut4_out_bank_select; break;
-		case 4: mask = ntv2_kona_fld_lut5_out_bank_select; break;
-		case 5: mask = ntv2_kona_fld_lut6_out_bank_select; break;
-		case 6: mask = ntv2_kona_fld_lut7_out_bank_select; break;
-		case 7: mask = ntv2_kona_fld_lut8_out_bank_select; break;
+		case 0: fld = ntv2_kona_fld_lut1_out_bank_select; break;
+		case 1: fld = ntv2_kona_fld_lut2_out_bank_select; break;
+		case 2: fld = ntv2_kona_fld_lut3_out_bank_select; break;
+		case 3: fld = ntv2_kona_fld_lut4_out_bank_select; break;
+		case 4: fld = ntv2_kona_fld_lut5_out_bank_select; break;
+		case 5: fld = ntv2_kona_fld_lut6_out_bank_select; break;
+		case 6: fld = ntv2_kona_fld_lut7_out_bank_select; break;
+		case 7: fld = ntv2_kona_fld_lut8_out_bank_select; break;
 	}
-	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, bank, mask);
-}
-
-void ntv2_lut_set_color_correction_host_access_bank_v1(struct ntv2_register *ntv2_reg, int channel, int bank)
-{
-	u32 val;
-
-	if ((ntv2_reg == NULL) ||
-		(channel < 0) ||
-		(channel > 7) ||
-		(bank > 1))
-		return;
-
-	val = (channel * 2) + bank;
-	switch(val) {
-		default:
-		/* Ch1 Bank 0, Bank1 */
-		case 0:
-		case 1:
-		/* Ch2 Bank 0, Bank1 */
-		case 2:
-		case 3:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_color_correction_control1, 0, 0, ntv2_kona_fld_lut_select);
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_global_control, 0, val, ntv2_kona_fld_cc_host_bank_select);
-			break;
-		/* Ch3 Bank 0, Bank1 */
-		case 4:
-		case 5:
-		/* Ch4 Bank 0, Bank1 */
-		case 6:
-		case 7:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_color_correction_control1, 0, 1, ntv2_kona_fld_lut_select);
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_global_control, 0, (val-4), ntv2_kona_fld_cc_host_bank_select);
-			break;
-	}
+	val = NTV2_FLD_SET(fld, bank);
+	mask = NTV2_FLD_MASK(fld);
+	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
 }
 
 void ntv2_lut_set_color_correction_host_access_bank_v2(struct ntv2_register *ntv2_reg, int channel, int bank)
 {
+	u32 fld;
+	u32 mask;
 	u32 val;
 
 	if ((ntv2_reg == NULL) ||
@@ -1390,110 +1366,97 @@ void ntv2_lut_set_color_correction_host_access_bank_v2(struct ntv2_register *ntv
 		(bank > 1))
 		return;
 
-	val = (channel * 2) + bank;
-	switch(val) {
+	switch(channel) {
 		default:
-		/* Ch1 Bank 0, Bank1 */
-		case 0:
-		case 1:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank -  0), ntv2_kona_fld_lut1_host_access_bank_select);
-			break;
-		/* Ch2 Bank 0, Bank1 */
-		case 2:
-		case 3:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank -  2), ntv2_kona_fld_lut2_host_access_bank_select);
-			break;
-		/* Ch3 Bank 0, Bank1 */
-		case 4:
-		case 5:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank -  4), ntv2_kona_fld_lut3_host_access_bank_select);
-			break;
-		/* Ch4 Bank 0, Bank1 */
-		case 6:
-		case 7:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank -  6), ntv2_kona_fld_lut4_host_access_bank_select);
-			break;
-		/* Ch5 Bank 0, Bank1 */
-		case 8:
-		case 9:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank -  8), ntv2_kona_fld_lut5_host_access_bank_select);
-			break;
-		/* Ch6 Bank 0, Bank1 */
-		case 10:
-		case 11:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank - 10), ntv2_kona_fld_lut6_host_access_bank_select);
-			break;
-		/* Ch7 Bank 0, Bank1 */
-		case 12:
-		case 13:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank - 12), ntv2_kona_fld_lut7_host_access_bank_select);
-			break;
-		/* Ch8 Bank 0, Bank1 */
-		case 14:
-		case 15:
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, (bank - 14), ntv2_kona_fld_lut8_host_access_bank_select);
-			break;
+		case 0: fld = ntv2_kona_fld_lut1_host_access_bank_select; break;
+		case 1: fld = ntv2_kona_fld_lut2_host_access_bank_select; break;
+		case 2: fld = ntv2_kona_fld_lut3_host_access_bank_select; break;
+		case 3: fld = ntv2_kona_fld_lut4_host_access_bank_select; break;
+		case 4: fld = ntv2_kona_fld_lut5_host_access_bank_select; break;
+		case 5: fld = ntv2_kona_fld_lut6_host_access_bank_select; break;
+		case 6: fld = ntv2_kona_fld_lut7_host_access_bank_select; break;
+		case 7: fld = ntv2_kona_fld_lut8_host_access_bank_select; break;
 	}
+	val = NTV2_FLD_SET(fld, bank);
+	mask = NTV2_FLD_MASK(fld);
+	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
 }
 
 void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit,
-								 u32 *redLut, u32 *greenLut, u32 *blueLut)
+								 u16 *redLut, u16 *greenLut, u16 *blueLut)
 {
 	u32 i = 0;
-	u32 words_per_table = 512;
-	u32 loR, hiR;
-	u32 loG, hiG;
-	u32 loB, hiB;
+	u32 lo, hi;
 	u32 tmpLo, tmpHi;
-
+	u32 words_per_table = 512;
 	u32 regR = (has_12bit ? 0xe000 : 0x0800) / 4;
 	u32 regG = (has_12bit ? 0xe000 : 0x1000) / 4;
 	u32 regB = (has_12bit ? 0xe000 : 0x1800) / 4;
+	u32 val, mask;
 
-	if (ntv2_reg == NULL)
-		return;
+	if (has_12bit) {
+		/* red plane */
+		val = NTV2_FLD_SET(ntv2_kona_fld_lut_12bit_plane_select, 0x3);
+		mask = NTV2_FLD_MASK(ntv2_kona_fld_lut_12bit_plane_select);
+		ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
+		for (i = 0; i < words_per_table; i++) {
+			lo = (u32)(redLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(redLut[2 * i + 1]) & 0x3FF;
 
-	for (i = 0; i < words_per_table; i++) {
-		loR = (u32)(redLut[2 * i + 0]) & 0x3FF;
-		hiR = (u32)(redLut[2 * i + 1]) & 0x3FF;
-		loG = (u32)(greenLut[2 * i + 0]) & 0x3FF;
-		hiG = (u32)(greenLut[2 * i + 1]) & 0x3FF;
-		loB = (u32)(blueLut[2 * i + 0]) & 0x3FF;
-		hiB = (u32)(blueLut[2 * i + 1]) & 0x3FF;
-
-		if (has_12bit) {
-			/* red */
-			tmpLo = (loR << 18) + (loR << 2);
-			tmpHi = (hiR << 18) + (hiR << 2);
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, 0x3, ntv2_kona_fld_lut_12bit_plane_select);
+			tmpLo = (lo << 18) + (lo << 2);
+			tmpHi = (hi << 18) + (hi << 2);
 			ntv2_register_write(ntv2_reg, regR++, tmpLo);
 			ntv2_register_write(ntv2_reg, regR++, tmpLo);
 			ntv2_register_write(ntv2_reg, regR++, tmpHi);
 			ntv2_register_write(ntv2_reg, regR++, tmpHi);
+		}
 
-			/* green */
-			tmpLo = (loG << 18) + (loG << 2);
-			tmpHi = (hiG << 18) + (hiG << 2);
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, 0x2, ntv2_kona_fld_lut_12bit_plane_select);
+		/* green plane */
+		val = NTV2_FLD_SET(ntv2_kona_fld_lut_12bit_plane_select, 0x2);
+		mask = NTV2_FLD_MASK(ntv2_kona_fld_lut_12bit_plane_select);
+		ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
+		for (i = 0; i < words_per_table; i++) {
+			lo = (u32)(greenLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(greenLut[2 * i + 1]) & 0x3FF;
+
+			tmpLo = (lo << 18) + (lo << 2);
+			tmpHi = (hi << 18) + (hi << 2);
 			ntv2_register_write(ntv2_reg, regG++, tmpLo);
 			ntv2_register_write(ntv2_reg, regG++, tmpLo);
 			ntv2_register_write(ntv2_reg, regG++, tmpHi);
 			ntv2_register_write(ntv2_reg, regG++, tmpHi);
+		}
 
-			/* blue */
-			tmpLo = (loB << 18) + (loB << 2);
-			tmpHi = (hiB << 18) + (hiB << 2);
-			ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, 0x1, ntv2_kona_fld_lut_12bit_plane_select);
+		/* blue plane */
+		val = NTV2_FLD_SET(ntv2_kona_fld_lut_12bit_plane_select, 0x1);
+		mask = NTV2_FLD_MASK(ntv2_kona_fld_lut_12bit_plane_select);
+		ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_lut_v2_control, 0, val, mask);
+		for (i = 0; i < words_per_table; i++) {
+			lo = (u32)(blueLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(blueLut[2 * i + 1]) & 0x3FF;
+
+			tmpLo = (lo << 18) + (lo << 2);
+			tmpHi = (hi << 18) + (hi << 2);
 			ntv2_register_write(ntv2_reg, regB++, tmpLo);
 			ntv2_register_write(ntv2_reg, regB++, tmpLo);
 			ntv2_register_write(ntv2_reg, regB++, tmpHi);
 			ntv2_register_write(ntv2_reg, regB++, tmpHi);
-		} else {
-			tmpLo = (hiR << 22) + (loR << 6);
+		}
+	} else {
+		for (i = 0; i < words_per_table; i++) {
+			lo = (u32)(redLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(redLut[2 * i + 1]) & 0x3FF;
+			tmpLo = (hi << 22) + (lo << 6);
 			ntv2_register_write(ntv2_reg, regR++, tmpLo);
-			tmpLo = (hiG << 22) + (loG << 6);
+
+			lo = (u32)(greenLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(greenLut[2 * i + 1]) & 0x3FF;
+			tmpLo = (hi << 22) + (lo << 6);
 			ntv2_register_write(ntv2_reg, regG++, tmpLo);
-			tmpLo = (hiB << 22) + (loB << 6);
+
+			lo = (u32)(blueLut[2 * i + 0]) & 0x3FF;
+			hi = (u32)(blueLut[2 * i + 1]) & 0x3FF;
+			tmpLo = (hi << 22) + (lo << 6);
 			ntv2_register_write(ntv2_reg, regB++, tmpLo);
 		}
 	}

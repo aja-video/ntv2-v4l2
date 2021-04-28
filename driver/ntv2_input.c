@@ -406,9 +406,9 @@ int ntv2_input_get_input_format(struct ntv2_input *ntv2_inp,
 
 		result = ntv2_hdmi4k_stream_to_format(config, format);
 
-		NTV2_MSG_INPUT_STATE("%s: hdmi input standard %d  rate %d  frame %08x  pixel %08x\n",
-							 ntv2_inp->name, format->video_standard, format->frame_rate,
-							 format->frame_flags, format->pixel_flags);
+//		NTV2_MSG_INPUT_STATE("%s: hdmi input standard %d  rate %d  frame %08x  pixel %08x\n",
+//							 ntv2_inp->name, format->video_standard, format->frame_rate,
+//							 format->frame_flags, format->pixel_flags);
 	}
 
 	else {

@@ -102,9 +102,9 @@ struct ntv2_video_stream {
 	s64								stat_drop_count;
     s64								last_display_time;
 
-	u32								lut_red[1024];
-	u32								lut_green[1024];
-	u32								lut_blue[1024];
+	u16								lut_red[1024];
+	u16								lut_green[1024];
+	u16								lut_blue[1024];
 };
 
 struct ntv2_audio_stream {
