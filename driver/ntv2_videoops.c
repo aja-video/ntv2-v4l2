@@ -665,6 +665,7 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 {
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	struct ntv2_features *features = ntv2_chn->features;
+	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
 	struct ntv2_input_format *input_format = &stream->video.input_format;
 	struct ntv2_pixel_format *pixel_format = &stream->video.pixel_format;
 	struct ntv2_widget_config *csc_config = NULL;
@@ -672,10 +673,12 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 	int index = ntv2_chn->index;
 	int num_channels = 1;
 	int num_cscs = 1;
+	int lut_bank = 0;
 	int result = 0;
 	bool in_rgb = false;
 	bool fs_rgb = false;
 	bool do_csc = false;
+	int i = 0;
 
 	/* acquire input(s) */
 	if (input_format->type == ntv2_input_type_sdi) {
@@ -776,6 +779,20 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 
 		stream->video.lut_index = lut_config->widget_index;
 		stream->video.num_luts = lut_config->num_widgets;
+
+		/* sml: should the lut setup go here or in ntv2_videoops_setup_capture? */
+		for (i = 0; i < 1024; i++) {
+			stream->video.lut_red[i] = 1024; /* sml: test, looking for something obvious */
+			stream->video.lut_green[i] = i;
+			stream->video.lut_blue[i] = i;
+		}
+
+		lut_bank = ntv2_chn->index;
+		ntv2_lut_set_output_bank(vid_reg, stream->video.lut_index, lut_bank);
+		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
+		ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
+		ntv2_lut_write_10bit_tables(vid_reg, true, stream->video.lut_red, stream->video.lut_green, stream->video.lut_blue);
+		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, false);
 
 		NTV2_MSG_INFO("%s: acquire  lut %d  num %d\n", ntv2_chn->name,
 					  stream->video.lut_index, stream->video.num_luts);

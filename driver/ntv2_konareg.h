@@ -569,6 +569,7 @@ NTV2_FLD(ntv2_kona_fld_global_frame_rate_b3,			   	1,	22);
 NTV2_FLD(ntv2_kona_fld_global_quad_tsi_enable,				1,  24);
 NTV2_FLD(ntv2_kona_fld_sdiout1_rp188_enable,				1,	28);
 NTV2_FLD(ntv2_kona_fld_sdiout2_rp188_enable,				1,	29);
+NTV2_FLD(ntv2_kona_fld_cc_host_bank_select,					2,  30);
 
 /* global control 2 register */
 NTV2_REG(ntv2_kona_reg_global_control2,						267);
@@ -1589,6 +1590,39 @@ NTV2_FLD(ntv2_kona_fld_fb6_ds2_source,						8,	8);
 NTV2_FLD(ntv2_kona_fld_fb7_ds2_source,						8,	16);
 NTV2_FLD(ntv2_kona_fld_fb8_ds2_source,						8,	24);
 
+/* lut register */
+NTV2_REG(ntv2_kona_reg_color_correction_control1,			68);
+NTV2_FLD(ntv2_kona_fld_lut_select,							1, 29);
+
+NTV2_REG(ntv2_kona_reg_lut_v2_control,						376);
+NTV2_FLD(ntv2_kona_fld_lut1_enable,							1, 0);
+NTV2_FLD(ntv2_kona_fld_lut2_enable,							1, 1);
+NTV2_FLD(ntv2_kona_fld_lut3_enable,							1, 2);
+NTV2_FLD(ntv2_kona_fld_lut4_enable,							1, 3);
+NTV2_FLD(ntv2_kona_fld_lut5_enable,							1, 4);
+NTV2_FLD(ntv2_kona_fld_lut6_enable,							1, 5);
+NTV2_FLD(ntv2_kona_fld_lut7_enable,							1, 6);
+NTV2_FLD(ntv2_kona_fld_lut8_enable,							1, 7);
+NTV2_FLD(ntv2_kona_fld_lut1_host_access_bank_select,		1, 8);
+NTV2_FLD(ntv2_kona_fld_lut2_host_access_bank_select,		1, 9);
+NTV2_FLD(ntv2_kona_fld_lut3_host_access_bank_select,		1, 10);
+NTV2_FLD(ntv2_kona_fld_lut4_host_access_bank_select,		1, 11);
+NTV2_FLD(ntv2_kona_fld_lut5_host_access_bank_select,		1, 12);
+NTV2_FLD(ntv2_kona_fld_lut6_host_access_bank_select,		1, 13);
+NTV2_FLD(ntv2_kona_fld_lut7_host_access_bank_select,		1, 14);
+NTV2_FLD(ntv2_kona_fld_lut8_host_access_bank_select,		1, 15);
+NTV2_FLD(ntv2_kona_fld_lut1_out_bank_select,				1, 16);
+NTV2_FLD(ntv2_kona_fld_lut2_out_bank_select,				1, 17);
+NTV2_FLD(ntv2_kona_fld_lut3_out_bank_select,				1, 18);
+NTV2_FLD(ntv2_kona_fld_lut4_out_bank_select,				1, 19);
+NTV2_FLD(ntv2_kona_fld_lut5_out_bank_select,				1, 20);
+NTV2_FLD(ntv2_kona_fld_lut6_out_bank_select,				1, 21);
+NTV2_FLD(ntv2_kona_fld_lut7_out_bank_select,				1, 22);
+NTV2_FLD(ntv2_kona_fld_lut8_out_bank_select,				1, 23);
+NTV2_FLD(ntv2_kona_fld_lut_12bit_plane_select,				2, 24);
+NTV2_FLD(ntv2_kona_fld_lut_12bit_support,					1, 28);
+
+
 void ntv2_kona_register_initialize(void);
 
 const char* ntv2_video_standard_name(u32 standard);
@@ -1642,6 +1676,12 @@ void ntv2_read_sdi_input_status(struct ntv2_register *ntv2_reg, int index,
 								struct ntv2_sdi_input_status *input_status);
 void ntv2_read_aes_input_status(struct ntv2_register* ntv2_reg, int index,
 								struct ntv2_aes_input_status *input_status);
+
+void ntv2_lut_set_enable(struct ntv2_register *ntv2_reg, int index, bool enable);
+void ntv2_lut_set_output_bank(struct ntv2_register *ntv2_reg, int index, int bank);
+void ntv2_lut_set_color_correction_host_access_bank_v1(struct ntv2_register *ntv2_reg, int channel, int bank);
+void ntv2_lut_set_color_correction_host_access_bank_v2(struct ntv2_register *ntv2_reg, int channel, int bank);
+void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit, u32 *redLut, u32 *greenLut, u32 *blueLut);
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,
 						  int sdi_index, int sdi_stream, bool sdi_rgb,
