@@ -769,18 +769,119 @@ static int ntv2_s_register (struct file *file, void *priv,
 }
 #endif
 
+int32_t ntv2_fp_make(int32_t val, int32_t frac)
+{
+	int32_t fp;
+	fp = ((val&0xffff) << 16) + (frac&0xffff);
+	return fp;
+}
+
+int16_t ntv2_fp_round(int32_t in_fp)
+{
+	int16_t retValue;
+
+	if ( in_fp < 0 )
+	{
+	  retValue = (int16_t)(-((-in_fp+0x8000)>>16));
+	}
+	else
+	{
+	  retValue = (int16_t)((in_fp + 0x8000)>>16);
+	}
+	return retValue;
+}
+
+int32_t ntv2_fp_frac(int32_t in_fp)
+{
+  int32_t retValue;
+
+  if ( in_fp < 0 )
+  {
+	retValue = -in_fp&0xffff;
+  }
+  else
+  {
+	retValue = in_fp&0xffff;
+  }
+
+  return retValue;
+}
+
+int32_t ntv2_fp_trunc(int32_t in_fp)
+{
+  return (in_fp>>16);
+}
+
+int16_t ntv2_fp_mix(int16_t min, int16_t max, int32_t mixer)
+{
+	int32_t result = (max-min)*mixer+min;
+	return ntv2_fp_round(result);
+}
+
+int32_t ntv2_fp_mul16(int32_t x, int32_t y)
+{
+	return ((int64_t)x * (int64_t)y) >> 16;
+}
+
+int32_t ntv2_fp_div16(int32_t x, int32_t y)
+{
+	return ((int64_t)x * (1 << 16)) / y;
+}
+
+#define ntv2_max(x,y)     (((x) > (y)) ? (x):(y))
+#define ntv2_min(x,y)     (((x) > (y)) ? (y):(x))
+#define ntv2_clamp(x,y,z) (ntv2_min(ntv2_max((x),(y)),(z)))
+
 /* 
  * The control handler
  */
 static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 {
-	/*struct ntv2_video *ntv2_vid =
-		container_of(ctrl->handler, struct ntv2_video, ctrl_handler);*/
+	struct ntv2_video *ntv2_vid =
+		container_of(ctrl->handler, struct ntv2_video, ctrl_handler);
+
+	struct ntv2_channel_stream *stream = ntv2_vid->vid_str;
+	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
+
+	int32_t fp_maxVal = ntv2_fp_make(1024, 0);
+	int32_t fp_val = 0;
+	int32_t fp_range;
+	int32_t fp_percentage;
+	int32_t fp_result;
+	int32_t int_result;
+	int lut_bank = ntv2_chn->index;
+	int i=0;
 
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
+		stream->video.brightness = ctrl->val;
+
+		fp_val = ntv2_fp_make(ctrl->val, 0);
+		fp_range  = ntv2_fp_make(ctrl->maximum - ctrl->minimum, 0);
+		fp_percentage = ntv2_fp_div16(fp_val, fp_range);
+		fp_result = ntv2_fp_mul16(fp_maxVal, fp_percentage);
+		int_result = ntv2_fp_round(fp_result);
+		NTV2_MSG_INFO("%s in ntv2_s_ctrl V4l2_CID_BRIGHTNESS, value = %d, lift value = %d", "sean", ctrl->val, int_result);
+
+		for (i = 0; i < 1024; i++) {
+			stream->video.lut_red[i]   = (u16)ntv2_clamp(0, i + int_result, 1023);
+			stream->video.lut_green[i] = (u16)ntv2_clamp(0, i + int_result, 1023);
+			stream->video.lut_blue[i]  = (u16)ntv2_clamp(0, i + int_result, 1023);
+		}
+		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
+		ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
+		ntv2_lut_write_10bit_tables(vid_reg, true, stream->video.lut_red, stream->video.lut_green, stream->video.lut_blue);
+		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, false);
 		break;
-	case V4L2_CID_CONTRAST:
+	case V4L2_CID_GAMMA:
+		stream->video.gamma = ctrl->val;
+
+		fp_val = ntv2_fp_make(ctrl->val, 0);
+		fp_range = ntv2_fp_make(100, 0);
+		fp_result = ntv2_fp_div16(fp_val, fp_range);
+		int_result = ntv2_fp_round(fp_result);
+		NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAMMA, value = %d, gamma value = %d", "sean", ctrl->val, int_result);
 		break;
 	case V4L2_CID_SATURATION:
 		break;
@@ -896,9 +997,9 @@ int ntv2_v4l2ops_configure(struct ntv2_video *ntv2_vid)
 
 	/* add the controls */
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_BRIGHTNESS, 0, 255, 1, 127);
+			  V4L2_CID_BRIGHTNESS, -100, 100, 1, 0);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_CONTRAST, 0, 255, 1, 16);
+			  V4L2_CID_GAMMA, 0, 200, 1, 100);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
 			  V4L2_CID_SATURATION, 0, 255, 1, 127);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
@@ -910,7 +1011,9 @@ int ntv2_v4l2ops_configure(struct ntv2_video *ntv2_vid)
 	}
 
 	/* assign v4l2 ctrl handler */
-//	ntv2_vid->v4l2_dev.ctrl_handler = hdl;
+	ntv2_vid->v4l2_dev.ctrl_handler = hdl;
+
+	v4l2_ctrl_handler_setup(hdl);
 
 	/* assign video ops */
 	video_dev = &ntv2_vid->video_dev;
