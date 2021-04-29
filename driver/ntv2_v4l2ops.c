@@ -769,6 +769,21 @@ static int ntv2_s_register (struct file *file, void *priv,
 }
 #endif
 
+/*
+	A bunch of this fixed point code was lifted from libfixmath
+	https://github.com/PetteriAimonen/libfixmath
+
+	it is MIT licensed
+	eventually this code needs to go in its own file
+*/
+
+static const int32_t ntv2_fp16_maximum  = 0x7FFFFFFF; /*!< the maximum value of fp16 */
+static const int32_t ntv2_fp16_minimum  = 0x80000000; /*!< the minimum value of fp16 */
+static const int32_t ntv2_fp16_max_positive = 0x7FFeFFFF; /*!< the minimum value of fp16 */
+static const int32_t ntv2_fp16_overflow = 0x80000000; /*!< the value used to indicate overflows when FIXMATH_NO_OVERFLOW is not specified */
+static const int32_t ntv2_fp16_one = 0x00010000; /*!< fp16 value of 1 */
+static const int32_t ntv2_fp16_e   = 178145;     /*!< fp16 value of e */
+
 int32_t ntv2_fp_make(int32_t val, int32_t frac)
 {
 	int32_t fp;
@@ -820,12 +835,232 @@ int16_t ntv2_fp_mix(int16_t min, int16_t max, int32_t mixer)
 
 int32_t ntv2_fp_mul16(int32_t x, int32_t y)
 {
-	return ((int64_t)x * (int64_t)y) >> 16;
+	int64_t product = (int64_t)x * (int64_t)y;
+	int32_t result = (int32_t)(product >> 16);
+	bool negative_x = (bool)(x & ntv2_fp16_overflow);
+	bool negative_y = (bool)(y & ntv2_fp16_overflow);
+	bool negative_result = negative_x != negative_y;
+
+	if (!negative_result && (result == ntv2_fp16_maximum || result & ntv2_fp16_overflow))
+	{
+		//over flow, clamp to max positive number
+		result = 0x7ffeffff;
+	}
+
+	return result;
 }
 
 int32_t ntv2_fp_div16(int32_t x, int32_t y)
 {
 	return ((int64_t)x * (1 << 16)) / y;
+}
+
+int32_t ntv2_fp_sqrt(int32_t inValue)
+{
+	uint8_t  neg = (inValue < 0);
+	uint32_t num = (neg ? -inValue : inValue);
+	uint32_t result = 0;
+	uint32_t bit;
+	uint8_t  n;
+
+	// Many numbers will be less than 15, so
+	// this gives a good balance between time spent
+	// in if vs. time spent in the while loop
+	// when searching for the starting value.
+	if (num & 0xFFF00000)
+		bit = (uint32_t)1 << 30;
+	else
+		bit = (uint32_t)1 << 18;
+
+	while (bit > num) bit >>= 2;
+
+	// The main part is executed twice, in order to avoid
+	// using 64 bit values in computations.
+	for (n = 0; n < 2; n++)
+	{
+		// First we get the top 24 bits of the answer.
+		while (bit)
+		{
+			if (num >= result + bit)
+			{
+				num -= result + bit;
+				result = (result >> 1) + bit;
+			}
+			else
+			{
+				result = (result >> 1);
+			}
+			bit >>= 2;
+		}
+
+		if (n == 0)
+		{
+			// Then process it again to get the lowest 8 bits.
+			if (num > 65535)
+			{
+				// The remainder 'num' is too large to be shifted left
+				// by 16, so we have to add 1 to result manually and
+				// adjust 'num' accordingly.
+				// num = a - (result + 0.5)^2
+				//	 = num + result^2 - (result + 0.5)^2
+				//	 = num - result - 0.5
+				num -= result;
+				num = (num << 16) - 0x8000;
+				result = (result << 16) + 0x8000;
+			}
+			else
+			{
+				num <<= 16;
+				result <<= 16;
+			}
+
+			bit = 1 << 14;
+		}
+	}
+
+	// Finally, if next bit would have been 1, round the result upwards.
+	if (num > result)
+	{
+		result++;
+	}
+
+	return (neg ? -(int32_t)result : (int32_t)result);
+}
+
+int32_t ntv2_fp_exp16(int32_t inValue)
+{
+	bool neg;
+	int32_t result;
+	int32_t term;
+	uint8_t i;
+
+	if(inValue == 0        ) return ntv2_fp16_one;
+	if(inValue == ntv2_fp16_one) return ntv2_fp16_e;
+	if(inValue >= 681391   ) return ntv2_fp16_maximum;
+	if(inValue <= -772243  ) return 0;
+
+	/* The algorithm is based on the power series for exp(x):
+	 * http://en.wikipedia.org/wiki/Exponential_function#Formal_definition
+	 *
+	 * From term n, we get term n+1 by multiplying with x/n.
+	 * When the sum term drops to zero, we can stop summing.
+	 */
+
+	// The power-series converges much faster on positive values
+	// and exp(-x) = 1/exp(x).
+	neg = (inValue < 0);
+	if (neg) inValue = -inValue;
+
+	result = inValue + ntv2_fp16_one;
+	term = inValue;
+
+	for (i = 2; i < 30; i++)
+	{
+		term = ntv2_fp_mul16(term, ntv2_fp_div16(inValue, ntv2_fp_make(i, 0)));
+		result += term;
+
+		if ((term < 500) && ((i > 15) || (term < 20)))
+			break;
+	}
+
+	if (neg) result = ntv2_fp_div16(ntv2_fp16_one, result);
+
+	return result;
+}
+
+int32_t ntv2_fp_log16(int32_t inValue)
+{
+	const int32_t e_to_fourth = 3578144;
+	int32_t guess = ntv2_fp_make(2, 0);
+	int32_t delta;
+	int scaling = 0;
+	int count = 0;
+	int32_t e = 0;
+
+	if (inValue <= 0)
+		return ntv2_fp16_minimum;
+
+	// Bring the value to the most accurate range (1 < x < 100)
+	while (inValue > ntv2_fp_make(100, 0))
+	{
+		inValue = ntv2_fp_div16(inValue, e_to_fourth);
+		scaling += 4;
+	}
+
+	while (inValue < ntv2_fp16_one)
+	{
+		inValue = ntv2_fp_mul16(inValue, e_to_fourth);
+		scaling -= 4;
+	}
+
+	do
+	{
+		// Solving e(x) = y using Newton's method
+		// f(x) = e(x) - y
+		// f'(x) = e(x)
+		e = ntv2_fp_exp16(guess);
+		delta = ntv2_fp_div16(inValue - e, e);
+
+		// It's unlikely that logarithm is very large, so avoid overshooting.
+		if (delta > ntv2_fp_make(3, 0))
+			delta = ntv2_fp_make(3, 0);
+
+		guess += delta;
+	} while ((count++ < 10)
+		&& ((delta > 1) || (delta < -1)));
+
+	return guess + ntv2_fp_make(scaling, 0);
+}
+
+int32_t ntv2_fp_pow16(int32_t fp_x, int32_t fp_y)
+{
+	int32_t result;
+	bool negative_x;
+
+	if (fp_x == 0) return 0;
+
+	result = ntv2_fp_exp16(ntv2_fp_mul16(fp_y, ntv2_fp_log16(fp_x)));
+	negative_x = (bool)(fp_x & ntv2_fp16_overflow);
+
+	if (!negative_x && (result == ntv2_fp16_maximum))
+	{
+		//over flow, clamp to max positive number
+		result = 0x7ffeffff;
+	}
+
+	return result;
+}
+
+int32_t ntv2_fp_lift_gamma_gain(int32_t input_val, int32_t fp16_lift, int32_t fp16_gamma, int32_t fp16_gain)
+{
+	// pow(input, gamma) * gain + lift
+	int32_t fp_val;
+	int32_t fp_gamma_part;
+	int32_t fp_gamma_gain;
+	int32_t fp_result;
+
+	fp_val = ntv2_fp_make(input_val, 0);
+	fp_gamma_part = ntv2_fp_pow16(fp_val, fp16_gamma);
+	if (fp_gamma_part >= ntv2_fp16_max_positive && (fp16_gain >> 16))
+	{
+		// multiplying the maximum positive with a multiplier over 1 will overflow
+		return ntv2_fp16_max_positive;
+	}
+	fp_gamma_gain = ntv2_fp_mul16(fp_gamma_part, fp16_gain);
+	if (fp_gamma_gain >= ntv2_fp16_max_positive || (fp_gamma_gain & ntv2_fp16_overflow))
+	{
+		// catch any overflows from multiplication
+		return ntv2_fp16_max_positive;
+	}
+
+	fp_result = fp_gamma_gain + fp16_lift;
+	if (fp16_lift > 0 && fp_result < 0)
+	{
+		// if lift is positive and result is negative got an overflow
+		fp_result = ntv2_fp16_max_positive;
+	}
+
+	return fp_result;
 }
 
 #define ntv2_max(x,y)     (((x) > (y)) ? (x):(y))
@@ -856,32 +1091,34 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
 		stream->video.brightness = ctrl->val;
-
 		fp_val = ntv2_fp_make(ctrl->val, 0);
 		fp_range  = ntv2_fp_make(ctrl->maximum - ctrl->minimum, 0);
 		fp_percentage = ntv2_fp_div16(fp_val, fp_range);
 		fp_result = ntv2_fp_mul16(fp_maxVal, fp_percentage);
-		int_result = ntv2_fp_round(fp_result);
-		NTV2_MSG_INFO("%s in ntv2_s_ctrl V4l2_CID_BRIGHTNESS, value = %d, lift value = %d", "sean", ctrl->val, int_result);
+		stream->video.brightness_fp16 = fp_result;
 
-		for (i = 0; i < 1024; i++) {
-			stream->video.lut_red[i]   = (u16)ntv2_clamp(0, i + int_result, 1023);
-			stream->video.lut_green[i] = (u16)ntv2_clamp(0, i + int_result, 1023);
-			stream->video.lut_blue[i]  = (u16)ntv2_clamp(0, i + int_result, 1023);
-		}
-		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
-		ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
-		ntv2_lut_write_10bit_tables(vid_reg, true, stream->video.lut_red, stream->video.lut_green, stream->video.lut_blue);
-		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, false);
+		//int_result = ntv2_fp_round(fp_result);
+		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4l2_CID_BRIGHTNESS, value = %d, lift value = %d", "sean", ctrl->val, int_result);
 		break;
 	case V4L2_CID_GAMMA:
 		stream->video.gamma = ctrl->val;
-
 		fp_val = ntv2_fp_make(ctrl->val, 0);
 		fp_range = ntv2_fp_make(100, 0);
 		fp_result = ntv2_fp_div16(fp_val, fp_range);
-		int_result = ntv2_fp_round(fp_result);
-		NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAMMA, value = %d, gamma value = %d", "sean", ctrl->val, int_result);
+		stream->video.gamma_fp16 = fp_result;
+
+		//int_result = ntv2_fp_round(fp_result);
+		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAMMA, value = %d, gamma value = %d, gamma value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
+		break;
+	case V4L2_CID_GAIN:
+		stream->video.gain = ctrl->val;
+		fp_val = ntv2_fp_make(ctrl->val, 0);
+		fp_range = ntv2_fp_make(100, 0);
+		fp_result = ntv2_fp_div16(fp_val, fp_range);
+		stream->video.gain_fp16 = fp_result;
+
+		//int_result = ntv2_fp_round(fp_result);
+		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAIN, value = %d, gain value = %d, gain value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_SATURATION:
 		break;
@@ -890,6 +1127,22 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	default:
 		return -EINVAL;
 	}
+
+	// calculate LUTs
+	for (i = 0; i < 1024; i++) {
+		fp_result = ntv2_fp_lift_gamma_gain(i,
+											stream->video.brightness_fp16,
+											stream->video.gamma_fp16,
+											stream->video.gain_fp16);
+		int_result = ntv2_fp_round(fp_result);
+		stream->video.lut_red[i]   = (u16)ntv2_clamp(0, int_result, 1023);
+		stream->video.lut_green[i] = (u16)ntv2_clamp(0, int_result, 1023);
+		stream->video.lut_blue[i]  = (u16)ntv2_clamp(0, int_result, 1023);
+	}
+	ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
+	ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
+	ntv2_lut_write_10bit_tables(vid_reg, true, stream->video.lut_red, stream->video.lut_green, stream->video.lut_blue);
+	ntv2_lut_set_enable(vid_reg, stream->video.lut_index, false);
 
 	return 0;
 }
@@ -1000,6 +1253,8 @@ int ntv2_v4l2ops_configure(struct ntv2_video *ntv2_vid)
 			  V4L2_CID_BRIGHTNESS, -100, 100, 1, 0);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
 			  V4L2_CID_GAMMA, 0, 200, 1, 100);
+	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+			  V4L2_CID_GAIN, 0, 200, 1, 100);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
 			  V4L2_CID_SATURATION, 0, 255, 1, 127);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,

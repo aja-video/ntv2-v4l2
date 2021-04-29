@@ -93,7 +93,11 @@ struct ntv2_video_stream {
 	int								lut_index;
 	int								num_luts;
 	int								brightness;
+	int32_t							brightness_fp16;
 	int								gamma;
+	int32_t							gamma_fp16;
+	int								gain;
+	int32_t							gain_fp16;
 
 	struct ntv2_stream_data			*frame_active;
 	struct ntv2_stream_data			*frame_next;
