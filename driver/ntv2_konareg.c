@@ -1394,6 +1394,9 @@ void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit,
 	u32 regB = (has_12bit ? 0xe000 : 0x1800) / 4;
 	u32 val, mask;
 
+	if (ntv2_reg == NULL)
+		return;
+
 	if (has_12bit) {
 		/* red plane */
 		val = NTV2_FLD_SET(ntv2_kona_fld_lut_12bit_plane_select, 0x3);
@@ -1460,6 +1463,124 @@ void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit,
 			ntv2_register_write(ntv2_reg, regB++, tmpLo);
 		}
 	}
+}
+
+void ntv2_csc_matrix_initialize(struct ntv2_csc_matrix *matrix, int matrix_type)
+{
+	if (matrix == NULL)
+		return;
+
+	switch(matrix_type) {
+		default:
+		case ntv2_kona_enhanced_csc_matrix_type_unity:
+			matrix->a0 = 1;
+			matrix->a1 = 0;
+			matrix->a2 = 0;
+			matrix->b0 = 0;
+			matrix->b1 = 1;
+			matrix->b2 = 0;
+			matrix->c0 = 0;
+			matrix->c1 = 0;
+			matrix->c2 = 1;
+
+			matrix->pre_offset0 = 0x0000;
+			matrix->pre_offset1 = 0x0000;
+			matrix->pre_offset2 = 0x0000;
+
+			matrix->post_offsetA = 0x0000;
+			matrix->post_offsetB = 0x0000;
+			matrix->post_offsetC = 0x0000;
+			break;
+		case ntv2_kona_enhanced_csc_matrix_type_rec709:
+		case ntv2_kona_enhanced_csc_matrix_type_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_custom:
+		case ntv2_kona_enhanced_csc_matrix_type_unity_smpte:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec709:
+			/* todo update to fixed point math */
+			matrix->a0 = 0; //  0.612427;
+			matrix->a1 = 0; //  0.061829;
+			matrix->a2 = 0; //  0.182068;
+			matrix->b0 = 0; // -0.337585;
+			matrix->b1 = 0; //  0.437927;
+			matrix->b2 = 0; // -0.100342;
+			matrix->c0 = 0; // -0.397766;
+			matrix->c1 = 0; // -0.040161;
+			matrix->c2 = 0; //  0.437927;
+
+			matrix->pre_offset0 = 0x0000;
+			matrix->pre_offset1 = 0x0000;
+			matrix->pre_offset2 = 0x0000;
+
+			matrix->post_offsetA = 0x0800;
+			matrix->post_offsetB = 0x0800;
+			matrix->post_offsetC = 0x0800;
+			break;
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec709:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec709:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec709:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec601_to_ycbcr_rec709:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec709_to_ycbcr_rec601:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_gbr_smpte:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_gbr_full:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec2020:
+		case ntv2_kona_enhanced_csc_matrix_type_gbr_smptr_to_ycbcr_rec2020:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec2020:
+		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec2020:
+		/* sml: todo */
+		break;
+	}
+}
+
+void ntv2_csc_set_method(struct ntv2_register *ntv2_reg, int index, int method)
+{
+	u32 val, mask;
+	bool write = true;
+
+	if ((ntv2_reg == NULL) ||
+		(index < 0) ||
+		(index > 7))
+		return;
+
+	switch(method) {
+		default:
+		case ntv2_kona_color_space_method_unimplemented:
+			write = false;
+			break;
+		case ntv2_kona_color_space_method_original:
+			val = 0;
+			break;
+		case ntv2_kona_color_space_method_enhanced:
+			val = NTV2_FLD_SET(ntv2_kona_fld_enhanced_csc_enabled, 0x1);
+			break;
+		case ntv2_kona_color_space_method_enhanced_4k:
+			val  = NTV2_FLD_SET(ntv2_kona_fld_enhanced_csc_enabled, 0x1);
+			val |= NTV2_FLD_SET(ntv2_kona_fld_enhanced_csc_4k_mode, 0x1);
+			break;
+	}
+
+	if (write) {
+		mask  = NTV2_FLD_MASK(ntv2_kona_fld_enhanced_csc_enabled);
+		mask |= NTV2_FLD_MASK(ntv2_kona_fld_enhanced_csc_4k_mode);
+		ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_enhanced_csc, index, val, mask);
+	}
+}
+
+void ntv2_csc_use_custom_coefficient(struct ntv2_register *ntv2_reg, int index, bool use)
+{
+	u32 val, mask;
+
+	if ((ntv2_reg == NULL) ||
+		(index < 0) ||
+		(index > 7))
+		return;
+
+	val = NTV2_FLD_SET(ntv2_kona_fld_csc_use_custom_coefficient, (int)use);
+	mask = NTV2_FLD_MASK(ntv2_kona_fld_csc_use_custom_coefficient);
+	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_csc_coefficients_1_2, index, val, mask);
 }
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,

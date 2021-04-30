@@ -796,6 +796,18 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 
 		NTV2_MSG_INFO("%s: acquire  lut %d  num %d\n", ntv2_chn->name,
 					  stream->video.lut_index, stream->video.num_luts);
+
+		/* setup enhanced csc for hue and saturation conversion */
+		ntv2_csc_set_method(vid_reg, stream->video.csc_index+1, ntv2_kona_color_space_method_enhanced);
+		ntv2_csc_use_custom_coefficient(vid_reg, stream->video.csc_index+1, false);
+
+		stream->video.enhanced_csc.input_pixel_format = ntv2_kona_enhanced_csc_pixel_format_rgb444;
+		stream->video.enhanced_csc.output_pixel_format = ntv2_kona_enhanced_csc_pixel_format_ycbcr422;
+		stream->video.enhanced_csc.chroma_filter_select = ntv2_kona_enhanced_csc_chroma_filter_select_full;
+		stream->video.enhanced_csc.chroma_edge_control = ntv2_kona_enhanced_csc_chroma_edge_control_black;
+		ntv2_csc_matrix_initialize(&stream->video.enhanced_csc.matrix, ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec709);
+		// send csc to hardware, sml: todo
+
 	}
 
 	return 0;

@@ -393,6 +393,44 @@ struct ntv2_module {
 	atomic_t					cdev_index;
 };
 
+struct ntv2_csc_matrix {
+	// in ntv2 these are all doubles, need to use fixed point math
+	s32 a0;
+	s32 a1;
+	s32 a2;
+
+	s32 b0;
+	s32 b1;
+	s32 b2;
+
+	s32 c0;
+	s32 c1;
+	s32 c2;
+
+	s16 pre_offset0;
+	s16 pre_offset1;
+	s16 pre_offset2;
+
+	s16 post_offsetA;
+	s16 post_offsetB;
+	s16 post_offsetC;
+
+	int	preset;
+};
+
+struct ntv2_enhanced_csc {
+	int	input_pixel_format;
+	int output_pixel_format;
+	int chroma_filter_select;
+	int chroma_edge_control;
+	int key_source;
+	int key_output_range;
+	s16 key_input_offset;
+	u32 key_output_offset;
+	s32	key_gain; // will need to use fixed point math (originally a double in ntv2)
+	struct ntv2_csc_matrix matrix;
+};
+
 void ntv2_module_initialize(void);
 void ntv2_module_release(void);
 

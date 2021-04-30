@@ -182,4 +182,3 @@ void ntv2_free_scatterlist(struct sg_table *sgt)
 
 	sg_free_table(sgt);
 }
-

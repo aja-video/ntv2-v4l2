@@ -82,6 +82,7 @@ struct ntv2_video_stream {
 	struct ntv2_video_format		video_format;
 	struct ntv2_pixel_format		pixel_format;
 	struct ntv2_input_format		input_format;
+	struct ntv2_enhanced_csc		enhanced_csc;
 
 	u32								frame_first;
 	u32								frame_last;

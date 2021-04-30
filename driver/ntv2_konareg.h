@@ -1,4 +1,4 @@
-/*
+﻿/*
  * NTV2 video/audio register constants
  *
  * Copyright 2016 AJA Video Systems Inc. All rights reserved.
@@ -127,6 +127,45 @@ NTV2_CON(ntv2_kona_color_space_rgb444,						1);
 NTV2_CON(ntv2_kona_color_space_yuv444,						2);
 NTV2_CON(ntv2_kona_color_space_yuv420,						3);
 NTV2_CON(ntv2_kona_color_space_none,						4);
+
+NTV2_CON(ntv2_kona_color_space_method_unimplemented,		0);
+NTV2_CON(ntv2_kona_color_space_method_original,				1);
+NTV2_CON(ntv2_kona_color_space_method_enhanced,				2);
+NTV2_CON(ntv2_kona_color_space_method_enhanced_4k,			3);
+
+NTV2_CON(ntv2_kona_enhanced_csc_pixel_format_rgb444,		0);
+NTV2_CON(ntv2_kona_enhanced_csc_pixel_format_ycbcr444,		1);
+NTV2_CON(ntv2_kona_enhanced_csc_pixel_format_ycbcr422,		2);
+
+NTV2_CON(ntv2_kona_enhanced_csc_chroma_filter_select_full,	0);
+NTV2_CON(ntv2_kona_enhanced_csc_chroma_filter_select_simple,1);
+NTV2_CON(ntv2_kona_enhanced_csc_chroma_filter_select_none,	2);
+
+NTV2_CON(ntv2_kona_enhanced_csc_chroma_edge_control_black,	0);
+NTV2_CON(ntv2_kona_enhanced_csc_chroma_edge_control_extended,1);
+
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_rec709,							0);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_rec601,							1);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_custom,							2);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_unity,							3);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_unity_smpte,					4);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec709,		5);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec601,		6);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec709,		7);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec601,		8);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec709,		9);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec601,		10);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec709,		11);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec601,		12);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec601_to_ycbcr_rec709,	13);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec709_to_ycbcr_rec601,	14);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_gbr_smpte,			15);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_gbr_full,			16);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec2020,		17);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_gbr_smptr_to_ycbcr_rec2020,		18);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec2020,		19);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec2020,		20);
+NTV2_CON(ntv2_kona_enhanced_csc_matrix_type_invalid,						21);
 
 /* color depth */
 NTV2_CON(ntv2_kona_color_depth_8bit,						0);
@@ -1622,6 +1661,17 @@ NTV2_FLD(ntv2_kona_fld_lut8_out_bank_select,				1, 23);
 NTV2_FLD(ntv2_kona_fld_lut_12bit_plane_select,				2, 24);
 NTV2_FLD(ntv2_kona_fld_lut_12bit_support,					1, 28);
 
+/* enhanced csc registers */
+NTV2_REG(ntv2_kona_reg_enhanced_csc,						5120, 5184, 5248, 5312, 5376, 5440, 5504, 5568);
+NTV2_FLD(ntv2_kona_fld_enhanced_csc_4k_mode,				1, 28);
+NTV2_FLD(ntv2_kona_fld_enhanced_csc_enabled,				1, 29);
+
+NTV2_REG(ntv2_kona_reg_csc_coefficients_1_2,				142, 147, 291, 296, 347, 460, 465, 470);
+NTV2_REG(ntv2_kona_reg_csc_coefficients_3_4,				143, 148, 292, 297, 348, 461, 466, 471);
+NTV2_REG(ntv2_kona_reg_csc_coefficients_5_6,				144, 149, 293, 298, 349, 462, 467, 472);
+NTV2_REG(ntv2_kona_reg_csc_coefficients_7_8,				145, 150, 294, 299, 350, 463, 468, 473);
+NTV2_REG(ntv2_kona_reg_csc_coefficients_9_10,				146, 151, 295, 300, 351, 464, 469, 474);
+NTV2_FLD(ntv2_kona_fld_csc_use_custom_coefficient,			1, 31);
 
 void ntv2_kona_register_initialize(void);
 
@@ -1682,6 +1732,10 @@ void ntv2_lut_set_output_bank(struct ntv2_register *ntv2_reg, int index, int ban
 void ntv2_lut_set_color_correction_host_access_bank_v2(struct ntv2_register *ntv2_reg, int channel, int bank);
 void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit, u16* redLut, u16* greenLut, u16* blueLut);
 
+void ntv2_csc_matrix_initialize(struct ntv2_csc_matrix *matrix, int matrix_type);
+void ntv2_csc_set_method(struct ntv2_register *ntv2_reg, int index, int method);
+void ntv2_csc_use_custom_coefficient(struct ntv2_register *ntv2_reg, int index, bool use);
+
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,
 						  int sdi_index, int sdi_stream, bool sdi_rgb,
 						  int fs_index, int fs_stream);
@@ -1718,5 +1772,4 @@ void ntv2_route_mux_to_fs(struct ntv2_register* ntv2_reg,
 void ntv2_route_lut_to_csc(struct ntv2_register* ntv2_reg,
 						   int lut_index, int lut_stream,
 						   int csc_index, int csc_stream);
-
 #endif
