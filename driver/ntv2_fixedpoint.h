@@ -30,6 +30,7 @@ static const ntv2_fp16 ntv2_fp16_max_positive = 0x7FFeFFFF;
 static const ntv2_fp16 ntv2_fp16_overflow = 0x80000000;
 static const ntv2_fp16 ntv2_fp16_one = 0x00010000;
 static const ntv2_fp16 ntv2_fp16_e   = 178145;
+static const ntv2_fp16 ntv2_fp16_pi  = 205887;
 
 ntv2_fp16 ntv2_fp16_init(s32 val, s32 frac);
 s16 ntv2_fp16_round(ntv2_fp16 val);
@@ -41,5 +42,8 @@ ntv2_fp16 ntv2_fp16_sqrt(ntv2_fp16 val);
 ntv2_fp16 ntv2_fp16_exp(ntv2_fp16 val);
 ntv2_fp16 ntv2_fp16_ln(ntv2_fp16 val);
 ntv2_fp16 ntv2_fp16_pow(ntv2_fp16 x, ntv2_fp16 y);
+ntv2_fp16 ntv2_fp16_sin(ntv2_fp16 angle);
+ntv2_fp16 ntv2_fp16_cos(ntv2_fp16 angle);
+ntv2_fp16 ntv2_fp16_tan(ntv2_fp16 angle);
 
 #endif

@@ -267,3 +267,41 @@ ntv2_fp16 ntv2_fp16_pow(ntv2_fp16 x, ntv2_fp16 y)
 
 	return result;
 }
+
+ntv2_fp16 ntv2_fp16_sin(ntv2_fp16 angle)
+{
+	ntv2_fp16 temp_angle = angle % (ntv2_fp16_pi << 1);
+	ntv2_fp16 temp_angle_sq;
+	ntv2_fp16 result;
+
+	if(temp_angle > ntv2_fp16_pi)
+		temp_angle -= (ntv2_fp16_pi << 1);
+	else if(temp_angle < -ntv2_fp16_pi)
+		temp_angle += (ntv2_fp16_pi << 1);
+
+	temp_angle_sq = ntv2_fp16_mul(temp_angle, temp_angle);
+
+	result = temp_angle;
+	temp_angle = ntv2_fp16_mul(temp_angle, temp_angle_sq);
+	result -= (temp_angle / 6);
+	temp_angle = ntv2_fp16_mul(temp_angle, temp_angle_sq);
+	result += (temp_angle / 120);
+	temp_angle = ntv2_fp16_mul(temp_angle, temp_angle_sq);
+	result -= (temp_angle / 5040);
+	temp_angle = ntv2_fp16_mul(temp_angle, temp_angle_sq);
+	result += (temp_angle / 362880);
+	temp_angle = ntv2_fp16_mul(temp_angle, temp_angle_sq);
+	result -= (temp_angle / 39916800);
+
+	return result;
+}
+
+ntv2_fp16 ntv2_fp16_cos(ntv2_fp16 angle)
+{
+	return ntv2_fp16_sin(angle + (ntv2_fp16_pi >> 1));
+}
+
+ntv2_fp16 ntv2_fp16_tan(ntv2_fp16 angle)
+{
+	return ntv2_fp16_div(ntv2_fp16_sin(angle), ntv2_fp16_cos(angle));
+}
