@@ -21,6 +21,7 @@
 #define NTV2_CHANNEL_H
 
 #include "ntv2_common.h"
+#include "ntv2_enhcsc.h"
 
 #define NTV2_MAX_CHANNEL_STREAMS		8
 #define NTV2_MAX_CHANNEL_BUFFERS		64
@@ -94,11 +95,15 @@ struct ntv2_video_stream {
 	int								lut_index;
 	int								num_luts;
 	int								brightness;
-	int32_t							brightness_fp16;
+	ntv2_fp16						brightness_fp16;
 	int								gamma;
-	int32_t							gamma_fp16;
+	ntv2_fp16						gamma_fp16;
 	int								gain;
-	int32_t							gain_fp16;
+	ntv2_fp16						gain_fp16;
+	int								saturation;
+	ntv2_fp16						saturation_fp16;
+	int								hue;
+	ntv2_fp16						hue_fp16;
 
 	struct ntv2_stream_data			*frame_active;
 	struct ntv2_stream_data			*frame_next;

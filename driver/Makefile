@@ -46,7 +46,8 @@ DRIVERSRCS 		=	ntv2_driver.c \
 					ntv2_serial.c \
 					ntv2_mixops.c \
 					ntv2_chrdev.c \
-					ntv2_fixedpoint.c
+					ntv2_fixedpoint.c \
+					ntv2_enhcsc.c
 
 DRIVEROBJS		=	$(patsubst %.c,%.o,$(DRIVERSRCS))
 
@@ -79,7 +80,8 @@ DRIVERINCS		=	ntv2_common.h \
 					ntv2_serial.h \
 					ntv2_mixops.h \
 					ntv2_chrdev.h \
-					ntv2_fixedpoint.h
+					ntv2_fixedpoint.h \
+					ntv2_enhcsc.h
 
 obj-m			:= $(DRIVERTARGET)
 $(DRIVERNAME)-y	:= $(DRIVEROBJS)

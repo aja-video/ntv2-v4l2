@@ -817,6 +817,9 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	struct ntv2_channel_stream *stream = ntv2_vid->vid_str;
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
 	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
+	struct ntv2_enhanced_csc tmp_csc;
+	struct ntv2_csc_matrix hue_m;
+	struct ntv2_csc_matrix sat_m;
 
 	ntv2_fp16 fp_maxVal = ntv2_fp16_init(1024, 0);
 	ntv2_fp16 fp_val = 0;
@@ -836,7 +839,7 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_result = ntv2_fp16_mul(fp_maxVal, fp_percentage);
 		stream->video.brightness_fp16 = fp_result;
 
-		//int_result = ntv2_fp_round(fp_result);
+		//int_result = ntv2_fp16_round(fp_result);
 		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4l2_CID_BRIGHTNESS, value = %d, lift value = %d", "sean", ctrl->val, int_result);
 		break;
 	case V4L2_CID_GAMMA:
@@ -846,7 +849,7 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_result = ntv2_fp16_div(fp_val, fp_range);
 		stream->video.gamma_fp16 = fp_result;
 
-		//int_result = ntv2_fp_round(fp_result);
+		//int_result = ntv2_fp16_round(fp_result);
 		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAMMA, value = %d, gamma value = %d, gamma value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_GAIN:
@@ -856,12 +859,25 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_result = ntv2_fp16_div(fp_val, fp_range);
 		stream->video.gain_fp16 = fp_result;
 
-		//int_result = ntv2_fp_round(fp_result);
+		//int_result = ntv2_fp16_round(fp_result);
 		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAIN, value = %d, gain value = %d, gain value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_SATURATION:
+		stream->video.saturation = ctrl->val;
+		fp_val = ntv2_fp16_init(ctrl->val, 0);
+		fp_range = ntv2_fp16_init(100, 0);
+		fp_result = ntv2_fp16_div(fp_val, fp_range);
+		stream->video.saturation_fp16 = fp_result;
+
+		//int_result = ntv2_fp16_round(fp_result);
+		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_SATURATION, value = %d, sat value = %d, sat value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_HUE:
+		stream->video.hue = ctrl->val;
+		stream->video.hue_fp16 = ntv2_fp16_init(ctrl->val, 0);
+
+		//int_result = ntv2_fp16_round(fp_result);
+		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_HUE, value = %d, hue value = %d, hue value fp16 = %d", "sean", ctrl->val, int_result, stream->video.saturation_fp16);
 		break;
 	default:
 		return -EINVAL;
@@ -882,6 +898,26 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
 	ntv2_lut_write_10bit_tables(vid_reg, true, stream->video.lut_red, stream->video.lut_green, stream->video.lut_blue);
 	ntv2_lut_set_enable(vid_reg, stream->video.lut_index, false);
+
+	// modify CSCs
+	tmp_csc.input_pixel_format = stream->video.enhanced_csc.input_pixel_format;
+	tmp_csc.output_pixel_format = stream->video.enhanced_csc.output_pixel_format;
+	tmp_csc.chroma_filter_select = stream->video.enhanced_csc.chroma_filter_select;
+	tmp_csc.chroma_edge_control = stream->video.enhanced_csc.chroma_edge_control;
+	ntv2_csc_matrix_initialize(&tmp_csc.matrix, ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec709);
+
+	// hue
+	ntv2_csc_matrix_initialize(&hue_m, ntv2_kona_enhanced_csc_matrix_type_unity);
+	ntv2_csc_matrix_set_hue_rotate(&hue_m, stream->video.hue_fp16);
+	ntv2_csc_matrix_post_multiply(&tmp_csc.matrix, &hue_m);
+
+	// saturation
+	fp_val = ntv2_fp16_init(1, 0);
+	ntv2_csc_matrix_initialize(&sat_m, ntv2_kona_enhanced_csc_matrix_type_unity);
+	ntv2_csc_matrix_set_gain(&sat_m, fp_val, stream->video.saturation_fp16, stream->video.saturation_fp16);
+	ntv2_csc_matrix_post_multiply(&tmp_csc.matrix, &sat_m);
+
+	ntv2_csc_send_to_device(vid_reg, stream->video.csc_index+2, &tmp_csc);
 
 	return 0;
 }
@@ -995,9 +1031,9 @@ int ntv2_v4l2ops_configure(struct ntv2_video *ntv2_vid)
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
 			  V4L2_CID_GAIN, 0, 200, 1, 100);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_SATURATION, 0, 255, 1, 127);
+			  V4L2_CID_SATURATION, 0, 200, 1, 100);
 	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_HUE, -128, 127, 1, 0);
+			  V4L2_CID_HUE, -180, 180, 1, 0);
 	if (hdl->error) {
 		NTV2_MSG_VIDEO_ERROR("%s: *error* add control failed code %d\n",
 							 ntv2_vid->name, hdl->error);

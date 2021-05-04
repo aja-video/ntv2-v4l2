@@ -21,6 +21,7 @@
 #include "ntv2_konareg.h"
 #undef NTV2_REG_CONST
 #include "ntv2_register.h"
+#include "ntv2_enhcsc.h"
 
 static u32 audio_cadence_48[NTV2_MAX_FRAME_RATES][5] = {
 	/* ntv2_kona_frame_rate_unknown */	{    0,    0,    0,    0,    0 },
@@ -1465,76 +1466,6 @@ void ntv2_lut_write_10bit_tables(struct ntv2_register *ntv2_reg, bool has_12bit,
 	}
 }
 
-void ntv2_csc_matrix_initialize(struct ntv2_csc_matrix *matrix, int matrix_type)
-{
-	if (matrix == NULL)
-		return;
-
-	switch(matrix_type) {
-		default:
-		case ntv2_kona_enhanced_csc_matrix_type_unity:
-			matrix->a0 = 1;
-			matrix->a1 = 0;
-			matrix->a2 = 0;
-			matrix->b0 = 0;
-			matrix->b1 = 1;
-			matrix->b2 = 0;
-			matrix->c0 = 0;
-			matrix->c1 = 0;
-			matrix->c2 = 1;
-
-			matrix->pre_offset0 = 0x0000;
-			matrix->pre_offset1 = 0x0000;
-			matrix->pre_offset2 = 0x0000;
-
-			matrix->post_offsetA = 0x0000;
-			matrix->post_offsetB = 0x0000;
-			matrix->post_offsetC = 0x0000;
-			break;
-		case ntv2_kona_enhanced_csc_matrix_type_rec709:
-		case ntv2_kona_enhanced_csc_matrix_type_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_custom:
-		case ntv2_kona_enhanced_csc_matrix_type_unity_smpte:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec709:
-			/* todo update to fixed point math */
-			matrix->a0 = 0; //  0.612427;
-			matrix->a1 = 0; //  0.061829;
-			matrix->a2 = 0; //  0.182068;
-			matrix->b0 = 0; // -0.337585;
-			matrix->b1 = 0; //  0.437927;
-			matrix->b2 = 0; // -0.100342;
-			matrix->c0 = 0; // -0.397766;
-			matrix->c1 = 0; // -0.040161;
-			matrix->c2 = 0; //  0.437927;
-
-			matrix->pre_offset0 = 0x0000;
-			matrix->pre_offset1 = 0x0000;
-			matrix->pre_offset2 = 0x0000;
-
-			matrix->post_offsetA = 0x0800;
-			matrix->post_offsetB = 0x0800;
-			matrix->post_offsetC = 0x0800;
-			break;
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec709:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_ycbcr_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec709:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec709:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec601_to_ycbcr_rec709:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_rec709_to_ycbcr_rec601:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_gbr_smpte:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_smpte_to_gbr_full:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_full_to_ycbcr_rec2020:
-		case ntv2_kona_enhanced_csc_matrix_type_gbr_smptr_to_ycbcr_rec2020:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_full_rec2020:
-		case ntv2_kona_enhanced_csc_matrix_type_ycbcr_to_gbr_smpte_rec2020:
-		/* sml: todo */
-		break;
-	}
-}
-
 void ntv2_csc_set_method(struct ntv2_register *ntv2_reg, int index, int method)
 {
 	u32 val, mask;
@@ -1581,6 +1512,58 @@ void ntv2_csc_use_custom_coefficient(struct ntv2_register *ntv2_reg, int index, 
 	val = NTV2_FLD_SET(ntv2_kona_fld_csc_use_custom_coefficient, (int)use);
 	mask = NTV2_FLD_MASK(ntv2_kona_fld_csc_use_custom_coefficient);
 	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_csc_coefficients_1_2, index, val, mask);
+}
+
+void ntv2_csc_send_to_device(struct ntv2_register *ntv2_reg, int index, struct ntv2_enhanced_csc *csc)
+{
+	const int num_regs = 16;
+	u32 regs[16];
+	u32 reg_start_offset;
+	u32 val, mask;
+	u32 i;
+
+	if ((ntv2_reg == NULL) ||
+		(csc == NULL) ||
+		(index < 0) ||
+		(index > 7))
+		return;
+
+	mask = 0;
+	val  = 0;
+	mask |= NTV2_FLD_MASK(ntv2_kond_fld_enhanced_csc_input_pixel_format);
+	val  |= NTV2_FLD_SET(ntv2_kond_fld_enhanced_csc_input_pixel_format, csc->input_pixel_format);
+	mask |= NTV2_FLD_MASK(ntv2_kond_fld_enhanced_csc_output_pixel_format);
+	val  |= NTV2_FLD_SET(ntv2_kond_fld_enhanced_csc_output_pixel_format, csc->output_pixel_format);
+	mask |= NTV2_FLD_MASK(ntv2_kond_fld_enhanced_csc_chroma_edge_control);
+	val  |= NTV2_FLD_SET(ntv2_kond_fld_enhanced_csc_chroma_edge_control, csc->chroma_edge_control);
+	mask |= NTV2_FLD_MASK(ntv2_kond_fld_enhanced_csc_chroma_filter_select);
+	val  |= NTV2_FLD_SET(ntv2_kond_fld_enhanced_csc_chroma_filter_select, csc->chroma_filter_select);
+	ntv2_reg_rmw(ntv2_reg, ntv2_kona_reg_enhanced_csc, index, val, mask);
+
+	regs[0]  = (csc->matrix.pre_offset1 << 16) | (csc->matrix.pre_offset0 & 0xffff);
+	regs[1]  = csc->matrix.pre_offset2;
+	/* in user-space these are usually doubles shifted up 24 bits, but since we are already in fp16
+	 * only shift up an additional 8.
+	 */
+	regs[2]  = csc->matrix.a0 << 8;
+	regs[3]  = csc->matrix.a1 << 8;
+	regs[4]  = csc->matrix.a2 << 8;
+	regs[5]  = csc->matrix.b0 << 8;
+	regs[6]  = csc->matrix.b1 << 8;
+	regs[7]  = csc->matrix.b2 << 8;
+	regs[8]  = csc->matrix.c0 << 8;
+	regs[9]  = csc->matrix.c1 << 8;
+	regs[10] = csc->matrix.c2 << 8;
+	regs[11] = (csc->matrix.post_offsetB << 16) | (csc->matrix.post_offsetA & 0xffff);
+	regs[12] = csc->matrix.post_offsetC;
+	regs[13] = ((csc->key_output_range & 16) << 4) | ((csc->key_source & 3) << 0);
+	regs[14] = (csc->key_output_offset << 16) | csc->key_input_offset;
+	regs[15] = csc->key_gain << 12;
+
+	reg_start_offset = NTV2_REG_NUM(ntv2_kona_reg_enhanced_csc, (u32)index) + 1;
+	for (i = 0; i < num_regs; i++) {
+		ntv2_register_write(ntv2_reg, reg_start_offset + i, regs[i]);
+	}
 }
 
 void ntv2_route_sdi_to_fs(struct ntv2_register* ntv2_reg,
