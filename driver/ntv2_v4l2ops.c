@@ -836,9 +836,6 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_percentage = ntv2_fp16_div(fp_val, fp_range);
 		fp_result = ntv2_fp16_mul(fp_maxVal, fp_percentage);
 		stream->video.brightness_fp16 = fp_result;
-
-		//int_result = ntv2_fp16_round(fp_result);
-		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4l2_CID_BRIGHTNESS, value = %d, lift value = %d", "sean", ctrl->val, int_result);
 		break;
 	case V4L2_CID_GAMMA:
 		stream->video.gamma = ctrl->val;
@@ -846,9 +843,6 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_range = ntv2_fp16_init(100, 0);
 		fp_result = ntv2_fp16_div(fp_val, fp_range);
 		stream->video.gamma_fp16 = fp_result;
-
-		//int_result = ntv2_fp16_round(fp_result);
-		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAMMA, value = %d, gamma value = %d, gamma value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_GAIN:
 		stream->video.gain = ctrl->val;
@@ -856,9 +850,6 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_range = ntv2_fp16_init(100, 0);
 		fp_result = ntv2_fp16_div(fp_val, fp_range);
 		stream->video.gain_fp16 = fp_result;
-
-		//int_result = ntv2_fp16_round(fp_result);
-		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_GAIN, value = %d, gain value = %d, gain value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_SATURATION:
 		stream->video.saturation = ctrl->val;
@@ -866,16 +857,10 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 		fp_range = ntv2_fp16_init(100, 0);
 		fp_result = ntv2_fp16_div(fp_val, fp_range);
 		stream->video.saturation_fp16 = fp_result;
-
-		//int_result = ntv2_fp16_round(fp_result);
-		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_SATURATION, value = %d, sat value = %d, sat value fp16 = %d", "sean", ctrl->val, int_result, fp_result);
 		break;
 	case V4L2_CID_HUE:
 		stream->video.hue = ctrl->val;
 		stream->video.hue_fp16 = ntv2_fp16_init(ctrl->val, 0);
-
-		//int_result = ntv2_fp16_round(fp_result);
-		//NTV2_MSG_INFO("%s in ntv2_s_ctrl V4L2_CID_HUE, value = %d, hue value = %d, hue value fp16 = %d", "sean", ctrl->val, int_result, stream->video.saturation_fp16);
 		break;
 	default:
 		return -EINVAL;
@@ -884,9 +869,9 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	// calculate LUTs
 	for (i = 0; i < 1024; i++) {
 		fp_result = ntv2_fp16_lift_gamma_gain(i,
-											stream->video.brightness_fp16,
-											stream->video.gamma_fp16,
-											stream->video.gain_fp16);
+											  stream->video.brightness_fp16,
+											  stream->video.gamma_fp16,
+											  stream->video.gain_fp16);
 		int_result = ntv2_fp16_round(fp_result);
 		stream->video.lut_red[i]   = (u16)clamp(int_result, 0, 1023);
 		stream->video.lut_green[i] = (u16)clamp(int_result, 0, 1023);

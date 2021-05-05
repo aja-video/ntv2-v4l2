@@ -2469,7 +2469,7 @@ static void ntv2_features_konahdmi(struct ntv2_features *features)
 	build_v4l2_timings(features);
 }
 
-static void ntv2_features_konahdmi2rx(struct ntv2_features *features) 
+static void ntv2_features_konahdmi2rx(struct ntv2_features *features)
 {
 	int i;
 
@@ -2506,8 +2506,6 @@ static void ntv2_features_konahdmi2rx(struct ntv2_features *features)
 	features->source_config[0][1] = &asc_hdmi4k_aja_1;
 	features->source_config[1][0] = &asc_auto;
 	features->source_config[1][1] = &asc_hdmi4k_aja_2;
-	//features->source_config[0][0] = &asc_hdmi4k_aja_1;
-	//features->source_config[1][0] = &asc_hdmi4k_aja_2;
 
 	features->hdmi_edid[0] = ntv2_edid_type_konahdmi_20;
 	features->hdmi_edid[1] = ntv2_edid_type_konahdmi_20;

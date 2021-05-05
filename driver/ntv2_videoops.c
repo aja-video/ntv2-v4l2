@@ -190,17 +190,6 @@ int ntv2_videoops_update_timing(struct ntv2_channel_stream *stream)
 		}
 	}
 
-	NTV2_MSG_INFO("%s: input - std = %d, rate = %d, reg_idx = %d, input_idx = %d, num_inputs = %d, num_streams = %d",
-				  ntv2_chn->name, input_format->video_standard, input_format->frame_rate, input_format->reg_index,
-				  input_format->input_index, input_format->num_inputs, input_format->num_streams);
-
-	NTV2_MSG_INFO("%s: fmt - name = %s, std = %d, geom = %d, rate = %d",
-				  ntv2_chn->name,video_format->name,video_format->video_standard,video_format->frame_geometry,
-				  video_format->frame_rate)
-
-	NTV2_MSG_INFO("%s: mode_sync = %d, mode_tsi = %d, mode_quad = %d, mode_372 = %d, std = %d, rate = %d",
-				  ntv2_chn->name, mode_sync, mode_tsi, mode_quad, mode_372, standard, rate);
-
 	/* setup video timing, device sync source and sync mode */
 	val = NTV2_FLD_SET(ntv2_kona_fld_global_frame_rate_b012, rate & 0x7);
 	val |= NTV2_FLD_SET(ntv2_kona_fld_global_frame_rate_b3, rate >> 3);
@@ -781,7 +770,6 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 		stream->video.csc1_index = stream->video.lut_index;
 		stream->video.csc2_index = stream->video.lut_index + 2;
 
-		/* sml: should the lut setup go here or in ntv2_videoops_setup_capture ? */
 		for (i = 0; i < 1024; i++) {
 			stream->video.lut_red[i] = i;
 			stream->video.lut_green[i] = i;
