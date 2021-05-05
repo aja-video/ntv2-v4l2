@@ -90,7 +90,8 @@ struct ntv2_video_stream {
 	u32								frame_size;
 	bool							hardware_enable[NTV2_MAX_CHANNELS];
 
-	int								csc_index;
+	int								csc1_index;
+	int								csc2_index;
 	int								num_cscs;
 	int								lut_index;
 	int								num_luts;

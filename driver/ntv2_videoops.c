@@ -301,7 +301,7 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	struct ntv2_pixel_format *pixel_format = &stream->video.pixel_format;
 	int chn_index = 0;
 	int inp_index = 0;
-	int csc_index = 0;
+	int csc1_index = 0;
 	int lut_index = 0;
 	int csc2_index = 0;
 	bool do_csc = false;
@@ -313,7 +313,8 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 	/* get hardware components */
 	chn_index = ntv2_chn->index;
 	inp_index = input_format->input_index;
-	csc_index = stream->video.csc_index;
+	csc1_index = stream->video.csc1_index;
+	csc2_index = stream->video.csc2_index;
 	lut_index = stream->video.lut_index;
 	
 	/* determine input and pixel rgbness */
@@ -342,9 +343,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 					if (do_csc) {
 						ntv2_route_sdi_to_csc(vid_reg,
 											  inp_index + (i/2), i%2, in_rgb,
-											  csc_index + i, 0);
+											  csc1_index + i, 0);
 						ntv2_route_csc_to_mux(vid_reg,
-											  csc_index + i, 0, fs_rgb,
+											  csc1_index + i, 0, fs_rgb,
 											  chn_index + (i/2), i%2);
 						ntv2_route_mux_to_fs(vid_reg,
 											 chn_index + (i/2), i%2, fs_rgb,
@@ -364,9 +365,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 					if (do_csc) {
 						ntv2_route_sdi_to_csc(vid_reg,
 											  inp_index + i, 0, in_rgb,
-											  csc_index + i, 0);
+											  csc1_index + i, 0);
 						ntv2_route_csc_to_mux(vid_reg,
-											  csc_index + i, 0, fs_rgb,
+											  csc1_index + i, 0, fs_rgb,
 											  chn_index + (i/2), i%2);
 						ntv2_route_mux_to_fs(vid_reg,
 											 chn_index + (i/2), i%2, fs_rgb,
@@ -388,9 +389,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				if (do_csc) {
 					ntv2_route_sdi_to_csc(vid_reg,
 										  inp_index + (i/2), i%2, in_rgb,
-										  csc_index + i, 0);
+										  csc1_index + i, 0);
 					ntv2_route_csc_to_fs(vid_reg,
-										 csc_index + i, 0, !in_rgb,
+										 csc1_index + i, 0, !in_rgb,
 										 chn_index + i, 0);
 				} else {
 					ntv2_route_sdi_to_fs(vid_reg,
@@ -404,9 +405,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				if (do_csc) {
 					ntv2_route_sdi_to_csc(vid_reg,
 										  inp_index + i, 0, in_rgb,
-										  csc_index + i, 0);
+										  csc1_index + i, 0);
 					ntv2_route_csc_to_fs(vid_reg,
-										 csc_index + i, 0, !in_rgb,
+										 csc1_index + i, 0, !in_rgb,
 										 chn_index + i, 0);
 				} else {
 					ntv2_route_sdi_to_fs(vid_reg,
@@ -425,9 +426,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				if (do_csc) {
 					ntv2_route_hdmi_to_csc(vid_reg,
 										   inp_index, i, in_rgb,
-										   csc_index + i, 0);
+										   csc1_index + i, 0);
 					ntv2_route_csc_to_mux(vid_reg,
-										  csc_index + i, 0, fs_rgb,
+										  csc1_index + i, 0, fs_rgb,
 										  chn_index + (i/2), i%2);
 					ntv2_route_mux_to_fs(vid_reg,
 										 chn_index + (i/2), i%2, fs_rgb,
@@ -450,9 +451,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				if (do_csc) {
 					ntv2_route_hdmi_to_csc(vid_reg,
 										   inp_index, i, in_rgb,
-										   csc_index + i, 0);
+										   csc1_index + i, 0);
 					ntv2_route_csc_to_fs(vid_reg,
-										 csc_index + i, 0, !in_rgb,
+										 csc1_index + i, 0, !in_rgb,
 										 chn_index + i, 0);
 				} else {
 					ntv2_route_hdmi_to_fs(vid_reg,
@@ -468,9 +469,9 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 			if (do_csc) {
 				ntv2_route_hdmi_to_csc(vid_reg,
 									   inp_index, 0, in_rgb,
-									   csc_index, 0);
+									   csc1_index, 0);
 				ntv2_route_csc_to_fs(vid_reg,
-									 csc_index, 0, !in_rgb,
+									 csc1_index, 0, !in_rgb,
 									 chn_index, 0);
 			} else {
 				ntv2_route_hdmi_to_fs(vid_reg,
@@ -490,7 +491,6 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				Input2 -> LUT2 -> CSC4 -> FrameBuffer2(yuv)
 			*/
 			lut_index = inp_index;
-			csc2_index = csc_index+2;
 
 			ntv2_route_hdmi_to_lut(vid_reg,
 								   inp_index, 0, true,
@@ -510,14 +510,13 @@ int ntv2_videoops_update_route(struct ntv2_channel_stream *stream)
 				Input2 -> CSC2 -> LUT2 -> CSC4 -> FrameBuffer2(yuv)
 			*/
 			lut_index = inp_index;
-			csc2_index = csc_index+2;
 
 			ntv2_route_hdmi_to_csc(vid_reg,
 								   inp_index, 0, false,
-								   csc_index, 0);
+								   csc1_index, 0);
 
 			ntv2_route_csc_to_lut(vid_reg,
-								  csc_index, 0, true,
+								  csc1_index, 0, true,
 								  lut_index, 0);
 
 			ntv2_route_lut_to_csc(vid_reg,
@@ -753,11 +752,11 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 		if (result != 0)
 			goto release;
 
-		stream->video.csc_index = csc_config->widget_index;
+		stream->video.csc1_index = csc_config->widget_index;
 		stream->video.num_cscs = csc_config->num_widgets;
 
 		NTV2_MSG_INFO("%s: acquire  csc %d  num %d\n", ntv2_chn->name,
-					  stream->video.csc_index, stream->video.num_cscs);
+					  stream->video.csc1_index, stream->video.num_cscs);
 	}
 
 	if (features->device_id == NTV2_DEVICE_ID_KONAHDMI2RX) {
@@ -779,6 +778,8 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 
 		stream->video.lut_index = lut_config->widget_index;
 		stream->video.num_luts = lut_config->num_widgets;
+		stream->video.csc1_index = stream->video.lut_index;
+		stream->video.csc2_index = stream->video.lut_index + 2;
 
 		/* sml: should the lut setup go here or in ntv2_videoops_setup_capture ? */
 		for (i = 0; i < 1024; i++) {
@@ -787,7 +788,7 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 			stream->video.lut_blue[i] = i;
 		}
 
-		lut_bank = ntv2_chn->index;
+		lut_bank = 0;
 		ntv2_lut_set_output_bank(vid_reg, stream->video.lut_index, lut_bank);
 		ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
 		ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
@@ -798,8 +799,8 @@ int ntv2_videoops_acquire_hardware(struct ntv2_channel_stream *stream)
 					  stream->video.lut_index, stream->video.num_luts);
 
 		/* setup enhanced csc for hue and saturation conversion */
-		ntv2_csc_set_method(vid_reg, stream->video.csc_index+2, ntv2_kona_color_space_method_enhanced);
-		ntv2_csc_use_custom_coefficient(vid_reg, stream->video.csc_index+2, false);
+		ntv2_csc_set_method(vid_reg, stream->video.csc2_index, ntv2_kona_color_space_method_enhanced);
+		ntv2_csc_use_custom_coefficient(vid_reg, stream->video.csc2_index, false);
 
 		stream->video.enhanced_csc.input_pixel_format = ntv2_kona_enhanced_csc_pixel_format_rgb444;
 		stream->video.enhanced_csc.output_pixel_format = ntv2_kona_enhanced_csc_pixel_format_ycbcr422;

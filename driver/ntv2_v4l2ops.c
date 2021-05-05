@@ -27,6 +27,8 @@
 #include "ntv2_register.h"
 #include "ntv2_fixedpoint.h"
 
+#include <linux/minmax.h>
+
 static int ntv2_querycap(struct file *file,
 						 void *priv,
 						 struct v4l2_capability *cap)
@@ -802,10 +804,6 @@ ntv2_fp16 ntv2_fp16_lift_gamma_gain(s32 input_val, ntv2_fp16 lift, ntv2_fp16 gam
 	return result;
 }
 
-#define ntv2_max(x,y)     (((x) > (y)) ? (x):(y))
-#define ntv2_min(x,y)     (((x) > (y)) ? (y):(x))
-#define ntv2_clamp(x,y,z) (ntv2_min(ntv2_max((x),(y)),(z)))
-
 /* 
  * The control handler
  */
@@ -816,6 +814,7 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	struct ntv2_channel_stream *stream = ntv2_vid->vid_str;
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_features *features = ntv2_chn->features;
 	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
 	struct ntv2_enhanced_csc tmp_csc;
 	struct ntv2_csc_matrix hue_m;
@@ -829,6 +828,9 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	s32 int_result;
 	int lut_bank = ntv2_chn->index;
 	int i=0;
+
+	if (features->device_id != NTV2_DEVICE_ID_KONAHDMI2RX)
+		return 0;
 
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
@@ -890,9 +892,9 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 											stream->video.gamma_fp16,
 											stream->video.gain_fp16);
 		int_result = ntv2_fp16_round(fp_result);
-		stream->video.lut_red[i]   = (u16)ntv2_clamp(0, int_result, 1023);
-		stream->video.lut_green[i] = (u16)ntv2_clamp(0, int_result, 1023);
-		stream->video.lut_blue[i]  = (u16)ntv2_clamp(0, int_result, 1023);
+		stream->video.lut_red[i]   = (u16)clamp(int_result, 0, 1023);
+		stream->video.lut_green[i] = (u16)clamp(int_result, 0, 1023);
+		stream->video.lut_blue[i]  = (u16)clamp(int_result, 0, 1023);
 	}
 	ntv2_lut_set_enable(vid_reg, stream->video.lut_index, true);
 	ntv2_lut_set_color_correction_host_access_bank_v2(vid_reg, ntv2_chn->index, lut_bank);
@@ -917,7 +919,7 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	ntv2_csc_matrix_set_gain(&sat_m, fp_val, stream->video.saturation_fp16, stream->video.saturation_fp16);
 	ntv2_csc_matrix_post_multiply(&tmp_csc.matrix, &sat_m);
 
-	ntv2_csc_send_to_device(vid_reg, stream->video.csc_index+2, &tmp_csc);
+	ntv2_csc_send_to_device(vid_reg, stream->video.csc2_index, &tmp_csc);
 
 	return 0;
 }
@@ -1017,33 +1019,38 @@ int ntv2_v4l2ops_configure(struct ntv2_video *ntv2_vid)
 {
 	struct video_device *video_dev;
 	struct v4l2_ctrl_handler *hdl;
+	struct ntv2_channel_stream *stream = ntv2_vid->vid_str;
+	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
+	struct ntv2_features *features = ntv2_chn->features;
 
-	/* initialize the ctrl handler */
-	hdl = &ntv2_vid->ctrl_handler;
-	v4l2_ctrl_handler_init(hdl, 4);
-	ntv2_vid->ctrl_init = true;
+	if (features->device_id == NTV2_DEVICE_ID_KONAHDMI2RX) {
+		/* initialize the ctrl handler */
+		hdl = &ntv2_vid->ctrl_handler;
+		v4l2_ctrl_handler_init(hdl, 4);
+		ntv2_vid->ctrl_init = true;
 
-	/* add the controls */
-	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_BRIGHTNESS, -100, 100, 1, 0);
-	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_GAMMA, 0, 200, 1, 100);
-	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_GAIN, 0, 200, 1, 100);
-	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_SATURATION, 0, 200, 1, 100);
-	v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
-			  V4L2_CID_HUE, -180, 180, 1, 0);
-	if (hdl->error) {
-		NTV2_MSG_VIDEO_ERROR("%s: *error* add control failed code %d\n",
-							 ntv2_vid->name, hdl->error);
-		return hdl->error;
+		/* add the controls */
+		v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+				  V4L2_CID_BRIGHTNESS, -100, 100, 1, 0);
+		v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+				  V4L2_CID_GAMMA, 0, 200, 1, 100);
+		v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+				  V4L2_CID_GAIN, 0, 200, 1, 100);
+		v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+				  V4L2_CID_SATURATION, 0, 200, 1, 100);
+		v4l2_ctrl_new_std(hdl, &ntv2_ctrl_ops,
+				  V4L2_CID_HUE, -180, 180, 1, 0);
+		if (hdl->error) {
+			NTV2_MSG_VIDEO_ERROR("%s: *error* add control failed code %d\n",
+								 ntv2_vid->name, hdl->error);
+			return hdl->error;
+		}
+
+		/* assign v4l2 ctrl handler */
+		ntv2_vid->v4l2_dev.ctrl_handler = hdl;
+
+		v4l2_ctrl_handler_setup(hdl);
 	}
-
-	/* assign v4l2 ctrl handler */
-	ntv2_vid->v4l2_dev.ctrl_handler = hdl;
-
-	v4l2_ctrl_handler_setup(hdl);
 
 	/* assign video ops */
 	video_dev = &ntv2_vid->video_dev;
