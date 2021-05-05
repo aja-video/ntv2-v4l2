@@ -814,7 +814,6 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 
 	struct ntv2_channel_stream *stream = ntv2_vid->vid_str;
 	struct ntv2_channel *ntv2_chn = stream->ntv2_chn;
-	struct ntv2_features *features = ntv2_chn->features;
 	struct ntv2_register *vid_reg = ntv2_chn->vid_reg;
 	struct ntv2_enhanced_csc tmp_csc;
 	struct ntv2_csc_matrix hue_m;
@@ -828,9 +827,6 @@ static int ntv2_s_ctrl(struct v4l2_ctrl *ctrl)
 	s32 int_result;
 	int lut_bank = ntv2_chn->index;
 	int i=0;
-
-	if (features->device_id != NTV2_DEVICE_ID_KONAHDMI2RX)
-		return 0;
 
 	switch (ctrl->id) {
 	case V4L2_CID_BRIGHTNESS:
