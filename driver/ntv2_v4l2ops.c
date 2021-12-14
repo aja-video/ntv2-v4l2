@@ -27,7 +27,9 @@
 #include "ntv2_register.h"
 #include "ntv2_fixedpoint.h"
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,10,0))
 #include <linux/minmax.h>
+#endif
 
 static int ntv2_querycap(struct file *file,
 						 void *priv,
