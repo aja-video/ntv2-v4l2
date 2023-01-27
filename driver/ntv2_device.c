@@ -685,9 +685,9 @@ static int ntv2_device_dma_configure(struct ntv2_device *ntv2_dev)
 	pci_set_master(pdev);
 
 	/* set dma mask to 64 bits with fallback to 32 bits*/
-	result = pci_set_dma_mask(pdev, DMA_BIT_MASK(64));
+	result = dma_set_mask(&pdev->dev, DMA_BIT_MASK(64));
 	if (result == 0) {
-		result = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+		result = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(64));
 		if (result < 0) {
 			NTV2_MSG_DEVICE_ERROR("%s: set consistent dma mask to 64 bit failed code %d\n",
 								  ntv2_dev->name, result);
@@ -696,13 +696,13 @@ static int ntv2_device_dma_configure(struct ntv2_device *ntv2_dev)
 		NTV2_MSG_DEVICE_INFO("%s: pci dma mask = 64 bit\n", ntv2_dev->name);
 	}
 	else {
-		result = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+		result = dma_set_mask(&pdev->dev, DMA_BIT_MASK(32));
 		if (result < 0) {
 			NTV2_MSG_DEVICE_ERROR("%s: set dma mask to 32 bit failed code %d\n",
 								  ntv2_dev->name, result);
 			return result;
 		}
-		result = pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+		result = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(64));
 		if (result < 0) {
 			NTV2_MSG_DEVICE_ERROR("%s: set consistent dma mask to 32 bit failed code %d\n",
 								  ntv2_dev->name, result);
