@@ -702,7 +702,7 @@ static int ntv2_device_dma_configure(struct ntv2_device *ntv2_dev)
 								  ntv2_dev->name, result);
 			return result;
 		}
-		result = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(64));
+		result = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
 		if (result < 0) {
 			NTV2_MSG_DEVICE_ERROR("%s: set consistent dma mask to 32 bit failed code %d\n",
 								  ntv2_dev->name, result);
