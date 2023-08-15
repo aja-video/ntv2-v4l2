@@ -168,7 +168,7 @@ static void ntv2_uartops_shutdown(struct uart_port *port)
 
 static void ntv2_uartops_set_termios(struct uart_port *port,
 									 struct ktermios *termios,
-									 struct ktermios *old)
+									 const struct ktermios *old)
 {
 	struct ntv2_serial *ntv2_ser = container_of(port, struct ntv2_serial, uart_port);
 	u32 valid = NTV2_FLD_MASK(ntv2_kona_fld_serial_rx_valid);
