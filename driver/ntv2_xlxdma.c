@@ -108,7 +108,7 @@ void ntv2_xlxdma_close(struct ntv2_xlxdma *ntv2_xlx)
 
 	/* free the descriptor memory */
 	if (ntv2_xlx->descriptor != NULL) {
-		pci_free_consistent(ntv2_xlx->ntv2_dev->pci_dev,
+		dma_free_coherent(&(ntv2_xlx->ntv2_dev->pci_dev)->dev,
 							ntv2_xlx->descriptor_memsize,
 							ntv2_xlx->descriptor,
 							ntv2_xlx->dma_descriptor);
@@ -192,9 +192,10 @@ int ntv2_xlxdma_configure(struct ntv2_xlxdma *ntv2_xlx, struct ntv2_register *xl
 
 	/* allocate descriptor memory */
 	ntv2_xlx->descriptor_memsize = ntv2_xlx->max_descriptors * sizeof(struct ntv2_xlxdma_descriptor);
-	ntv2_xlx->descriptor = pci_alloc_consistent(ntv2_xlx->ntv2_dev->pci_dev,
+	ntv2_xlx->descriptor = dma_alloc_coherent(&(ntv2_xlx->ntv2_dev->pci_dev)->dev,
 												ntv2_xlx->descriptor_memsize,
-												&ntv2_xlx->dma_descriptor);
+												&ntv2_xlx->dma_descriptor,
+												GFP_ATOMIC);
 	if (ntv2_xlx->descriptor == NULL) {
 		NTV2_MSG_DMA_ERROR("%s: *error* descriptor memory allocation failed\n", ntv2_xlx->name);
 		return -ENOMEM;
