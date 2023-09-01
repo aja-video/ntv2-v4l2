@@ -103,6 +103,9 @@
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0))
 #define NTV2_USE_VFL_TYPE_VIDEO				/* 5.7.0 required */
 #endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,1,0))
+#define NTV2_USE_TERMIOS_CONST
+#endif
 /* 5.0.0 does build */
 
 /*
