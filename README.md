@@ -1,3 +1,13 @@
+# ⚠ **WARNING: This Repository is Unmaintained**
+
+05/12/2025
+
+This repository is no longer actively maintained. We appreciate your continued use, but are unable to provide ongoing support, bug fixes, or feature development.
+
+The team at AJA is developing a replacement project with enhanced functionality, which will be incorporated into our SDK: [https://github.com/aja-video/libajantv2](https://github.com/aja-video/libajantv2).  We expect to announce details about the SDK integration in the coming months. Please monitor this repository for updates.
+
+We recommend caution when using this repository and cannot guarantee stability or compatibility. Thank you for your understanding.
+
 ![enter image description here](https://www.aja.com/media/images/press/aja/AJA_Logo_small.png)
 # NTV2 V4L2/ALSA Kernel Driver
 
